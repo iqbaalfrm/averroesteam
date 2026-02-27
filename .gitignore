@@ -1,0 +1,64 @@
+# =====================
+# Flutter / Dart
+# =====================
+apps/mobile/build/
+apps/mobile/.dart_tool/
+apps/flutter_assets/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/.packages
+apps/mobile/*.iml
+apps/mobile/pubspec.lock
+packages/**/.dart_tool/
+packages/**/build/
+packages/**/.packages
+packages/**/*.iml
+packages/**/pubspec.lock
+
+# =====================
+# Backend (Python)
+# =====================
+**/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+apps/backend/.venv/
+apps/backend/database.sqlite3
+apps/backend/instance/*.sqlite3
+apps/backend/uploads/
+
+# =====================
+# IDE
+# =====================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# =====================
+# OS
+# =====================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =====================
+# Environment
+# =====================
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# =====================
+# Logs / Temp
+# =====================
+*.log
+*.tmp
+*.temp

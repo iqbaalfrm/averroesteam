@@ -1,0 +1,987 @@
+import 'dart:math' as math;
+
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
+
+class HalamanPasar extends StatefulWidget {
+  const HalamanPasar({super.key});
+  @override
+  State<HalamanPasar> createState() => _HalamanPasarState();
+}
+
+enum _Filter { all, gainers, losers, watchlist }
+
+enum _Sort { cap, chg }
+
+enum _ChartRange { h24, d7, m1, m3, ytd, y1 }
+
+class _HalamanPasarState extends State<HalamanPasar> {
+  final Dio dio = Dio(BaseOptions(baseUrl: 'https://api.coingecko.com/api/v3'));
+  final ScrollController scroll = ScrollController();
+  final TextEditingController search = TextEditingController();
+  final GetStorage box = GetStorage();
+  final List<_Coin> coins = <_Coin>[];
+  final Set<String> fav = <String>{};
+  bool loading = true, loadingMore = false, hasMore = true;
+  int page = 1;
+  int uiPage = 1;
+  static const int _pageSize = 10;
+  String? error;
+  double? global24h;
+  _Filter filter = _Filter.all;
+  _Sort sort = _Sort.cap;
+  String q = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final dynamic raw = box.read('pasar_watchlist');
+    if (raw is List) fav.addAll(raw.map((e) => '$e'));
+    search.addListener(() => setState(() {
+          q = search.text.trim().toLowerCase();
+          uiPage = 1;
+        }));
+    scroll.addListener(() {
+      if (scroll.hasClients && scroll.position.extentAfter < 600) {
+        _loadMarkets();
+      }
+    });
+    refresh();
+  }
+
+  @override
+  void dispose() {
+    dio.close();
+    scroll.dispose();
+    search.dispose();
+    super.dispose();
+  }
+
+  Future<void> refresh() async {
+    setState(() {
+      loading = true;
+      error = null;
+      page = 1;
+      uiPage = 1;
+      hasMore = true;
+      coins.clear();
+    });
+    await Future.wait(<Future<void>>[_loadGlobal(), _loadMarkets(reset: true)]);
+    if (mounted) {
+      setState(() => loading = false);
+    }
+  }
+
+  Future<void> _loadGlobal() async {
+    try {
+      final r = await dio.get('/global');
+      final data = (r.data as Map?)?['data'] as Map?;
+      global24h = _d(data?['market_cap_change_percentage_24h_usd']);
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
+  Future<void> _loadMarkets({bool reset = false}) async {
+    if (loadingMore || (!reset && !hasMore)) return;
+    if (!reset && mounted) setState(() => loadingMore = true);
+    final int p = reset ? 1 : page;
+    try {
+      final r =
+          await dio.get('/coins/markets', queryParameters: <String, dynamic>{
+        'vs_currency': 'idr',
+        'order': 'market_cap_desc',
+        'per_page': 100,
+        'page': p,
+        'sparkline': false,
+        'price_change_percentage': '24h',
+      });
+      final rows = (r.data as List).cast<dynamic>();
+      final list = rows
+          .whereType<Map>()
+          .map((e) => _Coin.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        if (reset) {
+          coins
+            ..clear()
+            ..addAll(list);
+          page = 2;
+        } else {
+          coins.addAll(list);
+          page = p + 1;
+        }
+        hasMore = list.length >= 100;
+        error = null;
+      });
+    } on DioException catch (e) {
+      if (mounted) {
+        setState(() => error = e.response?.statusCode == 429
+            ? 'Rate limit CoinGecko'
+            : 'Gagal memuat data');
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => error = 'Gagal memuat data');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => loadingMore = false);
+      }
+    }
+  }
+
+  List<_Coin> get visible {
+    Iterable<_Coin> out = coins;
+    if (q.isNotEmpty) {
+      out = out.where((c) =>
+          c.name.toLowerCase().contains(q) ||
+          c.symbol.toLowerCase().contains(q));
+    }
+    switch (filter) {
+      case _Filter.all:
+        break;
+      case _Filter.gainers:
+        out = out.where((c) => (c.chg24 ?? 0) > 0);
+      case _Filter.losers:
+        out = out.where((c) => (c.chg24 ?? 0) < 0);
+      case _Filter.watchlist:
+        out = out.where((c) => fav.contains(c.id));
+    }
+    final list = out.toList();
+    if (sort == _Sort.cap) {
+      list.sort((a, b) => (b.cap ?? 0).compareTo(a.cap ?? 0));
+    } else {
+      list.sort((a, b) => (b.chg24 ?? -999).compareTo(a.chg24 ?? -999));
+    }
+    return list;
+  }
+
+  void toggleFav(_Coin c) {
+    setState(() {
+      if (!fav.add(c.id)) fav.remove(c.id);
+      box.write('pasar_watchlist', fav.toList());
+    });
+  }
+
+  int _totalPagesFor(int itemCount) =>
+      itemCount == 0 ? 1 : ((itemCount - 1) ~/ _pageSize) + 1;
+
+  Future<void> _changeUiPage(int next, int totalPages) async {
+    if (next < 1) return;
+    if (next > totalPages) {
+      if (hasMore && !loadingMore) {
+        await _loadMarkets();
+      }
+      if (!mounted) return;
+      final refreshedTotal = _totalPagesFor(visible.length);
+      setState(() => uiPage = next.clamp(1, refreshedTotal).toInt());
+      return;
+    }
+    setState(() => uiPage = next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = visible;
+    final totalPages = _totalPagesFor(list.length);
+    final currentUiPage = uiPage.clamp(1, totalPages).toInt();
+    final start = list.isEmpty ? 0 : (currentUiPage - 1) * _pageSize;
+    final end = math.min(start + _pageSize, list.length);
+    final pageItems = list.sublist(start, end);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pasar Spot'),
+        actions: <Widget>[
+          PopupMenuButton<_Sort>(
+            onSelected: (v) => setState(() {
+              sort = v;
+              uiPage = 1;
+            }),
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: _Sort.cap, child: Text('Sort: Market Cap')),
+              PopupMenuItem(value: _Sort.chg, child: Text('Sort: 24h %')),
+            ],
+          ),
+          IconButton(onPressed: refresh, icon: const Icon(Icons.refresh)),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: refresh,
+        child: CustomScrollView(
+          controller: scroll,
+          slivers: <Widget>[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _GlobalCard(v: global24h),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: search,
+                        decoration: InputDecoration(
+                          hintText: 'Cari koin (BTC, ETH, Solana)',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: q.isEmpty
+                              ? null
+                              : IconButton(
+                                  onPressed: search.clear,
+                                  icon: const Icon(Icons.close)),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(children: <Widget>[
+                          _chip('Semua', filter == _Filter.all,
+                              () => setState(() {
+                                    filter = _Filter.all;
+                                    uiPage = 1;
+                                  })),
+                          const SizedBox(width: 8),
+                          _chip(
+                              'Top Gainers',
+                              filter == _Filter.gainers,
+                              () => setState(() {
+                                    filter = _Filter.gainers;
+                                    sort = _Sort.chg;
+                                    uiPage = 1;
+                                  })),
+                          const SizedBox(width: 8),
+                          _chip(
+                              'Top Losers',
+                              filter == _Filter.losers,
+                              () => setState(() {
+                                    filter = _Filter.losers;
+                                    sort = _Sort.chg;
+                                    uiPage = 1;
+                                  })),
+                          const SizedBox(width: 8),
+                          _chip('Watchlist', filter == _Filter.watchlist,
+                              () => setState(() {
+                                    filter = _Filter.watchlist;
+                                    uiPage = 1;
+                                  })),
+                        ]),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('CoinGecko Markets',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('${list.length} tampil',
+                                style: const TextStyle(color: Colors.green)),
+                          ]),
+                      if (list.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Halaman $currentUiPage / $totalPages',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.black54)),
+                            Text('${start + 1}-$end dari ${list.length}',
+                                style: const TextStyle(
+                                    fontSize: 12, color: Colors.black54)),
+                          ],
+                        ),
+                      ],
+                      if (loading && coins.isEmpty)
+                        ...List<Widget>.generate(
+                            4,
+                            (i) => const Padding(
+                                padding: EdgeInsets.only(top: 8),
+                                child: LinearProgressIndicator())),
+                      if (error != null && coins.isEmpty)
+                        Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _Err(message: error!, onRetry: refresh)),
+                      if (!loading && error == null && list.isEmpty)
+                        const Padding(
+                            padding: EdgeInsets.only(top: 12),
+                            child: Card(
+                                child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Text(
+                                        'Data kosong / tidak ditemukan')))),
+                    ]),
+              ),
+            ),
+            if (pageItems.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList.separated(
+                  itemCount: pageItems.length,
+                  itemBuilder: (_, i) => _CoinTile(
+                    c: pageItems[i],
+                    favorite: fav.contains(pageItems[i].id),
+                    onFav: () => toggleFav(pageItems[i]),
+                    onTap: () => Navigator.of(context)
+                        .push(MaterialPageRoute(
+                            builder: (_) => _CoinDetailPage(
+                                coin: pageItems[i],
+                                isFav: fav.contains(pageItems[i].id),
+                                onFav: () => toggleFav(pageItems[i]))))
+                        .then((_) => setState(() {})),
+                  ),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                ),
+              ),
+            if (list.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: currentUiPage > 1
+                            ? () => _changeUiPage(currentUiPage - 1, totalPages)
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                        label: const Text('Prev'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: (currentUiPage < totalPages) || hasMore
+                            ? () => _changeUiPage(currentUiPage + 1, totalPages)
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                        label: const Text('Next'),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(children: <Widget>[
+                  if (error != null && coins.isNotEmpty)
+                    _Err(message: error!, onRetry: refresh),
+                  if (loadingMore)
+                    const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: CircularProgressIndicator()),
+                  if (!hasMore && coins.isNotEmpty)
+                    const Text('Semua halaman CoinGecko sudah dimuat'),
+                ]),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _chip(String t, bool on, VoidCallback tap) =>
+      ChoiceChip(label: Text(t), selected: on, onSelected: (_) => tap());
+}
+
+class _CoinTile extends StatelessWidget {
+  const _CoinTile(
+      {required this.c,
+      required this.favorite,
+      required this.onFav,
+      required this.onTap});
+  final _Coin c;
+  final bool favorite;
+  final VoidCallback onFav;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final up = (c.chg24 ?? 0) >= 0;
+    return Card(
+      child: ListTile(
+        onTap: onTap,
+        leading: CircleAvatar(
+            backgroundImage: c.image.isEmpty ? null : NetworkImage(c.image),
+            child: c.image.isEmpty ? const Icon(Icons.token) : null),
+        title: Row(children: [
+          Expanded(child: Text(c.name, overflow: TextOverflow.ellipsis)),
+          if (c.rank != null)
+            Text('#${c.rank}',
+                style: const TextStyle(fontSize: 11, color: Colors.grey))
+        ]),
+        subtitle: Text(c.symbol.toUpperCase()),
+        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+          Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(_idr(c.price),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(_pct(c.chg24),
+                    style: TextStyle(
+                        color: up ? Colors.green : Colors.red, fontSize: 12)),
+              ]),
+          IconButton(
+              onPressed: onFav,
+              icon: Icon(favorite ? Icons.star : Icons.star_border,
+                  color: favorite ? Colors.amber : Colors.grey)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _CoinDetailPage extends StatefulWidget {
+  const _CoinDetailPage(
+      {required this.coin, required this.isFav, required this.onFav});
+  final _Coin coin;
+  final bool isFav;
+  final VoidCallback onFav;
+  @override
+  State<_CoinDetailPage> createState() => _CoinDetailPageState();
+}
+
+class _CoinDetailPageState extends State<_CoinDetailPage> {
+  final Dio dio = Dio(BaseOptions(baseUrl: 'https://api.coingecko.com/api/v3'));
+  bool loading = true;
+  bool loadingChart = false;
+  String? error;
+  _Detail? d;
+  List<double> chart = <double>[];
+  _ChartRange chartRange = _ChartRange.d7;
+  late bool fav = widget.isFav;
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  @override
+  void dispose() {
+    dio.close();
+    super.dispose();
+  }
+
+  Future<void> load() async {
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final rs = await Future.wait<Response<dynamic>>([
+        dio.get('/coins/${widget.coin.id}', queryParameters: {
+          'localization': false,
+          'tickers': false,
+          'market_data': true,
+          'community_data': false,
+          'developer_data': false
+        }),
+        dio.get('/coins/${widget.coin.id}/market_chart', queryParameters: {
+          'vs_currency': 'idr',
+          'days': _chartDays(chartRange),
+        }),
+      ]);
+      d = _Detail.fromJson(Map<String, dynamic>.from(rs[0].data as Map));
+      final raw = (rs[1].data as Map)['prices'];
+      chart = <double>[];
+      if (raw is List) {
+        for (final p in raw) {
+          if (p is List && p.length > 1) {
+            final v = _d(p[1]);
+            if (v != null) chart.add(v);
+          }
+        }
+      }
+    } on DioException catch (e) {
+      error = e.response?.statusCode == 429
+          ? 'Rate limit CoinGecko'
+          : 'Gagal memuat detail';
+    } catch (_) {
+      error = 'Gagal memuat detail';
+    }
+    if (mounted) {
+      setState(() => loading = false);
+    }
+  }
+
+  int _chartDays(_ChartRange r) {
+    switch (r) {
+      case _ChartRange.h24:
+        return 1;
+      case _ChartRange.d7:
+        return 7;
+      case _ChartRange.m1:
+        return 30;
+      case _ChartRange.m3:
+        return 90;
+      case _ChartRange.ytd:
+        final now = DateTime.now();
+        final jan1 = DateTime(now.year, 1, 1);
+        return math.max(1, now.difference(jan1).inDays + 1);
+      case _ChartRange.y1:
+        return 365;
+    }
+  }
+
+  String _chartLabel(_ChartRange r) {
+    switch (r) {
+      case _ChartRange.h24:
+        return '24j';
+      case _ChartRange.d7:
+        return '7h';
+      case _ChartRange.m1:
+        return '1B';
+      case _ChartRange.m3:
+        return '3B';
+      case _ChartRange.ytd:
+        return 'YTD';
+      case _ChartRange.y1:
+        return '1T';
+    }
+  }
+
+  String _chartTitle(_ChartRange r) {
+    switch (r) {
+      case _ChartRange.h24:
+        return 'Chart 24 Jam (IDR)';
+      case _ChartRange.d7:
+        return 'Chart 7 Hari (IDR)';
+      case _ChartRange.m1:
+        return 'Chart 1 Bulan (IDR)';
+      case _ChartRange.m3:
+        return 'Chart 3 Bulan (IDR)';
+      case _ChartRange.ytd:
+        return 'Chart YTD (IDR)';
+      case _ChartRange.y1:
+        return 'Chart 1 Tahun (IDR)';
+    }
+  }
+
+  Future<void> _reloadChart() async {
+    if (loadingChart) return;
+    if (mounted) setState(() => loadingChart = true);
+    try {
+      final rs = await dio.get('/coins/${widget.coin.id}/market_chart',
+          queryParameters: {
+            'vs_currency': 'idr',
+            'days': _chartDays(chartRange),
+          });
+      final raw = (rs.data as Map)['prices'];
+      final next = <double>[];
+      if (raw is List) {
+        for (final p in raw) {
+          if (p is List && p.length > 1) {
+            final v = _d(p[1]);
+            if (v != null) next.add(v);
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() => chart = next);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => chart = <double>[]);
+    } finally {
+      if (mounted) setState(() => loadingChart = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.coin.name), actions: [
+        IconButton(
+            onPressed: () {
+              widget.onFav();
+              setState(() => fav = !fav);
+            },
+            icon: Icon(fav ? Icons.star : Icons.star_border,
+                color: fav ? Colors.amber : null))
+      ]),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : error != null
+              ? Center(child: _Err(message: error!, onRetry: load))
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Card(
+                        child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(children: [
+                              CircleAvatar(
+                                  radius: 22,
+                                  backgroundImage: widget.coin.image.isEmpty
+                                      ? null
+                                      : NetworkImage(widget.coin.image),
+                                  child: widget.coin.image.isEmpty
+                                      ? const Icon(Icons.token)
+                                      : null),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                    Text(widget.coin.name,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18)),
+                                    Text(widget.coin.symbol.toUpperCase(),
+                                        style: const TextStyle(
+                                            color: Colors.grey)),
+                                    const SizedBox(height: 6),
+                                    Text(_idr(d!.price),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 22)),
+                                    Text(_pct(d!.chg24),
+                                        style: TextStyle(
+                                            color: (d!.chg24 ?? 0) >= 0
+                                                ? Colors.green
+                                                : Colors.red)),
+                                  ])),
+                            ]))),
+                    const SizedBox(height: 12),
+                    Card(
+                        child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_chartTitle(chartRange),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 10),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: _ChartRange.values
+                                          .map((r) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                    right: 8),
+                                                child: ChoiceChip(
+                                                  label: Text(_chartLabel(r)),
+                                                  selected: chartRange == r,
+                                                  onSelected: (_) {
+                                                    if (chartRange == r) return;
+                                                    setState(
+                                                        () => chartRange = r);
+                                                    _reloadChart();
+                                                  },
+                                                ),
+                                              ))
+                                          .toList(),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                      height: 180,
+                                      child: loadingChart
+                                          ? const Center(
+                                              child:
+                                                  CircularProgressIndicator())
+                                          : chart.length < 2
+                                          ? const Center(
+                                              child:
+                                                  Text('Chart tidak tersedia'))
+                                          : ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey.shade50,
+                                                  border: Border.all(
+                                                      color: Colors.black12),
+                                                ),
+                                                child: CustomPaint(
+                                                  painter: _Chart(chart),
+                                                  child:
+                                                      const SizedBox.expand(),
+                                                ),
+                                              ),
+                                            )),
+                                ]))),
+                    const SizedBox(height: 12),
+                    Card(
+                        child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: LayoutBuilder(
+                              builder: (context, c) {
+                                final itemWidth =
+                                    math.max(140.0, (c.maxWidth - 24) / 2);
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  alignment: WrapAlignment.center,
+                                  children: [
+                                    _kv('Market Cap', _idr(d!.cap),
+                                        width: itemWidth),
+                                    _kv('Volume 24h', _idr(d!.vol),
+                                        width: itemWidth),
+                                    _kv('High 24h', _idr(d!.h24),
+                                        width: itemWidth),
+                                    _kv('Low 24h', _idr(d!.l24),
+                                        width: itemWidth),
+                                    _kv('ATH', _idr(d!.ath), width: itemWidth),
+                                    _kv('ATL', _idr(d!.atl), width: itemWidth),
+                                  ],
+                                );
+                              },
+                            ))),
+                    const SizedBox(height: 12),
+                    Card(
+                        child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Tentang Koin',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 8),
+                                  Text(d!.desc.isEmpty
+                                      ? 'Deskripsi tidak tersedia.'
+                                      : d!.desc),
+                                  if (d!.home.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text('Website: ${d!.home}',
+                                        style:
+                                            const TextStyle(color: Colors.teal))
+                                  ],
+                                ]))),
+                  ],
+                ),
+    );
+  }
+
+  Widget _kv(String k, String v, {double width = 150}) => Container(
+        width: width,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+            border: Border.all(color: Colors.black12),
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade50),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(k, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Text(v, style: const TextStyle(fontWeight: FontWeight.bold))
+        ]),
+      );
+}
+
+class _Chart extends CustomPainter {
+  _Chart(this.v);
+  final List<double> v;
+  @override
+  void paint(Canvas c, Size s) {
+    final min = v.reduce(math.min),
+        max = v.reduce(math.max),
+        range = (max - min).abs() < 1e-6 ? 1 : max - min;
+    final up = v.last >= v.first;
+    final col = up ? Colors.green : Colors.red;
+    for (int i = 1; i <= 3; i++) {
+      final y = s.height * i / 4;
+      c.drawLine(
+          Offset(0, y), Offset(s.width, y), Paint()..color = Colors.black12);
+    }
+    final line = Path(), fill = Path();
+    for (int i = 0; i < v.length; i++) {
+      final x = i * s.width / (v.length - 1);
+      final y = s.height - (((v[i] - min) / range) * (s.height - 10)) - 5;
+      if (i == 0) {
+        line.moveTo(x, y);
+        fill.moveTo(x, s.height);
+        fill.lineTo(x, y);
+      } else {
+        line.lineTo(x, y);
+        fill.lineTo(x, y);
+      }
+    }
+    fill.lineTo(s.width, s.height);
+    fill.close();
+    c.drawPath(
+        fill,
+        Paint()
+          ..shader = LinearGradient(
+                  colors: [
+                    col.withValues(alpha: 0.2),
+                    col.withValues(alpha: 0.02)
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter)
+              .createShader(Offset.zero & s));
+    c.drawPath(
+        line,
+        Paint()
+          ..color = col
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeJoin = StrokeJoin.round
+          ..strokeCap = StrokeCap.round);
+  }
+
+  @override
+  bool shouldRepaint(covariant _Chart old) => old.v != v;
+}
+
+class _GlobalCard extends StatelessWidget {
+  const _GlobalCard({required this.v});
+  final double? v;
+  @override
+  Widget build(BuildContext context) {
+    final up = (v ?? 0) >= 0;
+    return Card(
+      color: Colors.green.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child:
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Sentimen Global',
+                style: TextStyle(fontSize: 11, color: Colors.black54)),
+            const SizedBox(height: 4),
+            Text(v == null ? 'MEMUAT...' : (up ? 'BULLISH' : 'BEARISH'),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          ]),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            const Text('24H MCAP',
+                style: TextStyle(fontSize: 11, color: Colors.black54)),
+            const SizedBox(height: 4),
+            Text(v == null ? '--' : _pct(v),
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: up ? Colors.green.shade700 : Colors.red.shade700)),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+class _Err extends StatelessWidget {
+  const _Err({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        Text(message, textAlign: TextAlign.center),
+        TextButton(onPressed: onRetry, child: const Text('Coba lagi'))
+      ]);
+}
+
+class _Coin {
+  const _Coin(
+      {required this.id,
+      required this.name,
+      required this.symbol,
+      required this.image,
+      required this.price,
+      required this.chg24,
+      required this.rank,
+      required this.cap});
+  factory _Coin.fromJson(Map<String, dynamic> j) => _Coin(
+        id: (j['id'] ?? '').toString(),
+        name: (j['name'] ?? '-').toString(),
+        symbol: (j['symbol'] ?? '-').toString(),
+        image: (j['image'] ?? '').toString(),
+        price: _d(j['current_price']) ?? 0,
+        chg24: _d(j['price_change_percentage_24h']),
+        rank: (j['market_cap_rank'] as num?)?.toInt(),
+        cap: _d(j['market_cap']),
+      );
+  final String id, name, symbol, image;
+  final double price;
+  final double? chg24;
+  final int? rank;
+  final double? cap;
+}
+
+class _Detail {
+  const _Detail(
+      {required this.price,
+      required this.chg24,
+      required this.cap,
+      required this.vol,
+      required this.h24,
+      required this.l24,
+      required this.ath,
+      required this.atl,
+      required this.desc,
+      required this.home});
+  factory _Detail.fromJson(Map<String, dynamic> j) {
+    final m = j['market_data'] is Map
+        ? Map<String, dynamic>.from(j['market_data'] as Map)
+        : <String, dynamic>{};
+    Map<String, dynamic> map(String k) => m[k] is Map
+        ? Map<String, dynamic>.from(m[k] as Map)
+        : <String, dynamic>{};
+    String desc = '';
+    final rawDesc =
+        (j['description'] is Map) ? (j['description'] as Map)['en'] : null;
+    if (rawDesc is String) {
+      desc = _strip(rawDesc);
+      if (desc.length > 600) desc = '${desc.substring(0, 600)}...';
+    }
+    String home = '';
+    final hp = (j['links'] is Map) ? (j['links'] as Map)['homepage'] : null;
+    if (hp is List) {
+      for (final x in hp) {
+        if (x is String && x.trim().isNotEmpty) {
+          home = x.trim();
+          break;
+        }
+      }
+    }
+    return _Detail(
+      price: _d(map('current_price')['idr']) ?? 0,
+      chg24: _d(m['price_change_percentage_24h']),
+      cap: _d(map('market_cap')['idr']) ?? 0,
+      vol: _d(map('total_volume')['idr']) ?? 0,
+      h24: _d(map('high_24h')['idr']) ?? 0,
+      l24: _d(map('low_24h')['idr']) ?? 0,
+      ath: _d(map('ath')['idr']) ?? 0,
+      atl: _d(map('atl')['idr']) ?? 0,
+      desc: desc,
+      home: home,
+    );
+  }
+  final double price, cap, vol, h24, l24, ath, atl;
+  final double? chg24;
+  final String desc, home;
+}
+
+double? _d(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v');
+String _pct(double? v) {
+  final x = v ?? 0;
+  return '${x >= 0 ? '+' : ''}${x.toStringAsFixed(2)}%';
+}
+
+String _idr(double v) {
+  final neg = v < 0;
+  final abs = v.abs();
+  final parts = abs.toStringAsFixed(2).split('.');
+  final whole = _groupThousandsDot(parts[0]);
+  final frac = parts.length > 1 ? parts[1] : '00';
+  return 'Rp ${neg ? '-' : ''}$whole.$frac';
+}
+
+String _groupThousandsDot(String digits) {
+  if (digits.length <= 3) return digits;
+  final out = StringBuffer();
+  for (int i = 0; i < digits.length; i++) {
+    out.write(digits[i]);
+    final remain = digits.length - i - 1;
+    if (remain > 0 && remain % 3 == 0) out.write('.');
+  }
+  return out.toString();
+}
+
+String _strip(String s) => s
+    .replaceAll(RegExp(r'<[^>]+>'), ' ')
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&')
+    .replaceAll(RegExp(r'\\s+'), ' ')
+    .trim();

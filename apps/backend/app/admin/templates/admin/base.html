@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or 'Admin Averroes' }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            averroes: {
+              50: "#ecfdf3",
+              100: "#d1fae1",
+              600: "#059669",
+              700: "#047857",
+              900: "#064e3b"
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+  <div class="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
+    <aside class="border-r border-slate-200 bg-white/95 p-5">
+      <div class="mb-6">
+        <h1 class="text-xl font-extrabold text-averroes-700">Averroes Admin</h1>
+        <p class="mt-1 text-xs text-slate-500">Control panel</p>
+      </div>
+      <nav class="space-y-1">
+        {% for key, label in sidebar_items %}
+          {% if key == 'dashboard' %}
+            <a
+              class="block rounded-xl px-3 py-2 text-sm font-medium transition {% if active == 'dashboard' %}bg-averroes-100 text-averroes-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+              href="{{ url_for('admin.dashboard') }}"
+            >{{ label }}</a>
+          {% elif key == 'lms' %}
+            <a
+              class="block rounded-xl px-3 py-2 text-sm font-medium transition {% if active == 'lms' or active in lms_entity_keys %}bg-averroes-100 text-averroes-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+              href="{{ url_for('admin.lms') }}"
+            >{{ label }}</a>
+          {% else %}
+            <a
+              class="block rounded-xl px-3 py-2 text-sm font-medium transition {% if active == key %}bg-averroes-100 text-averroes-900{% else %}text-slate-700 hover:bg-slate-100{% endif %}"
+              href="{{ url_for('admin.list_entity', entity_name=key) }}"
+            >{{ label }}</a>
+          {% endif %}
+        {% endfor %}
+        <a class="mt-2 block rounded-xl px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50" href="{{ url_for('admin.logout_admin') }}">Keluar</a>
+      </nav>
+    </aside>
+
+    <main class="p-4 sm:p-6 lg:p-8">
+      <header class="mb-6 rounded-2xl bg-gradient-to-r from-averroes-700 via-averroes-600 to-emerald-500 px-5 py-5 text-white shadow">
+        <h2 class="text-xl font-bold">{{ title }}</h2>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-6 space-y-3">
+            {% for category, message in messages %}
+              {% set alert_class = 'border-sky-200 bg-sky-50 text-sky-700' %}
+              {% if category in ['danger', 'error'] %}
+                {% set alert_class = 'border-rose-200 bg-rose-50 text-rose-700' %}
+              {% elif category in ['success'] %}
+                {% set alert_class = 'border-emerald-200 bg-emerald-50 text-emerald-700' %}
+              {% elif category in ['warning'] %}
+                {% set alert_class = 'border-amber-200 bg-amber-50 text-amber-700' %}
+              {% endif %}
+              <div class="rounded-xl border px-4 py-3 text-sm {{ alert_class }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

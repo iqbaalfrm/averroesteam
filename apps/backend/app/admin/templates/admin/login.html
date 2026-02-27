@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login Admin Averroes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            averroes: {
+              600: "#059669",
+              700: "#047857",
+              900: "#064e3b"
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-averroes-900 via-averroes-700 to-emerald-500">
+  <main class="mx-auto flex min-h-screen max-w-5xl items-center justify-center p-4">
+    <section class="w-full max-w-md rounded-2xl bg-white/95 p-6 shadow-2xl backdrop-blur">
+      <h1 class="text-center text-2xl font-extrabold text-slate-900">Masuk Admin Averroes</h1>
+      <p class="mt-1 text-center text-sm text-slate-500">Kelola konten aplikasi dari dashboard.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mt-4 space-y-2">
+            {% for category, message in messages %}
+              {% set alert_class = 'border-sky-200 bg-sky-50 text-sky-700' %}
+              {% if category in ['danger', 'error'] %}
+                {% set alert_class = 'border-rose-200 bg-rose-50 text-rose-700' %}
+              {% elif category in ['success'] %}
+                {% set alert_class = 'border-emerald-200 bg-emerald-50 text-emerald-700' %}
+              {% endif %}
+              <div class="rounded-lg border px-3 py-2 text-sm {{ alert_class }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" class="mt-5 space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div>
+          <label class="mb-1 block text-sm font-semibold text-slate-700">Email</label>
+          <input type="email" name="email" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring" required>
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-semibold text-slate-700">Password</label>
+          <input type="password" name="password" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring" required>
+        </div>
+        <button type="submit" class="w-full rounded-lg bg-averroes-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-averroes-900">Masuk</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

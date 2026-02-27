@@ -1,0 +1,136 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+<div class="space-y-6">
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    {% for key, value in summary.items() %}
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm font-medium text-slate-500">{{ key }}</p>
+      <p class="mt-3 text-3xl font-extrabold text-slate-900">{{ value }}</p>
+    </section>
+    {% endfor %}
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-3">
+    <section class="xl:col-span-2 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900">Tren Aktivitas 7 Hari</h3>
+        <div class="flex rounded-xl bg-slate-100 p-1 text-xs font-semibold" id="trendToggle">
+          <button type="button" data-series="users" class="rounded-lg bg-white px-3 py-1 text-slate-800 shadow-sm">Pengguna</button>
+          <button type="button" data-series="diskusi" class="rounded-lg px-3 py-1 text-slate-500">Diskusi</button>
+          <button type="button" data-series="berita" class="rounded-lg px-3 py-1 text-slate-500">Berita</button>
+        </div>
+      </div>
+      <canvas id="trendChart" height="120"></canvas>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="mb-4 text-base font-bold text-slate-900">Distribusi Screener</h3>
+      <canvas id="screenerChart" height="210"></canvas>
+    </section>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-2">
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="mb-3 text-base font-bold text-slate-900">Pengguna Terbaru</h3>
+      <div class="space-y-3">
+        {% for user in latest_users %}
+        <div class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2">
+          <div>
+            <p class="text-sm font-semibold text-slate-800">{{ user.nama }}</p>
+            <p class="text-xs text-slate-500">{{ user.email or '-' }}</p>
+          </div>
+          <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">{{ user.role }}</span>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500">Belum ada pengguna.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="mb-3 text-base font-bold text-slate-900">Diskusi Terbaru</h3>
+      <div class="space-y-3">
+        {% for d in latest_discussions %}
+        <div class="rounded-xl border border-slate-100 px-3 py-2">
+          <p class="text-sm font-semibold text-slate-800">{{ d.judul or 'Tanpa Judul' }}</p>
+          <p class="mt-1 text-xs text-slate-500">{{ d.isi }}</p>
+          <p class="mt-1 text-[11px] text-slate-400">{{ d.created_at.strftime('%d %b %Y %H:%M') if d.created_at else '' }}</p>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500">Belum ada diskusi.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const trendLabels = {{ trend_labels|tojson }};
+  const trendData = {{ trend_data|tojson }};
+  const screenerData = {{ screener_distribution|tojson }};
+
+  const seriesConfig = {
+    users: { label: "Pengguna", color: "#047857", fill: "rgba(4,120,87,0.15)" },
+    diskusi: { label: "Diskusi", color: "#0ea5e9", fill: "rgba(14,165,233,0.15)" },
+    berita: { label: "Berita", color: "#f59e0b", fill: "rgba(245,158,11,0.15)" },
+  };
+
+  const trendCtx = document.getElementById("trendChart");
+  const trendChart = new Chart(trendCtx, {
+    type: "line",
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: seriesConfig.users.label,
+        data: trendData.users,
+        borderColor: seriesConfig.users.color,
+        backgroundColor: seriesConfig.users.fill,
+        tension: 0.35,
+        fill: true,
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+
+  document.querySelectorAll("#trendToggle button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const series = btn.dataset.series;
+      const cfg = seriesConfig[series];
+      trendChart.data.datasets[0].label = cfg.label;
+      trendChart.data.datasets[0].data = trendData[series];
+      trendChart.data.datasets[0].borderColor = cfg.color;
+      trendChart.data.datasets[0].backgroundColor = cfg.fill;
+      trendChart.update();
+
+      document.querySelectorAll("#trendToggle button").forEach((item) => {
+        item.classList.remove("bg-white", "text-slate-800", "shadow-sm");
+        item.classList.add("text-slate-500");
+      });
+      btn.classList.add("bg-white", "text-slate-800", "shadow-sm");
+      btn.classList.remove("text-slate-500");
+    });
+  });
+
+  const screenerCtx = document.getElementById("screenerChart");
+  new Chart(screenerCtx, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(screenerData),
+      datasets: [{
+        data: Object.values(screenerData),
+        backgroundColor: ["#22c55e", "#f59e0b", "#ef4444", "#0ea5e9", "#8b5cf6"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { position: "bottom" } }
+    }
+  });
+</script>
+{% endblock %}

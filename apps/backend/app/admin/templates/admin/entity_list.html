@@ -1,0 +1,106 @@
+{% extends 'admin/base.html' %}
+{% block content %}
+<section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <header class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+    <h3 class="text-base font-bold text-slate-900">Data {{ title }}</h3>
+    <div class="flex items-center gap-2">
+      {% if kelas_filter_enabled %}
+      <form method="get" class="flex items-center gap-2">
+        <select name="kelas_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" onchange="this.form.submit()">
+          <option value="">Semua Kelas</option>
+          {% for k in kelas_options %}
+          <option value="{{ k.id }}" {% if selected_kelas_id == k.id %}selected{% endif %}>{{ k.judul }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Filter</button>
+        {% if selected_kelas_id %}
+        <a href="{{ url_for('admin.list_entity', entity_name=entity_name) }}" class="rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">Reset</a>
+        {% endif %}
+      </form>
+      {% endif %}
+      <a href="{{ url_for('admin.create_entity', entity_name=entity_name) }}" class="rounded-lg bg-averroes-700 px-3 py-2 text-sm font-semibold text-white hover:bg-averroes-900">Tambah</a>
+    </div>
+  </header>
+  {% if kelas_filter_enabled and selected_kelas_id %}
+  <div class="border-b border-slate-200 bg-emerald-50/70 px-5 py-2 text-sm text-emerald-800">
+    Filter aktif: <span class="font-semibold">{{ selected_kelas_title or ('Kelas #' ~ selected_kelas_id) }}</span> · Menampilkan {{ filtered_count }} data
+  </div>
+  {% endif %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full table-fixed divide-y divide-slate-200 text-sm">
+      <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <tr>
+          {% for field in fields %}
+          {% if entity_name == 'berita' and field.name == 'judul' %}
+          <th class="w-72 px-4 py-3">{{ field.label }}</th>
+          {% elif entity_name == 'berita' and field.name == 'ringkasan' %}
+          <th class="w-[36rem] px-4 py-3">{{ field.label }}</th>
+          {% else %}
+          <th class="px-4 py-3">{{ field.label }}</th>
+          {% endif %}
+          {% endfor %}
+          <th class="w-36 px-4 py-3">Aksi</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        {% for row in rows %}
+        <tr class="align-top">
+          {% for field in fields %}
+            {% set value = row|attr(field.name) %}
+            <td class="px-4 py-3 text-slate-700">
+              {% if field.type == 'file' and value %}
+                <a href="{{ url_for('admin.uploaded_file', filename=value) }}" target="_blank" class="font-medium text-averroes-700 underline">{{ field.link_text if field.link_text else 'Lihat File' }}</a>
+              {% elif entity_name == 'berita' and field.name in ['ringkasan', 'konten'] %}
+                <div class="max-w-full break-words text-slate-700" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                  {{ value|striptags|replace('\n', ' ')|truncate(220, True, '...') if value else '-' }}
+                </div>
+              {% elif entity_name == 'berita' and field.name == 'judul' %}
+                <div class="max-w-full break-words font-medium text-slate-800" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                  {{ value|striptags|replace('\n', ' ')|truncate(120, True, '...') if value else '-' }}
+                </div>
+              {% elif entity_name == 'berita' and field.name == 'sumber_url' and value %}
+                {% set host = value|replace('https://', '')|replace('http://', '')|replace('www.', '')|truncate(28, True, '...') %}
+                <a href="{{ value }}" target="_blank" title="{{ value }}" class="inline-flex max-w-full items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-averroes-700 hover:bg-emerald-100">
+                  <span class="truncate max-w-[150px]">{{ host }}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              {% elif field.type == 'select' %}
+                <span class="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                  {{ relation_maps.get(field.name, {}).get(value, value if value not in [None, ''] else '-') }}
+                </span>
+              {% elif field.type == 'choice' %}
+                {% set option_map = dict(field.options) %}
+                <span class="inline-block rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                  {{ option_map.get(value, value if value not in [None, ''] else '-') }}
+                </span>
+              {% elif field.type == 'boolean' %}
+                <span class="inline-block rounded-full px-2 py-1 text-xs font-semibold {{ 'bg-emerald-50 text-emerald-700' if value else 'bg-slate-100 text-slate-600' }}">
+                  {{ 'Ya' if value else 'Tidak' }}
+                </span>
+              {% else %}
+                <div class="max-w-full break-words" style="display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;">
+                  {{ value if value not in [None, ''] else '-' }}
+                </div>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-2">
+              <a href="{{ url_for('admin.edit_entity', entity_name=entity_name, item_id=row.id) }}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">Edit</a>
+              <form method="post" action="{{ url_for('admin.delete_entity', entity_name=entity_name, item_id=row.id) }}" class="inline" onsubmit="return confirm('Yakin hapus data ini?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50">Hapus</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="99" class="px-4 py-8 text-center text-slate-500">Belum ada data.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

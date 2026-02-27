@@ -1,0 +1,198 @@
+{
+  "info": {
+    "name": "Averroes Backend Smoke (Auth Recovery + LMS)",
+    "_postman_id": "0fd8cb8d-e39f-4f59-8d43-4f9f06d118a1",
+    "description": "Smoke collection untuk auth recovery dan flow LMS inti. Gunakan environment variable `baseUrl`, `smokeEmail`, `smokePassword`, `newPassword`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Root Health",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/"
+      }
+    },
+    {
+      "name": "Auth - Register",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('register success', function () { pm.response.to.have.status(201); });",
+              "var json = pm.response.json();",
+              "pm.environment.set('accessToken', json.data.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nama\": \"Smoke User\",\n  \"email\": \"{{smokeEmail}}\",\n  \"password\": \"{{smokePassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/register"
+      }
+    },
+    {
+      "name": "Auth - Google Stub (501)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{smokeEmail}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/google"
+      }
+    },
+    {
+      "name": "Auth - Lupa Password",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json && json.data && json.data.otp_debug) { pm.environment.set('otpDebug', json.data.otp_debug); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{smokeEmail}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/lupa-password"
+      }
+    },
+    {
+      "name": "Auth - Verifikasi OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{smokeEmail}}\",\n  \"kode\": \"{{otpDebug}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/verifikasi-otp"
+      }
+    },
+    {
+      "name": "Auth - Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{smokeEmail}}\",\n  \"kode\": \"{{otpDebug}}\",\n  \"password_baru\": \"{{newPassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/reset-password"
+      }
+    },
+    {
+      "name": "Auth - Login (New Password)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "pm.environment.set('accessToken', json.data.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{smokeEmail}}\",\n  \"password\": \"{{newPassword}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      }
+    },
+    {
+      "name": "Berita - List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/berita?limit=10"
+      }
+    },
+    {
+      "name": "Screener - List",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/screener"
+      }
+    },
+    {
+      "name": "LMS - List Kelas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "if (json.data && json.data.length) { pm.environment.set('kelasId', json.data[0].id); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/kelas"
+      }
+    },
+    {
+      "name": "LMS - Detail Kelas",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/kelas/{{kelasId}}"
+      }
+    },
+    {
+      "name": "LMS - Progress Kelas",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+        ],
+        "url": "{{baseUrl}}/api/kelas/{{kelasId}}/progress"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:5000" },
+    { "key": "smokeEmail", "value": "smoke@example.com" },
+    { "key": "smokePassword", "value": "Password123" },
+    { "key": "newPassword", "value": "PasswordBaru123" },
+    { "key": "otpDebug", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "kelasId", "value": "" }
+  ]
+}
+
