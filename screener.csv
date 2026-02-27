@@ -1,0 +1,548 @@
+﻿No;Aset Kripto;Underlying;Nilai yang Jelas;Bisakah Diserah-terimakan;Yes/No Sharia
+1;Ethereum (ETH);Smart contract platform (EVM);Nilai tinggi karena ekosistem DeFi & NFT;Ya, bisa diserahterimakan di wallet & exchange;Yes
+2;Klaytn (KLAY);Blockchain enterprise (dari Kakao);Digunakan untuk aplikasi enterprise & Web3;Ya, bisa dipindahkan antar wallet;Yes
+3;Solana (SOL);High-performance blockchain (PoS + PoH);Nilai dari TPS tinggi & ekosistem DeFi/GameFi;Ya, transferable;Yes
+4;Tezos (XTZ);Smart contract blockchain (on-chain governance);Nilai dari fleksibilitas upgrade tanpa hard fork;Ya;Yes
+5;IOTA ;Tangle DAG (tanpa blockchain tradisional);Nilai pada IoT data & transaksi fee-less;Ya, walau infrastruktur unik;Yes
+6;USDC;Stablecoin (backed by USD 1:1);Nilai jelas: 1 USDC = 1 USD;Ya, bisa ditransfer lintas chain;Yes
+7;Polkadot (DOT);Interoperability blockchain (relay chain);Nilai pada kemampuan cross-chain;Ya;Yes
+8;The Sandbox (SAND);Metaverse token (SAND);Nilai dari utilitas dalam ekosistem game/metaverse;Ya, bisa ditransfer;Yes
+9;Bitcoin (BTC);Proof of Work blockchain;Nilai utama: store of value, digital gold;Ya;Yes
+10;Cosmos (ATOM);Interoperable blockchain (IBC protocol);Nilai dari cross-chain ecosystem;Ya;Yes
+11;0x Protocol (ZRX);DEX infrastructure (ZRX);Nilai pada governance & fee sharing;Ya;Yes
+12;Litecoin (LTC);Fork Bitcoin, lebih cepat block time;Nilai dari pembayaran cepat & murah;Ya;Yes
+13;Cardano (ADA);Smart contract platform (PoS, peer-reviewed);Nilai dari pendekatan riset & keamanan;Ya;Yes
+14;Chainlink (LINK);Oracle network;Nilai pada menyediakan data off-chain ke smart contract;Ya;Yes
+15;Uniswap (UNI);DEX & AMM token;Nilai pada governance & revenue sharing;Ya;Yes
+16;Stellar (XLM);Cross-border payments;Nilai pada remitansi cepat & murah;Ya;Yes
+17;XRP;Blockchain pembayaran lintas negara (RippleNet);Nilai pada efisiensi transfer internasional & kerja sama bank;Ya;Yes
+18;TRON (TRX);Blockchain smart contract fokus hiburan & konten;Nilai dari ekosistem dApps & DeFi, transaksi murah;Ya;Yes
+19;Decentraland (MANA);Platform metaverse berbasis Ethereum;Nilai dari kepemilikan aset virtual & tanah digital;Ya;Yes
+20;Enjin Coin (ENK);Ekosistem NFT & gaming;Nilai pada integrasi item game berbasis blockchain;Ya;Yes
+21;UMA;Protokol keuangan derivatif;Nilai pada synthetic assets & smart contracts finansial;Ya;No > Derivatives
+22;Polygon (MATIC);Layer-2 scaling Ethereum;Nilai pada kecepatan transaksi & biaya rendah;Ya;Yes
+23;Basic Attention Token (BAT);Token untuk browser Brave (iklan & reward pengguna);Nilai pada model iklan digital berbasis privasi;Ya;Yes
+24;Ren;Protokol interoperabilitas (RenVM);Nilai dari cross-chain liquidity (misal BTC ke Ethereum);Ya;Grey
+25;Qtum;Hybrid blockchain (Bitcoin UTXO + EVM);Nilai pada kombinasi keamanan BTC & fleksibilitas smart contract;Ya;Yes
+26;Solar (SXP);Blockchain transaksi & pembayaran;Nilai pada ekosistem DeFi & merchant adoption;Ya;Yes
+27;TrueUSD (TUSD);Stablecoin (backed by USD 1:1);Nilai jelas: 1 TUSD = 1 USD;Ya;Yes
+28;BNB;Native coin Binance Chain & BSC;Nilai dari fee reduction, ekosistem DeFi, utilitas exchange;Ya;Yes
+29;Theta Network (THETA);Blockchain untuk video streaming & CDN;Nilai dari desentralisasi distribusi bandwidth;Ya;Yes
+30;Synthetix (SNX);DeFi protocol untuk synthetic assets;Nilai dari akses ke aset derivatif on-chain;Ya;No > derivatives gambling price
+31;Compound (COMP);Protokol lending & borrowing DeFi;Nilai dari interest rate markets & governance;Ya;No > lending
+32;Cronos (CRO);Blockchain dari Crypto.com;Nilai pada ekosistem exchange & pembayaran global;Ya;Yes
+33;VeChain (VET);Blockchain supply chain & enterprise;Nilai dari adopsi industri logistik & traceability;Ya;Yes
+34;Aurora (AOA);EVM-compatible di atas Near Protocol;Nilai pada interoperabilitas Ethereum + Near;Ya;Yes
+35;Status (SNT);Platform komunikasi & wallet Web3;Nilai dari chat, DApps, dan governance token;Ya;Yes
+36;Cartesi (CTSI);Layer-2 untuk smart contract (Linux environment);Nilai pada skalabilitas & integrasi software tradisional;Ya;Yes
+37;Dogecoin (DOGE);Fork Litecoin (meme coin);Nilai dari komunitas & adopsi pembayaran ringan;Ya;Yes
+38;Maker (MKR);Governance token MakerDAO (DAI stablecoin);Nilai pada kontrol protokol stablecoin DAI;Ya;Grey
+;;;;;
+39;Tether (USDT);Stablecoin terbesar (backed fiat & aset);Nilai jelas: 1 USDT ≈ 1 USD;Ya;Yes
+40;Storj (STORJ);Desentralisasi cloud storage;Nilai pada penggunaan token untuk bayar/akses storage;Ya;Yes
+41;Venus (XVS);Protokol DeFi di BNB Chain;Nilai pada stablecoin, lending & synthetic assets;Ya;No > Lending
+42;Zilliqa (ZIL);Blockchain sharding pertama;Nilai pada skalabilitas transaksi melalui sharding;Ya;Yes
+43;OMG Network (OMG);Layer-2 scaling untuk Ethereum (Plasma);Nilai pada biaya transaksi lebih rendah di ETH;Ya;Yes
+44;Harmony (ONE);Sharding blockchain interoperable;Nilai dari kecepatan, biaya murah & cross-chain;Ya;Yes
+45;MultiversX (EGLD);High-performance blockchain (Adaptive Sharding);Nilai pada skalabilitas besar untuk dApps;Ya;Yes
+46;Orbs;Infrastruktur blockchain enterprise;Nilai pada solusi B2B dan hybrid smart contracts;Ya;Grey
+47;iExec RLC;Cloud computing terdesentralisasi;Nilai pada marketplace komputasi off-chain;Ya;Yes
+48;Algorand (ALGO);Blockchain PoS pure;Nilai pada transaksi cepat, finalitas instan;Ya;Yes
+49;EOS;Blockchain smart contract high-TPS;Nilai pada ekosistem dApps, DeFi & governance;Ya;Yes
+50;WazirX;Exchange token India (WRX);Nilai pada fee reduction & utilitas exchange;Ya;Yes
+51;Wrapped Bitcoin (WBTC);BTC dalam bentuk ERC-20;Nilai jelas: 1 WBTC = 1 BTC;Ya;Yes
+52;Electroneum (ETN);Blockchain fokus pembayaran mobile;Nilai pada adopsi pengguna mobile & microtransaction;Ya;Yes
+53;Avalanche (AVAX);High-speed blockchain (consensus Snowman);Nilai dari kecepatan, biaya murah, ekosistem DeFi;Ya;Yes
+54;PancakeSwap (CAKE);DEX di Binance Smart Chain;Nilai pada governance, yield farming, staking;Ya;Grey
+55;Quant (QNT);Overledger network (interoperabilitas);Nilai pada koneksi multi-blockchain enterprise;Ya;Yes
+56;Polymath (POLY);Platform token sekuritas (security tokens);Nilai pada compliant securities on blockchain;Ya;Yes
+57;Dai (DAI);Stablecoin terdesentralisasi (MakerDAO);Nilai jelas: 1 DAI ≈ 1 USD;Ya;Grey
+58;Loopring (LRC);DEX + zkRollup protocol;Nilai pada efisiensi orderbook & AMM hybrid;Ya;Grey
+59;Ethereum Classic (ETC);Original Ethereum chain (pasca DAO hack);Nilai pada ide immutable ledger;Ya;Yes
+60;Numeraire (NMR);Token untuk AI & prediksi finansial (Numerai);Nilai pada kompetisi data science hedge fund;Ya;Grey
+61;Bitcoin Cash (BCH);Fork Bitcoin (block lebih besar);Nilai pada pembayaran cepat & murah;Ya;Yes
+62;yearn.finance (YFI);DeFi yield aggregator;Nilai pada optimasi yield farming otomatis;Ya;No > Defi Collateral - Lending
+63;Neo;"Smart contract blockchain (sering disebut ""Ethereum of China"")";Nilai pada digital identity & regulasi enterprise;Ya;Yes
+64;Origin Protocol (OGN);Platform NFT & e-commerce Web3;Nilai pada marketplace NFT & stablecoin OUSD;Ya;Yes
+65;Kusama (KSM);Testnet & canary network Polkadot;Nilai pada eksperimen fitur sebelum Polkadot;Ya;Yes
+66;Waves;Blockchain smart contract & token issuance;Nilai pada penerbitan token mudah & ekosistem DeFi;Ya;Yes
+67;Stella (StellaSwap);DEX di Moonbeam/Polkadot;Nilai pada ekosistem DeFi cross-chain;Ya;?
+68;Nano (XNO);DAG (block-lattice);Nilai pada transaksi cepat & tanpa biaya;Ya;Yes
+69;Golem (GLM);Desentralisasi komputasi;Nilai pada marketplace tenaga komputasi;Ya;Yes
+70;Ravencoin (RVN);Blockchain penerbitan aset;Nilai pada tokenisasi aset nyata;Ya;Yes
+71;Fantom (FTM);DAG-based blockchain (aBFT);Nilai pada kecepatan transaksi & DeFi;Ya;Yes
+72;Kava (KAVA);Platform DeFi cross-chain;Nilai pada stablecoin, lending & staking;Ya;No > Lending
+73;NEM (XEM);Blockchain smart asset;Nilai pada fitur multisignature & namespace;Ya;Yes
+74;BitTorrent (BTT);File sharing + blockchain TRON;Nilai pada insentif P2P file storage;Ya;Yes
+75;ICON (ICX);Interoperability blockchain (Korea);Nilai pada koneksi berbagai blockchain;Ya;Yes
+76;Serum (SRM);DEX on Solana;Nilai pada orderbook cepat & murah;Ya;No > Margin trading
+77;Pax Dollar (USDP);Stablecoin Paxos;Nilai jelas: 1 USDP = 1 USD;Ya;Yes
+78;Kyber Network Crystal v2 (KNC);Liquidity aggregator DeFi;Nilai pada swap & integrasi dApps;Ya;Yes
+79;Bitcoin Diamond (BCD);Fork Bitcoin (supply lebih besar);Nilai pada transaksi lebih cepat & biaya rendah;Ya;Yes
+80;Ardor (ARDR);Blockchain parent-child chains;Nilai pada fleksibilitas sidechain;Ya;Yes
+81;Ontology (ONT);Blockchain identitas & trust;Nilai pada digital ID & data verification;Ya;Yes
+82;JUST (JST);DeFi di TRON (stablecoin USDJ);Nilai pada stablecoin & lending DeFi;Ya;No > Interest Defi
+83;Siacoin (SC);Storage desentralisasi;Nilai pada marketplace cloud storage;Ya;Yes
+84;XDC Network (XDC);Hybrid blockchain (enterprise & trade finance);Nilai pada tokenisasi aset perdagangan;Ya;Yes
+85;OKB (OKX Exchange Token);Token utilitas exchange OKX;Nilai pada fee discount & ekosistem;Ya;Grey
+86;Band Protocol (BAND);Oracle decentralized;Nilai pada penyedia data off-chain ke blockchain;Ya;Yes
+87;PAX Gold (PAXG);Stablecoin emas (gold-backed);Nilai jelas: 1 PAXG = 1 troy ounce emas;Ya;Yes
+88;Ankr (ANKR);Infrastruktur node Web3;Nilai pada staking & layanan RPC blockchain;Ya;Grey
+89;DigiByte (DGB);Blockchain UTXO cepat & aman;Nilai pada kecepatan & desentralisasi luas;Ya;Yes
+90;Ampleforth (AMPL);Elastic supply stablecoin;Nilai pada mekanisme rebase menyesuaikan harga;Ya;Yes
+91;Orion (ORN);Liquidity aggregator DeFi & CEX;Nilai pada trading likuid lintas exchange;Ya;?
+92;Bitcoin SV (BSV);Fork Bitcoin Cash;Nilai pada skalabilitas block besar;Ya;Yes
+93;Dent (DENT);Marketplace data seluler;Nilai pada jual-beli paket data;Ya;Yes
+94;Request (REQ);Payment request protocol;Nilai pada faktur & pembayaran blockchain;Ya;Yes
+95;LYFE (LYFE Token);Aset digital Indonesia (lifestyle, health, carbon credit);Nilai pada aplikasi reward & ekosistem;Ya;?
+96;WAX (WAXP);Blockchain NFT & gaming;Nilai pada marketplace item digital;Ya;Yes
+97;Lisk (LSK);Platform blockchain dengan JavaScript SDK;Nilai pada kemudahan pembuatan aplikasi;Ya;Yes
+98;StormX (STMX);Cashback & rewards;Nilai pada belanja dengan crypto cashback;Ya;Yes
+99;Loom Network (LOOM);Sidechain Ethereum untuk dApps;Nilai pada skalabilitas aplikasi;Ya;Yes
+100;Metadium (META);Digital identity blockchain;Nilai pada self-sovereign identity;Ya;Yes
+101;COTI (COTI);Infrastruktur pembayaran;Nilai pada stablecoin & merchant payments;Ya;Grey
+102;High Performance Blockchain (HPB);Blockchain + hardware accelerator;Nilai pada TPS tinggi & enterprise use;Ya;?
+103;Terra Classic (LUNC);Stablecoin algorithmic (sebelumnya Terra);Nilai pada ekosistem DeFi (sekarang terbatas);Ya;Yes
+104;BakeryToken (BAKE);DEX di BNB Chain;Nilai pada swap, staking & NFT;Ya;Yes
+105;PlayGame (PXG);Platform game blockchain;Nilai pada monetisasi game;Ya;?
+106;Balancer (BAL);AMM DeFi (Ethereum);Nilai pada liquidity pools terdiversifikasi;Ya;Grey
+107;Powerledger (POWR);Trading energi blockchain;Nilai pada P2P energy marketplace;Ya;Yes
+108;Augur (REP);Prediction market;Nilai pada pasar prediksi terdesentralisasi;Ya;No > Pay in betting
+109;DFI.Money (YFII);Fork Yearn Finance;Nilai pada yield farming aggregator;Ya;No > Usurious Interest
+110;Coin98 (C98);DeFi wallet & exchange;Nilai pada akses cross-chain & swap;Ya;Grey
+111;UNUS SED LEO (LEO);Token utilitas Bitfinex;Nilai pada fee discount & ekosistem iFinex;Ya;Yes
+112;Moonriver (MOVR);Smart contract platform (Kusama parachain);Nilai pada kompatibilitas Ethereum;Ya;Yes
+113;Unifi Protocol DAO (UNFI);Multi-chain DeFi protocol;Nilai pada staking & governance;Ya;No
+114;Oasis Network (ROSE);Blockchain privasi data & DeFi;Nilai pada confidential smart contracts;Ya;Yes
+115;Spell Token (SPELL);Token Abracadabra.money;Nilai pada lending stablecoin MIM;Ya;No > Lending
+116;Verasity (VRA);Blockchain video & anti-fraud;Nilai pada proof-of-view & gaming;Ya;Yes
+117;Sun (New) (SUN);Token DeFi ekosistem Tron untuk staking & yield;Staking TRX & governance;Ya;No – liqudity pools for interest
+118;Chia (XCH);Blockchain berbasis Proof of Space & Time (green mining);Blockchain layer-1;Ya;Yes
+119;YooShi (YOOSHI);Meme token + ekosistem game & NFT;Nilai spekulatif, kurang jelas utilitas kuat;Ya;Yes
+120;BurgerCities (BURGER);GameFi & metaverse dengan model play-to-earn;Penggunaan dalam game;Ya;Yes
+121;Enzyme (MLN);Protokol manajemen aset on-chain;Fungsi DeFi investasi;Ya;No
+122;Dego Finance (DEGO);NFT + DeFi untuk mining, staking, governance;NFT & utilitas staking;Ya;Yes
+123;MOBOX (MBOX);GameFi + yield farming NFT;Game, NFT & staking;Ya;Yes
+124;Kadena (KDA);Blockchain PoW scalable, interoperabilitas;Infrastruktur blockchain layer-1;Ya;Yes
+125;OctoFi (OCTO);Aggregator DeFi untuk investasi;Likuiditas DeFi;Ya;Grey
+126;Arweave (AR);Penyimpanan data permanen berbasis blockchain;Data storage;Ya;Yes
+127;Bluzelle (BLZ);Penyimpanan data terdesentralisasi untuk dApps;Data & infrastruktur;Ya;Yes
+128;Ellipsis (EPS);AMM DEX fokus stablecoin (fork Curve);Likuiditas stablecoin;Ya;Yes
+129;Efinity Token (EFI);Blockchain NFT by Enjin di Polkadot;NFT & ekosistem game;Ya;Yes
+130;Yield Guild Games (YGG);DAO untuk investasi aset game P2E;Aset NFT & komunitas;Ya;Yes
+131;Ooki Protocol (OOKI);Margin trading & lending DeFi;Nilai dari leverage trading;Ya;No
+132;Star Atlas (ATLAS);Metaverse + game blockchain;Hiburan & NFT;Ya;Yes
+133;NanoByte Token (NBT);Token Indonesia untuk pembayaran & integrasi Web2-Web3;Utilitas ekosistem fintech;Ya;Yes
+134;ARPA (ARPA);Komputasi MPC (Multi-Party Computation);Privasi & komputasi;Ya;Yes
+135;Wrapped NXM (wNXM);Tokenized Nexus Mutual (asuransi on-chain);Asuransi DeFi;Ya;Yes
+136;Frax Share (FXS);Governance token Frax (stablecoin algoritmik);Stablecoin algoritmik;Ya;No
+137;Ethereum Name Service (ENS);Domain .eth di blockchain Ethereum;Fungsi domain;Ya;Yes
+138;Energi (NRG);Blockchain layer-1 fokus self-funding treasury;Infrastruktur blockchain;Ya;Yes
+139;Hegic (HEGIC);Opsi perdagangan kripto (on-chain options);Nilai dari derivatif;Ya;No – option trading
+140;Beam (BEAM);Privacy coin dengan Mimblewimble protocol;Uang digital privat;Ya;Yes
+141;Convex Finance (CVX);Platform yield farming untuk Curve Finance;Nilai dari DeFi staking;Ya;No
+142;Highstreet (HIGH);Metaverse + e-commerce berbasis token;Nilai dari ekonomi virtual & transaksi;Ya;Yes
+143;Bitcoin Standard Hashrate Token (BTCST);Tokenisasi hashrate Bitcoin (cloud mining);Backed by BTC mining power;Ya;Yes
+144;Frontier (FRONT);Wallet DeFi & agregator multichain;Nilai jelas dari utility;Ya;No - lending
+145;Orbit Chain (ORC);Cross-chain bridge & interoperabilitas;Jembatan aset;Ya;Yes
+146;Phala Network (PHA);Komputasi cloud rahasia berbasis TEE;Privacy & komputasi;Ya;Yes
+147;IDK (IDK);Stablecoin Rupiah (1:1 IDR) di blockchain;Fiat-backed;Ya;?
+148;Glitch (GLCH);Blockchain DeFi dengan fee rendah;DeFi infra;Ya;Grey  
+149;SelfKey (KEY);Identitas digital & KYC blockchain;Utility ID;Ya;Yes
+150;Beefy (BIFI);Yield optimizer multi-chain;Optimisasi staking;Ya;Yes
+151;VCGamers (VCG);Ekosistem gaming Indonesia (marketplace & NFT);Utilitas komunitas game;Ya;?
+152;TROY (TROY);Trading & likuiditas aggregator;Fee & utilitas DeFi;Ya;No – derivatives  
+153;Raydium (RAY);AMM & DEX di Solana;Fee trading;Ya;Grey
+154;Litentry (LIT);Identitas terdesentralisasi (DID);Governance & identitas;Ya;Yes
+155;Render (RNDR);GPU rendering terdesentralisasi;Komputasi rendering;Ya;Yes
+156;Keep3rV1 (KP3R);Jaringan pekerjaan (job matching on-chain);Fee jasa pekerja;Ya;Yes
+157;Aurory (AURY);Game NFT berbasis Solana;Nilai dari in-game utility;Ya;Yes
+158;Celer Network (CELR);Layer-2 scaling & interoperabilitas;Infra blockchain;Ya;Yes
+159;TrustSwap (SWAP);Launchpad, escrow, token lock services;DeFi utilitas;Ya;Yes
+160;NULS (NULS);Blockchain modular untuk enterprise;Infrastruktur;Ya;Yes
+161;JasmyCoin (JASMY);IoT + data privacy berbasis blockchain Jepang;IoT data management;Ya;Yes
+162;Efforce (WOZX);Platform efisiensi energi (by Steve Wozniak);Tokenisasi proyek energi;Ya;Yes
+163;Crypto Global United (CGU);Token komunitas & ekosistem global;Nilai kurang jelas, cenderung spekulatif;Ya;?
+164;Rook (ROOK);MEV protection & arbitrase on-chain;DeFi infra;Ya;No - lending
+165;Flux (FLUX);Cloud computing terdesentralisasi;Komputasi & hosting;Ya;Yes
+166;Tranchess (CHESS);Platform DeFi dengan produk yield tranches;Investasi berbasis tranche;Ya;Yes
+167;LinkEye (LET);Platform kredit & skor reputasi berbasis blockchain;Identitas & reputasi kredit;Ya;?
+168;Chainbing (CBG);Blockchain penyimpanan & indexing data;Data storage & indexing;Ya;Grey
+169;Ethernity Chain (ERN);Marketplace NFT untuk seni digital (licensed NFTs);Nilai dari koleksi NFT;Ya;Yes
+170;ABBC Coin (ABBC);Blockchain e-commerce & pembayaran;Pembayaran & retail;Ya;Yes
+171;TitanSwap (TITAN);AMM DEX dengan algoritma adaptive bonding curve;Fee DEX;Ya;Yes
+172;Velo (VELO);Protokol stablecoin & credit settlement Asia;Settlement finansial;Ya;Yes
+173;VidyX (VIDYX);Iklan digital berbasis blockchain (watch-to-earn);Nilai dari iklan & reward;Ya;?
+174;King DAG (KDAG);Token komunitas + project blockchain China;Nilai tidak transparan, cenderung spekulatif;Ya;Yes
+175;Dock (DOCK);Identitas digital & credential verifikasi;Digital ID;Ya;Yes
+176;Livepeer (LPT);Desentralisasi video transcoding (Web3 streaming infra);Jasa komputasi video;Ya;Yes
+177;Contentos (COS);Ekosistem konten digital terdesentralisasi;Platform creator economy;Ya;Yes
+178;Pando (PANDO);Penyimpanan cloud berbasis blockchain;Storage utility;Ya;?
+179;Coinweb (CWEB);Layer-2 interoperability & cross-chain;Infra blockchain;Ya;Yes
+180;Marlin (POND);Protokol networking untuk DeFi & Web3 (high-performance nodes);Network infra;Ya;Yes
+181;COMBO (COMBO);Infrastruktur gaming Web3 (sebelumnya Cocos-BCX);Game infra;Ya;Yes
+182;IQ (IQ);Governance token untuk platform knowledge (Everipedia);Knowledge economy;Ya;Yes
+183;JOE (JOE);DEX & DeFi ekosistem Avalanche (Trader Joe);DEX utility;Ya;Yes
+184;Kin (KIN);Token micropayment dalam aplikasi sosial & game;Utility payment;Ya;Yes
+185;Gitcoin (GTC);Platform funding open-source (grants & bounties);Crowdfunding open-source;Ya;Yes
+186;SuperVerse (SUPER);NFT & Web3 entertainment ecosystem;Nilai dari NFT & metaverse;Ya;Yes
+187;Splintershards (SPS);Token governance game Splinterlands;Nilai dari game ecosystem;Ya;Yes
+188;Santos FC Fan Token (SANTOS);Token fan sepak bola Santos FC (Socios/Chiliz);Utility klub & voting;Ya;Yes
+189;Radworks (RAD);Ekosistem untuk mendanai proyek open-source (Radicle);Infra developer;Ya;Yes
+190;Automata Network (ATA);Middleware privasi untuk dApps;Privacy infra;Ya;Yes
+191;Saffron.finance (SFI);Platform DeFi structured tranches untuk yield;Produk investasi tranches;Ya;No
+192;Bread (BRD);Dompet kripto untuk pembayaran & transfer;Wallet utility;Ya;?
+193;BinaryX (BNX);Game Web3 (play-to-earn, CyberDragon);Nilai dari ekosistem game;Ya;No
+194;Alpine F1 Team Fan Token (ALPINE);Fan token tim Formula 1 Alpine (Socios/Chiliz);Hak voting & fan utility;Ya;Yes
+195;Travala (AVA);Token pembayaran untuk platform travel Travala;Pemesanan travel;Ya;Yes
+196;Ergo (ERG);Blockchain UTXO dengan kontrak pintar & fokus DeFi;Blockchain infra;Ya;Yes
+197;Spartan Protocol (SPARTA);Protokol DeFi (liquidity & synthetic assets);AMM/DeFi infra;Ya;Yes
+198;PowerPool (CVP);Protokol manajemen indeks token & metagovernance;DeFi indexing;Ya;Yes
+199;League of Kingdoms Arena (LOKA);Game blockchain MMO (land NFT & governance);Nilai dari game/NFT;Ya;?
+200;Dusk (DUSK);Blockchain privasi untuk sekuritas digital;Regulasi sekuritas;Ya;Yes
+201;AIOZ Network (AIOZ);Jaringan streaming & distribusi konten (CDN Web3);Infra video & CDN;Ya;Yes
+202;Mines of Dalarnia (DAR);Game blockchain berbasis eksplorasi & NFT;Nilai dari game ecosystem;Ya;?
+203;Degree Crypto Token (DCT);Edukasi berbasis blockchain (sertifikat digital);Edutech & sertifikasi;Ya;?
+204;Carry (CRE);Platform reward & data iklan retail;Loyalty & iklan;Ya;Yes
+205;Gas (GAS);Token utilitas untuk transaksi di blockchain NEO;Fee blockchain;Ya;Yes
+206;Alitas (ALT);Blockchain dengan fokus desentralisasi trust system;Nilai tidak sepenuhnya jelas, cenderung spekulatif;Ya;Yes
+207;DEAPcoin (DEP);Ekonomi digital hiburan (PlayMining NFT & game);Nilai dari ekosistem NFT/game;Ya;Yes
+208;BTRIPS (BTR);Platform NFT & barang mewah (luxury items marketplace);Nilai dari NFT/marketplace;Ya;Grey
+209;Attila (ATT);Jaringan komunikasi sosial desentralisasi;Social network infra;Ya;Grey
+210;Kunci Coin (KUNCI);Blockchain Indonesia (exchange, payment, NFT);Payment & utility;Ya;Grey
+211;SHILL Token (SHILL);Token ekosistem gaming & NFT (Project TokoCrypto);Nilai dari NFT/game;Ya;Yes
+212;Tokenplace (TOK);Platform trading multi-exchange;Trading infra;Ya;?
+213;Yieldly (YLDY);Platform staking & lotere berbasis Algorand;Staking utility;Ya;?
+214;DGPayment (DGP);Token pembayaran digital untuk merchant;Payment utility;Ya;?
+215;Acala Token (ACA);DeFi hub di Polkadot (stablecoin & staking);Infra DeFi;Ya;Yes
+216;SuperRare (RARE);Marketplace NFT seni digital kurasi;Nilai dari karya seni NFT;Ya;Yes
+217;Clover Finance (CLV);Infrastruktur multi-chain, wallet & smart contract Polkadot;Blockchain infra;Ya;Yes
+218;Play It Forward DAO (PIF);Ekosistem gaming guild & metaverse;Nilai dari game economy;Ya;?
+219;Stratis (STRAX);Platform blockchain B2B (enterprise solutions);Blockchain service;Ya;Yes
+220;Bitcoin Gold (BTG);Fork Bitcoin dengan mining GPU;Store of value;Ya;Grey
+221;Aergo (AERGO);Blockchain hybrid (enterprise & developer tools);Infra & enterprise;Ya;Yes
+222;GXChain (GXC);Blockchain untuk data economy & identitas digital;Data infra;Ya;?
+223;Pundi X (PUNDIX);Solusi pembayaran & POS kripto;Payment utility;Ya;Yes
+224;Syscoin (SYS);Blockchain hybrid (Bitcoin + Ethereum kompatibel);Tokenization & infra;Ya;Yes
+225;Rupiah Token (IDRT);Stablecoin Rupiah di blockchain;Fiat-backed;Ya;Yes
+226;aelf (ELF);Blockchain cloud computing & DeFi infra;Infra;Ya;Yes
+227;BORA (BORA);Platform hiburan & gaming berbasis blockchain;Nilai dari game/app;Ya;Yes
+228;Waltonchain (WTC);Supply chain management + IoT;Supply chain infra;Ya;Yes
+229;STASIS EURO (EURS);Stablecoin berbasis Euro;Fiat-backed;Ya;?
+230;Decred (DCR);Blockchain governance dengan konsensus hybrid;Store of value & governance;Ya;Yes
+231;MediBloc (MED);Platform data kesehatan berbasis blockchain;Healthcare data;Ya;Yes
+232;Ark (ARK);Blockchain interoperability & custom chain creation;Infra;Ya;Yes
+233;Hive (HIVE);Blockchain sosial (fork Steem);Social blockchain;Ya;Yes
+234;Metal DAO (MTL);Ekosistem DeFi (Metal Pay & stablecoin);Payment & DeFi;Ya;Yes
+235;PIVX (PIVX);Privasi & pembayaran digital (fork DASH);Privacy coin;Ya;Yes
+236;Steem (STEEM);Blockchain sosial & reward konten;Social & content reward;Ya;Yes
+237;BitShares (BTS);Platform DEX & stablecoin terdesentralisasi;DEX infra;Ya;Grey
+238;Gemini Dollar (GUSD);Stablecoin USD dari Gemini Exchange;Fiat-backed;Ya;Yes
+239;Wing Finance (WING);Platform DeFi untuk pinjaman & credit scoring;DeFi lending;Ya;No
+240;Nexus (NXS);Blockchain keamanan & protokol kuantum-resistant;Infra blockchain;Ya;Yes
+241;Standard Tokenization Protocol (STPT);Standar tokenisasi aset digital;Infra tokenisasi;Ya;Yes
+242;Nxt (NXT);Blockchain generasi awal dengan fitur voting & aset digital;Blockchain infra;Ya;Yes
+243;v.systems (VSYS);Blockchain berbasis PoS dengan smart contract;Infra blockchain;Ya;Yes
+244;Firo (FIRO);Privacy coin dengan protokol Lelantus;Payment & privacy;Ya;Yes
+245;VIDY (VIDY);Platform iklan berbasis blockchain & token reward;Iklan digital;Ya;?
+246;Streamr DATAcoin (DATA);Desentralisasi data sharing & monetisasi;Data economy;Ya;Yes
+247;Einsteinium (EMC2);Kripto untuk mendukung penelitian ilmiah;Charity & research funding;Ya;Yes
+248;Groestlcoin (GRS);Mata uang digital open-source dengan biaya rendah;Payment;Ya;Yes
+249;Navcoin (NAV);Privacy coin dengan staking & pembayaran cepat;Store of value/payment;Ya;Yes
+250;district0x (DNT);Jaringan pasar & komunitas terdesentralisasi;Marketplace infra;Ya;Yes
+251;LBRY Credits (LBC);Platform konten video terdesentralisasi;Konten & media;Ya;Yes
+252;Aragon (ANT);Platform pembuatan organisasi desentralisasi (DAO);Governance;Ya;Yes
+253;Bytom (BTM);Blockchain untuk tokenisasi aset fisik & digital;Tokenisasi;Ya;Yes
+254;NKN (NKN);Jaringan komunikasi peer-to-peer terdesentralisasi;Telekomunikasi;Ya;Yes
+255;DAD (DAD);Platform iklan digital terdesentralisasi;Iklan;Ya;Yes
+256;GoChain (GO);Blockchain enterprise ramah lingkungan;Blockchain infra;Ya;Yes
+257;Ambire AdEx (ADX);Platform iklan digital & DeFi wallet;Iklan + DeFi;Ya;Yes
+258;Hashgard (GARD);Platform manajemen aset & keuangan terdesentralisasi;DeFi infra;Ya;Yes
+259;Function X (FX);Blockchain multi-layer dari tim Pundi X;Infra blockchain;Ya;?
+260;PumaPay (PMA);Protokol pembayaran dengan pull payment;Payment;Ya;?
+261;Tokenomy (TEN);Platform exchange & tokenisasi;Exchange + tokenisasi;Ya;?
+262;AidCoin (AID);Token untuk donasi amal transparan;Charity;Ya;?
+263;Vertcoin (VTC);Kripto untuk desentralisasi penuh (anti-ASIC);Store of value/payment;Ya;Yes
+264;Civic (CVC);Identitas digital berbasis blockchain;Digital ID;Ya;Yes
+265;Hifi Finance (MFT → HIFI);Platform pinjaman & obligasi on-chain;DeFi lending;Ya;No - lending
+266;BTU Protocol (BTU);Protokol untuk booking & sharing economy;Real economy integration;Ya;?
+267;Cosmo Coin (COSM);Token untuk industri kecantikan & kesehatan;Utilitas dalam ekosistem beauty/health;Ya;?
+268;Hedera (HBAR);DLT (hashgraph) untuk enterprise & aplikasi;Infrastruktur jaringan DLT;Ya;Yes
+269;Wanchain (WAN);Blockchain interoperability & DeFi;Infrastruktur cross-chain;Ya;Yes
+270;Toko Token (TKO);Token native Tokocrypto exchange;Utilitas exchange (fee, reward);Ya;Yes
+271;DIA (DIA);Data oracle untuk DeFi & blockchain;Data on-chain & oracle;Ya;Yes
+272;NEAR Protocol (NEAR);Blockchain smart contract sharded;Infrastruktur L1 blockchain;Ya;Yes
+273;Holo (HOT);Hosting aplikasi desentralisasi berbasis Holochain;Infrastruktur hosting P2P;Ya;Yes
+274;VeThor Token (VTHO);Token biaya transaksi di VeChainThor;Gas fee jaringan VeChain;Ya;Yes
+275;Gala (GALA);Ekosistem game blockchain & NFT;Game & hiburan digital;Ya;Grey
+276;THORChain (RUNE);Cross-chain liquidity protocol;Infrastruktur DeFi (liquidity pool);Ya;Grey
+277;SushiSwap (SUSHI);DEX & DeFi platform;Likuiditas & governance DeFi;Ya;No – lending and leverage
+278;xMoney (ex-UTK) (UTK);Kripto pembayaran merchant;Pembayaran digital & utilitas;Ya;Yes
+279;Internet Computer (ICP);Blockchain untuk cloud computing;Infrastruktur smart contract & hosting;Ya;Yes
+280;Chiliz (CHZ);Token fan engagement olahraga;Hiburan & fan token;Ya;Yes
+281;Chromia (CHR);Blockchain relasional untuk aplikasi;Infrastruktur aplikasi;Ya;Yes
+282;MyNeighbourAlice (ALICE);Game metaverse & NFT farming;Hiburan digital & aset NFT;Ya;Yes
+283;Theta Fuel (TFUEL);Token gas di ekosistem Theta;Biaya transaksi & reward streaming;Ya;Yes
+;;;;;
+284;Polkastarter (POLS);Platform launchpad IDO;Utilitas crowdfunding & DeFi;Ya;Yes
+285;Helium (HNT);Infrastruktur jaringan IoT terdesentralisasi;Nilai dari hotspot jaringan IoT;Ya;Yes
+286;Stacks (STX);Smart contract layer-1 di atas Bitcoin;Infrastruktur smart contract;Ya;Yes
+287;Artificial Superintelligence Alliance (ASI);Ekosistem AI desentralisasi (gabungan FET, AGIX, OCEAN);Utilitas AI & data;Ya;Grey
+288;Alchemix (ALCX);Protokol pinjaman self-repaying;Nilai dari DeFi lending;Ya;No
+289;Aave (AAVE);Platform lending & borrowing DeFi;Likuiditas & layanan pinjaman;Ya;No – lending
+290;dYdX (DYDX);DEX derivatif perpetual trading;Nilai dari likuiditas & fee trading;Ya;No– margin and futures
+291;Reef (REEF);Ekosistem DeFi cross-chain;Infrastruktur DeFi & likuiditas;Ya;No a - lending
+292;Viction (VIC);Blockchain L1, sebelumnya TomoChain;Infrastruktur blockchain;Ya;Yes
+293;Axie Infinity (AXS);Game berbasis NFT play-to-earn;Hiburan & NFT game;Ya;Yes
+294;Bancor (BNT);Automated Market Maker (AMM) DEX;Likuiditas DeFi;Ya;Yes
+295;Audius (AUDIO);Platform musik desentralisasi;Distribusi musik & royalti;Ya;No - musik
+296;Ocean Protocol (OCEAN);Marketplace data desentralisasi;Data & AI economy;Ya;Yes
+297;Illuvium (ILV);Game blockchain RPG + NFT;Hiburan & aset NFT;Ya;Yes
+298;Celsius (CEL);Platform pinjaman & yield kripto;DeFi lending (sebelum collapse);Ya;No - lending
+299;Conflux (CFX);Blockchain publik berfokus Asia;Infrastruktur blockchain;Ya;Yes
+300;ForTube (FOR);DeFi lending protocol;Likuiditas & pinjaman;Ya;No
+301;Keep Network (KEEP);Privasi & tBTC (Bitcoin tokenized);Infrastruktur bridging;Ya;Yes
+302;Dvision Network (DVI);Metaverse & ekosistem NFT;Hiburan & NFT;Ya;Yes
+303;Telcoin (TEL);Remittance & mobile payments;Pembayaran digital;Ya;Yes
+304;Injective (INJ);DEX derivatif & interoperabilitas;Likuiditas & trading derivatif;Ya;Grey
+305;Alpaca Finance (ALPACA);Yield farming leverage;Nilai dari DeFi lending;Ya;No – perpetual futures
+306;Biconomy (BICO);Infrastruktur Web3 multi-chain;Gas fee & transaksi Web3;Ya;Yes
+307;Pintu Token (PTU);Token native exchange Pintu;Utilitas exchange;Ya;Yes
+308;Curve DAO Token (CRV);AMM stablecoin DEX;Likuiditas stablecoin;Ya;Grey
+309;Aavegotchi (GHST);NFT + DeFi staking (game);Hiburan & NFT;Ya;Yes
+310;TerraClassicUSD (USTC);Stablecoin algoritmik (gagal);Pegging USD (gagal);Ya;Yes
+311;Trust Wallet Token (TWT);Token utilitas dompet Trust;Governance & utilitas wallet;Ya;Yes
+312;1inch Network (1INCH);Aggregator DEX;Likuiditas DEX & governance;Ya;No – pay for liquidity providers
+313;eCash (XEC);Fork Bitcoin Cash (uang digital);Uang digital;Ya;Yes
+314;SKALE (SKL);Sidechain Ethereum untuk scaling;Infrastruktur L2 blockchain;Ya;Yes
+315;IOST (IOST);Blockchain dApp high throughput;Infrastruktur blockchain;Ya;Yes
+316;Mina (MINA);Blockchain ringan dengan zk-SNARK;Infrastruktur L1;Ya;Yes
+317;Shentu (CTK);Blockchain keamanan & verifikasi smart contract;Utilitas keamanan & staking di jaringan;Ya;Yes
+318;Badger DAO (BADGER);DAO DeFi khusus Bitcoin DeFi;Tata kelola & insentif protokol;Ya;No - …
+319;ThunderCore (TT);Blockchain layer-1 berfokus kecepatan & biaya rendah;Fee jaringan & utilitas native;Ya;Yes
+320;Anyswap (ANY → MULTI);Cross-chain bridge/protocol;Fee cross-chain & governance;Ya;?
+321;WOO (WOO);Likuiditas DeFi & CEX (WOO Network);Akses likuiditas & staking;Ya;No – collateral for lending
+322;The Graph (GRT);Indeks data blockchain;Staking & query data;Ya;Yes
+323;Filecoin (FIL);Penyimpanan terdesentralisasi;Jasa penyimpanan file;Ya;Yes
+324;IoTeX (IOTX);Infrastruktur IoT + blockchain;Utilitas jaringan IoT;Ya;Yes
+325;Mdex (MDX);DEX + AMM multichain;Governance + fee;Ya;Grey
+326;Nexo (NEXO);Platform pinjaman CeFi;Profit sharing & utilitas;Ya;No
+327;Shiba Inu (SHIB);Token meme berbasis ERC-20;Komunitas & utilitas ekosistem;Ya;Grey
+328;Alchemy Pay (ACH);Gateway pembayaran kripto-fiat;Fee transaksi;Ya;Yes
+329;Vulcan Forged (PYR);Gaming & NFT ecosystem;Utilitas game & NFT;Ya;Yes
+330;Reserve Rights (RSR);Stablecoin reserve & arbitrase;Mekanisme stabilisasi;Ya;Yes
+331;Prom (PROM);NFT marketplace & token utility;Ekosistem NFT;Ya;Yes
+332;Ariva (ARV);Travel & turisme berbasis blockchain;Utilitas platform travel;Ya;Yes
+333;TrueFi (TRU);Lending tanpa jaminan (on-chain credit);Governance & utilitas;Ya;No – borrowing
+334;Celo (CELO);Mobile-first stablecoin platform;Stablecoin & staking;Ya;Yes
+335;WINkLink (WIN);Oracle di TRON;Data oracle;Ya;Grey
+336;Perpetual Protocol (PERP);DEX derivatives perpetual;Fee & staking;Ya;No – futures
+337;API3 (API3);Oracle decentralized API;Data API on-chain;Ya;Yes
+338;Cindrum (CIND);Metaverse berbasis blockchain;Utilitas dalam metaverse;Ya;?
+339;ApeCoin (APE);Governance token Yuga Labs/BAYC;DAO governance & ekosistem;Ya;Yes
+340;Voxies (VOXEL);Play-to-earn RPG game token;Utilitas dalam game;Ya;Yes
+341;BIDR (BIDR);Stablecoin Rupiah (Binance-Paxos);1:1 Rupiah;Ya;Yes
+342;Dao Maker (DAO);Platform launchpad & venture;Token utilitas & governance;Ya;Yes
+343;Astar (ASTR);Smart contract hub di Polkadot;Utilitas ekosistem & staking;Ya;Yes
+344;renBTC (renBTC);Tokenisasi Bitcoin (ERC-20);Backed 1:1 BTC;Ya;Yes
+345;Amp (AMP);Collateral untuk pembayaran digital;Staking collateral jaringan;Ya;Yes
+346;KOK (KOK);Ekosistem konten digital;Utilitas platform hiburan;Ya;Yes
+347;Achain (ACT);Smart contract & dApp platform;Utilitas jaringan;Ya;?
+348;Linear Finance (LINA);Synthetic asset & DeFi;Collateral & governance;Ya;No
+349;Harvest Finance (FARM);Yield farming aggregator;Governance & reward;Ya;No – yield farming
+350;Smooth Love Potion (SLP);Token reward Axie Infinity;Reward dalam game;Ya;Yes
+351;Orchid (OXT);VPN terdesentralisasi;Token pembayaran bandwidth;Ya;Yes
+352;KardiaChain (KAI);Blockchain interoperabilitas;Utilitas ekosistem;Ya;Yes  
+353;Revain (REV);Review platform berbasis blockchain;Utilitas platform;Ya;Yes
+354;HedgeTrade (HEDG);Social trading & prediksi;Utility token trading signals;Ya;?
+355;BarnBridge (BOND);Derivatif risiko DeFi;Governance & risk tokenization;Ya;No - …
+356;Anchor Protocol (ANC);Lending stablecoin di Terra;Governance & yield;Ya;No – lending
+357;Mirror Protocol (MIR);Aset sintetis mirroring saham;Synthetic asset governance;Ya;No – derivatives
+358;XSGD (XSGD);Stablecoin SGD;1:1 dengan Dolar Singapura;Ya;Yes
+359;Nervos Network (CKB);Blockchain layer-1;Token native utilitas;Ya;Yes
+360;Vanar Chain (VANRY);Blockchain gaming & AI;Utilitas ekosistem;Ya;Grey
+361;SafePal (SFP);Wallet & ekosistem keamanan aset;Utilitas & reward;Ya;Yes
+362;Ana Coin (ANA);Token ekosistem Ana;Utilitas komunitas;Ya;?
+363;Flow (FLOW);Blockchain NFT & gaming;Utilitas ekosistem (NBA TopShot, dsb.);Ya;Yes
+364;Alien Worlds (TLM);Game metaverse mining NFT;Utilitas dalam game;Ya;Yes
+365;Immutable (IMX);Layer-2 NFT di Ethereum;Gas-free NFT trading;Ya;Yes
+366;PlayDapp (PLA);Game blockchain & NFT marketplace;Utilitas game;Ya;Yes
+367;DODO (DODO);DEX liquidity protocol;Token utilitas & governance;Ya;Grey
+368;Biswap (BSW);DEX di BNB Chain;Utilitas & reward;Ya;Grey
+369;IDEX (IDEX);Hybrid DEX (orderbook + AMM);Governance & utilitas;Ya;Grey
+370;Auto (AUTO);AutoFarm yield optimizer;Governance & reward;Ya;Grey
+371;DeXe (DEXE);Social trading platform;Governance token;Ya;Grey
+372;Nusa (NUSA);Platform DeFi lokal (Indonesia);Utilitas ekosistem;Ya;?
+373;GMT (GMT);STEPN move-to-earn;Utilitas aplikasi & reward;Ya;Yes
+374;Secret (SCRT);Privacy-focused blockchain;Token utilitas & gas fee;Ya;Yes
+375;Measurable Data Token (MDT);Data monetization platform;Utilitas ekosistem;Ya;Yes
+376;Lido DAO (LDO);Staking liquid Ethereum;Governance token;Ya;No
+377;KuCoin Token (KCS);Exchange token KuCoin;Fee discount & utilitas;Ya;Grey
+378;LTO Network (LTO);Blockchain hybrid (B2B, legal);Utilitas ekosistem;Ya;Yes
+379;MANTRA (OM);DeFi & staking ekosistem;Governance token;Ya;No – lending
+380;Huobi Token (HT);Exchange token Huobi;Fee discount & reward;Ya;?
+381;MovieBloc (MBL);Platform film terdesentralisasi;Utilitas platform;Ya;Yes
+382;Tellor (TRB);Oracle terdesentralisasi;Token utilitas & reward;Ya;Yes
+383;Mask Network (MASK);Integrasi Web2 ke Web3 (Twitter, dsb.);Utilitas ekosistem;Ya;Yes
+384;Observer (OBSR);Platform data GPS & IoT;Utilitas jaringan;Ya;Yes
+385;Optimism (OP);Ethereum layer-2 rollup;Governance & utilitas;Ya;Yes
+386;Moonbeam (GLMR);Smart contract Polkadot (EVM compatible);Utilitas ekosistem;Ya;Yes
+387;MARBLEX (MBX);Gaming blockchain (Netmarble);Utilitas ekosistem;Ya;Yes
+388;LooksRare (LOOKS);NFT marketplace;Governance & reward;Ya;Yes
+389;VITE (VITE);DAG-based blockchain;Utilitas ekosistem;Ya;Yes
+390;Osmosis (OSMO);DEX di Cosmos;Governance & utilitas;Ya;Yes
+391;Galxe (GAL);Platform credential & identitas Web3;Utilitas ekosistem;Ya;Grey
+392;Aptos (APT);Layer-1 blockchain;Digunakan untuk biaya transaksi (gas fee), staking, governance;Ya;Yes
+393;Everscale (EVER);Blockchain scalable (ex-TON);Biaya transaksi, smart contract, staking;Ya;Yes
+394;Ontology Gas (ONG);Ontology blockchain;Pembayaran biaya transaksi dan eksekusi kontrak;Ya;Yes
+395;Gnosis (GNO);DAO & prediction markets;Voting governance, staking dalam ekosistem Gnosis;Ya;Grey
+396;Metacraft (MCT);GameFi ekosistem;Item in-game, NFT utility, reward player;Ya;?
+397;BitTorrent(New) (BTT);File sharing & storage;Pembayaran untuk bandwidth/storage dalam jaringan BitTorrent;Ya;Yes
+398;Manchester City Fan Token (CITY);Fan engagement (Socios/Chiliz);Voting aktivitas klub, akses reward, merchandise eksklusif;Ya;Yes
+399;Streamr (DATA);Data streaming blockchain;Pembayaran & monetisasi data real-time;Ya;Yes
+400;S.S. Lazio Fan Token (LAZIO);Fan engagement (Socios/Chiliz);Voting aktivitas klub, akses reward, merchandise eksklusif;Ya;Yes
+401;Kava Lend (HARD);Lending platform DeFi;Digunakan sebagai governance & insentif dalam platform lending;Ya;No – lending
+402;LeverFi (LEVER);DeFi leverage trading;Digunakan untuk leverage trading & governance;Ya;No
+403;Ignis (IGNIS);Child chain Ardor;Membayar biaya transaksi di blockchain Ignis;Ya;Yes
+404;EthereumPoW (ETHW);Ethereum hardfork PoW;Biaya transaksi (gas fee), eksekusi smart contract;Ya;Yes
+405;PERL.eco (PERL);Ekonomi karbon & biodiversitas;Digunakan untuk tokenisasi karbon & proyek eco-friendly;Ya;Yes
+406;PlatON (LAT);Privacy-preserving blockchain;Biaya transaksi, staking, eksekusi kontrak smart privacy;Ya;Yes
+407;T-mac DAO (TMG);Community DAO;Voting komunitas & akses ekosistem DAO;Ya;?
+408;ONBUFF (ONIT);IP tokenization & game;Lisensi IP, pembayaran ekosistem game;Ya;Yes
+409;Terra (LUNA);Layer-1 blockchain (ex-Luna crash);Staking & governance ekosistem Terra;Ya;Yes
+410;GMX (GMX);Perpetual DEX trading;Digunakan untuk trading perpetual & governance;Ya;No – futures
+411;Hiblocks (HIBS);Social content platform;Reward untuk konten, interaksi sosial;Ya;Yes
+412;PLCU (PlatinCoin Ultimate);Payment/crypto project;Klaim pembayaran & reward;Ya;?
+413;Krypton DAO (KRD);DAO ekosistem;Voting & governance DAO;Ya;?
+414;FC Barcelona Fan Token (BAR);Fan engagement (Socios/Chiliz);Voting aktivitas klub, reward, merchandise eksklusif;Ya;Yes
+415;Stargate Finance (STG);Cross-chain liquidity bridge;Governance & pembayaran biaya dalam bridge;Ya;Yes
+416;Multichain (MULTI);Cross-chain bridge protocol;Biaya transaksi & governance dalam protokol bridge;Ya;Yes
+417;Solana Name Service (SNS);Domain service di Solana;Digunakan untuk membeli/registrasi domain .sol;Ya;?
+418;Cream Finance (CREAM);DeFi lending & borrowing;Governance & insentif pada platform lending;Ya;No – lending borrowing
+419;Adappter Token (ADP);Media & reward platform;Reward pengguna dalam ekosistem konten digital;Ya;Yes
+420;Threshold (T);Privacy & tBTC bridge;Governance, staking, dan proteksi data;Ya;Yes
+421;IRISnet (IRIS);Cosmos-based blockchain;Biaya transaksi, staking, governance;Ya;Yes
+422;Beta Finance (BETA);DeFi money market;Digunakan untuk shorting aset & governance;Ya;No – lending borrowing
+423;dForce (DF);DeFi ekosistem;Governance, insentif protokol lending/liquidity;Ya;No – lending
+424;ETHUP (ETHUP);Leveraged token;Token leverage untuk ETH (3x long);Ya;?
+425;Flamingo (FLM);DeFi platform Neo;Governance & staking dalam ekosistem Flamingo;Ya;Grey
+426;Komodo (KMD);Cross-chain blockchain;Digunakan untuk transaksi, atomic swaps;Ya;Yes
+427;pNetwork (PNT);Cross-chain DeFi;Governance & staking untuk protokol cross-chain;Ya;Yes
+428;Bounce Token (AUCTION);Auction protocol;Digunakan untuk lelang token/NFT;Ya;Yes
+429;Bella Protocol (BEL);DeFi yield platform;Governance & insentif pengguna protokol;Ya;No - lending
+430;FIO Protocol (FIO);Blockchain naming service;Digunakan untuk FIO addresses (crypto wallet alias);Ya;Yes
+431;QuickSwap (QUICK);DEX di Polygon;Governance & biaya trading dalam DEX;Ya;Grey
+432;FC Porto Fan Token (PORTO);Fan engagement (Socios/Chiliz);Voting klub, reward, merchandise;Ya;Yes
+433;Defigram (DFG);Web3 social platform;Digunakan untuk governance & interaksi sosial;Ya;Grey
+434;ConstitutionDAO (PEOPLE);DAO crowdfunding;Voting & partisipasi DAO;Ya;Yes
+435;Mithril (MITH);Social mining;Reward untuk konten sosial;Ya;Yes
+436;WEMIX (WEMIX);GameFi ekosistem;Digunakan untuk item game, NFT, reward player;Ya;Yes
+437;UniLend (UFT);DeFi lending protocol;Governance & biaya transaksi di protokol lending;Ya;No - lending
+438;BENQI (QI);DeFi liquidity on Avalanche;Staking, governance, lending market;Ya;No
+439;AC Milan Fan Token (ACM);Fan engagement (Socios/Chiliz);Voting klub, reward, merchandise;Ya;Yes
+440;TokenClub (TCT);Investment community platform;Membership, layanan edukasi & reward komunitas;Ya;?
+441;ETHDOWN (ETHDOWN);Leveraged token;Token leverage untuk ETH (short -3x);Ya;?
+442;Cortex (CTXC);AI & Smart Contract platform;Digunakan untuk deploy AI model di blockchain;Ya;Yes
+443;BNBDOWN (BNBDOWN);Leveraged token;Token leverage short BNB (-3x);Ya;?
+444;Paris Saint-Germain Fan Token (PSG);Fan engagement (Socios/Chiliz);Voting klub, reward, merchandise;Ya;Yes
+445;Volt Inu (VOLT);Meme + DeFi utilities;Digunakan untuk staking, NFT, play-to-earn;Ya;Yes
+446;Kaon (KAON);DeFi liquidity;Governance & insentif protokol;Ya;No
+447;Atletico De Madrid Fan Token (ATM);Fan engagement (Socios/Chiliz);Voting klub, reward, merchandise;Ya;Yes
+448;OG Fan Token (OG);Esports fan engagement;Voting, reward, merchandise tim esports OG;Ya;Yes
+449;Abyss (ABYSS);Game & digital content platform;Pembayaran game, reward, layanan digital;Ya;Grey
+450;ADAUP (ADAUP);Leveraged token;Token leverage long ADA (3x);Ya;?
+451;VIDT DAO (VIDT);Data & document verification;Verifikasi keaslian dokumen & NFT;Ya;Yes
+452;BNBUUP (BNBUP);Leveraged token;Token leverage long BNB (3x);Ya;?
+453;XRPUP (XRPUP);Leveraged token;Token leverage long XRP (3x);Ya;?
+454;Solve.Care (SOLVE);Healthcare blockchain;Pembayaran & layanan dalam ekosistem kesehatan;Ya;Yes
+455;New BitShares (NBS);DEX & DeFi platform;Biaya transaksi, governance, staking;Ya;Yes
+456;Adventure Gold (AGLD);Metaverse & NFT;Token utilitas untuk Loot metaverse & NFT game;Ya;Yes
+457;DOTUP (DOTUP);Leveraged token;Token leverage long DOT (3x);Ya;?
+458;DOTDOWN (DOTDOWN);Leveraged token;Token leverage short DOT (-3x);Ya;?
+459;Rootstock Infrastructure Framework (RIF);Bitcoin sidechain (RSK);Biaya layanan smart contract & DeFi di RSK;Ya;Yes
+460;Tribe (TRIBE);Governance token Fei Protocol;Voting & pengelolaan protokol stablecoin Fei;Ya;?
+461;Aion (AION);Interoperable blockchain;Biaya transaksi & interoperabilitas chain;Ya;Yes
+462;BTCUP (BTCUP);Leveraged token;Token leverage long BTC (3x);Ya;?
+463;StaFi (FIS);Liquid staking protocol;Digunakan untuk rToken (staking derivatif);Ya;No - derivatives
+464;Voyager Token (VGX);Crypto brokerage platform;Loyalty rewards & fee discount di Voyager;Ya;No
+465;Kommunitas (KOM);Launchpad platform;Digunakan untuk IDO, staking, governance;Ya;?
+466;Vexanium (VEX);Indonesian public blockchain;Biaya transaksi & smart contract;Ya;Yes
+467;Honest (HNST);Blockchain Indonesia;Digunakan untuk pembayaran & ekosistem Honest mining;Ya;?
+468;Duckie Land (MMETA);NFT & Metaverse game;Utilitas dalam game Duckie Land (NFT, item);Ya;?
+469;SANGKARA MISA (MISA);Crypto Indonesia;Token komunitas untuk ekosistem digital & sosial;Ya;?
+470;Hara Token (HART);Data pertanian;Pembayaran & reward untuk data supply chain pertanian;Ya;?
+471;MIRA (MIRA);DeFi & payment;Digunakan untuk transaksi & insentif jaringan;Ya;?
+472;GICTrade (GICT);Platform trading;Utility & fee reduction di platform GIC Trade;Ya;?
+473;Tokoin (TOKO);UMKM blockchain;Digunakan untuk ekosistem bisnis UMKM berbasis blockchain;Ya;Yes
+474;ASIX+ (ASIX);NFT & hiburan;Token hiburan untuk musik, NFT, game;Ya;?
+475;AK12 (AK12);Token lokal Indonesia;Utilitas komunitas & ekosistem digital;Ya;?
+476;Shanum (SHAN);Token lokal syariah;Digunakan untuk ekosistem halal & sosial;Ya;?
+477;Arbitrum (ARB);Layer-2 Ethereum;Governance & biaya transaksi Arbitrum rollup;Ya;Yes
+478;Rocket Pool (RPL);Liquid staking Ethereum;Staking ETH & governance protokol Rocket Pool;Ya;Grey
+479;Sui (SUI);Layer-1 blockchain;Biaya transaksi & governance di blockchain Sui;Ya;Yes
+480;SingularityNET (AGIX);AI marketplace;Pembayaran & governance marketplace AI;Ya;?
+481;Hashflow (HFT);DEX cross-chain;Governance & insentif likuiditas DEX Hashflow;Ya;Yes
+482;Flare (FLR);Interoperable smart contract;Biaya transaksi & governance jaringan Flare;Ya;Yes
+483;SPACE ID (ID);Web3 domain & digital identity;Pendaftaran & manajemen domain Web3;Ya;Yes
+484;Blur (BLUR);NFT marketplace;Governance & insentif di NFT marketplace Blur;Ya;Yes
+485;Liquity (LQTY);Lending stablecoin (LUSD);Fee sharing & staking di protokol Liquity;Ya;No - lending
+486;Bitgert (BRISE);Layer-1 blockchain;Biaya transaksi & utilitas DeFi Bitgert;Ya;Yes
+487;ID Digital Rupiah (IDR);Rupiah stablecoin;Stablecoin berdenominasi Rupiah;Ya;?
+488;Open Campus (EDU);Pendidikan Web3;Pembayaran kursus, insentif guru & siswa;Ya;Yes
+489;Floki (FLOKI);Meme + ekosistem DeFi/NFT;Utilitas untuk game, NFT, metaverse Floki;Ya;Grey
+490;Neopin (NPT);DeFi & staking;Digunakan untuk staking, lending, yield farming;Ya;?
+491;Pepe (PEPE);Meme coin;Token meme berbasis komunitas;Ya;Grey
+492;Creo Engine (CREO);Gaming & NFT;Digunakan untuk transaksi & ekosistem game Creo Engine;Ya;Yes
+493;MASHIDA (MSHD);Token lokal Indonesia;Utilitas komunitas & platform digital;Ya;?
+494;NEFTiPEDIA (NFT);NFT marketplace;Digunakan untuk transaksi NFT & governance;Ya;?
+495;KUY Token (KUY);Token komunitas;Utilitas ekosistem digital & reward;Ya;?
+496;DOOIT V2 (DOOIT);Edukasi & komunitas;Token utilitas untuk platform belajar & reward;Ya;?
+497;TWELVE ZODIAC (TWZ);NFT & game zodiac;Digunakan untuk NFT & ekosistem zodiac game;Ya;?
+498;Tether Gold (XAUT);Emas;Stablecoin berbasis emas (1 token = 1 troy ounce emas);Ya;Yes
+499;Worldcoin (WLD);Proof-of-personhood;Digunakan untuk identitas global & insentif jaringan;Ya;Yes
+500;Arkham (ARKM);Data & analitik blockchain;Token utilitas untuk analisis & intelijen blockchain;Ya;Yes
+501;MobileCoin (MOB);Privasi & pembayaran;Digunakan untuk transaksi cepat & privat via Signal;Ya;Yes
+502;Tether EURt (EURT);Euro;Stablecoin berbasis Euro;Ya;Yes
+503;Pendle (PENDLE);Yield DeFi;Tokenisasi yield & manajemen pendapatan DeFi;Ya;Grey
+504;Casper (CSPR);Layer-1 blockchain;Governance & biaya transaksi Casper blockchain;Ya;Yes
+505;Centrifuge (CFG);Real world assets (RWA);Tokenisasi aset nyata & pembiayaan;Ya;Yes
+506;Treasure (MAGIC);Gaming & NFT;Digunakan untuk game & ekosistem NFT TreasureDAO;Ya;Yes
+507;Aleph Zero (AZERO);Layer-1 blockchain;Biaya transaksi & utilitas ekosistem Aleph Zero;Ya;Yes
+508;Clash of Liliput (COL);Game blockchain;Utilitas dalam ekosistem game Clash of Liliput;Ya;Grey
+509;Mantle (MNT);Layer-2 Ethereum;Governance & biaya transaksi jaringan Mantle;Ya;Yes
+510;Radiant Capital (RDNT);Lending & borrowing;Digunakan untuk peminjaman & staking DeFi;Ya;No – lending
+511;Sei (SEI);Layer-1 blockchain;Biaya transaksi & utilitas ekosistem Sei;Ya;Yes
+512;CyberConnect (CYBER);SocialFi & Web3;Token governance & utilitas jejaring sosial Web3;Ya;Yes
+513;ssv.network (SSV);Staking Ethereum;Utilitas dalam protokol staking terdesentralisasi;Ya;Yes
+514;Maverick Protocol (MAV);DEX & DeFi;Governance & insentif likuiditas Maverick;Ya;Yes
+515;AirSwap (AST);DEX & swap;Digunakan untuk transaksi P2P trading & governance;Ya;Yes
+516;ORDI (ORDI);Ordinals (BTC inscriptions);Token pertama berbasis Ordinals di Bitcoin;Ya;Yes
+517;Giant Mammoth (GMMT);Blockchain & ekosistem DeFi;Digunakan untuk utilitas ekosistem Mammoth;Ya;Grey
+518;Baby Doge Coin (BABYDOGE);Meme coin;Token komunitas, digunakan untuk charity & ekosistem komunitas;Ya;Grey
+519;Gains Network (GNS);DeFi & trading;Digunakan untuk trading leverage di gTrade;Ya;No - leverage
+520;H2O DAO (H2O);DAO komunitas;Token utilitas untuk voting & reward ekosistem DAO;Ya;?
+521;AS Roma Fan Token (ASR);Fan token (Socios);Digunakan untuk voting & akses eksklusif fans AS Roma;Ya;Yes
+522;ShredN (SHRED);Ekosistem musik;Token utilitas untuk platform musik & NFT;Ya;Grey
+523;Utility Web3Shot (W3S);Edukasi Web3;Token reward untuk pembelajaran & partisipasi Web3;Ya;?
+524;Kaspa (KAS);Layer-1 blockchain (DAG);Biaya transaksi & utilitas jaringan Kaspa;Ya;Grey
+525;Gifto (GFT);Hadiah digital & NFT;Digunakan untuk hadiah digital, tipping, & NFT;Ya;Yes
+526;Metars Genesis (MRS);NFT & metaverse;Token utilitas dalam ekosistem Metars;Ya;?
+527;Eminer (EM);Cloud mining;Digunakan untuk layanan mining & reward;Ya;Grey
+528;Vibing (VBG);SocialFi & komunitas;Token utilitas untuk jejaring sosial Web3;Ya;?
+529;Ampleforth Governance (FORTH);Stable crypto algor.;Token governance untuk protokol Ampleforth;Ya;Yes
+530;Bone ShibaSwap (BONE);DEX ShibaSwap;Biaya transaksi Shibarium & governance;Ya;Yes
+531;CyberHarbor (CHT);Keamanan blockchain;Token utilitas untuk ekosistem CyberHarbor;Ya;?
+532;Suzuverse (SGT);Metaverse & game;Digunakan dalam ekosistem metaverse Suzuverse;Ya;Yes
+533;Reserved Protocol Coin (RSR);Stablecoin governance;Digunakan untuk stabilisasi & governance Reserve;Ya;?
+534;Reserved Protocol Coin USD (RSV);Stablecoin USD;Stablecoin berbasis dolar AS;Ya;?
+535;SILK (Spider Tanks);Game blockchain;Token utilitas untuk game Spider Tanks;Ya;?
+536;Murasaki (MURA);Game & metaverse;Token utilitas untuk konten & game Murasaki;Ya;?
+537;MiL.k (MLK);Loyalty & reward;Token utilitas untuk program loyalitas travel & lifestyle;Ya;Yes
+538;Lybra Finance (LBR);DeFi & stablecoin;Token utilitas untuk stablecoin eUSD;Ya;Yes
+539;Palapa Token (PLP);Komunitas Indonesia;Token utilitas ekosistem lokal & reward komunitas;Ya;?
+540;Anoa (ANOA);Token lokal Indonesia;Utilitas komunitas & pembayaran lokal;Ya;?
+541;Lyfe Silver (LSILVER);Perak;Stablecoin berbasis harga perak;Ya;?
+542;IDRX;Rupiah (IDR);Stablecoin berbasis Rupiah;Ya;Grey
+543;Lyfe Gold (LGOLD);Emas;Stablecoin berbasis emas fisik;Ya;?
+544;Crypto Sustainable Token (CST);Energi hijau & keberlanjutan;Token utilitas untuk proyek ramah lingkungan;Ya;?
+545;AIDR;Rupiah (IDR);Stablecoin berbasis Rupiah;Ya;?

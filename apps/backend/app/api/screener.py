@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, request
 
 from app.models import Screener
 
@@ -9,7 +9,20 @@ screener_bp = Blueprint("screener_api", __name__, url_prefix="/api/screener")
 
 @screener_bp.get("")
 def list_screener():
-    rows = Screener.query.order_by(Screener.nama_koin.asc()).all()
+    query = Screener.query
+
+    q = (request.args.get("q") or "").strip()
+    if q:
+        keyword = f"%{q}%"
+        query = query.filter(
+            (Screener.nama_koin.ilike(keyword)) | (Screener.simbol.ilike(keyword))
+        )
+
+    status = (request.args.get("status") or "").strip().lower()
+    if status in {"halal", "proses", "haram"}:
+        query = query.filter(Screener.status == status)
+
+    rows = query.order_by(Screener.nama_koin.asc()).all()
     return response_success("Berhasil mengambil data screener", [row.to_dict() for row in rows])
 
 

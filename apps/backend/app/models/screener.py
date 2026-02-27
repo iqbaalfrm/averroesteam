@@ -17,4 +17,8 @@ class Screener(db.Model):
             "simbol": self.simbol,
             "status": self.status,
             "alasan": self.alasan,
+            # Mobile UI fields (keep legacy keys above for backward compatibility).
+            "status_syariah": self.status,
+            "penjelasan_fiqh": self.alasan,
+            "referensi_ulama": "Sumber: CSV Screener Averroes (kajian internal).",
         }
