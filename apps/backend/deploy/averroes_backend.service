@@ -1,0 +1,17 @@
+[Unit]
+Description=Layanan Gunicorn untuk Averroes Backend (Sistem Manajemen Aset Kripto Syariah)
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/AverroesTeam/apps/backend
+Environment="PATH=/var/www/AverroesTeam/apps/backend/.venv/bin"
+EnvironmentFile=/var/www/AverroesTeam/apps/backend/.env
+ExecStart=/var/www/AverroesTeam/apps/backend/.venv/bin/gunicorn --workers 3 --threads 4 --bind 127.0.0.1:5000 wsgi:app --access-logfile /var/log/averroes/access.log --error-logfile /var/log/averroes/error.log
+
+# Upaya mitigasi risiko system crash
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
