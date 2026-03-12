@@ -15,9 +15,11 @@ from .api.pustaka import pustaka_admin_bp, pustaka_bp
 from .api.screener import screener_bp
 from .api.reels import reels_bp
 from .api.zakat import zakat_bp
+from .api.konsultasi import konsultasi_bp
 from .config import DevelopmentConfig, ProductionConfig
 from .extensions import csrf, mongo, jwt, mail
 from .seed import seed_data
+from .seed_konsultasi import seed_konsultasi_data
 from .services.berita_scraper import start_berita_scheduler
 
 
@@ -57,6 +59,7 @@ def create_app() -> Flask:
     app.register_blueprint(pustaka_admin_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(reels_bp)
+    app.register_blueprint(konsultasi_bp)
 
     # API uses JWT header token, so CSRF is enforced only for admin forms.
     csrf.exempt(auth_bp)
@@ -70,6 +73,7 @@ def create_app() -> Flask:
     csrf.exempt(pustaka_bp)
     csrf.exempt(pustaka_admin_bp)
     csrf.exempt(reels_bp)
+    csrf.exempt(konsultasi_bp)
 
     with app.app_context():
         if app.config.get("AUTO_CREATE_DB"):
@@ -77,6 +81,7 @@ def create_app() -> Flask:
             setup_indexes(mongo.db)
         if app.config.get("SEED_ON_STARTUP"):
             seed_data()
+            seed_konsultasi_data()
 
     # Debug reloader starts app twice; run scheduler only in effective process.
     is_reloader_process = os.environ.get("WERKZEUG_RUN_MAIN") == "true"
