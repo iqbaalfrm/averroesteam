@@ -1,20 +1,20 @@
 from datetime import datetime, timedelta
 import random
+from bson import ObjectId
 
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import create_access_token, jwt_required
+from flask_mail import Message
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.extensions import db
-from app.models import PasswordResetOTP, User
+from app.extensions import mongo, mail
 
-from .common import response_error, response_success
+from .common import response_error, response_success, format_doc
 
 auth_bp = Blueprint("auth_api", __name__, url_prefix="/api/auth")
 
 
 def _legacy_success(message: str, data=None, code: int = 200):
-    # Backward-compatible shape for older mobile screens (`status` bool + `pesan`).
     payload = {"status": True, "pesan": message, "message": message, "data": data}
     return payload, code
 
@@ -28,12 +28,18 @@ def _generate_otp_code() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
-def _find_active_otp(email: str, kode: str) -> PasswordResetOTP | None:
-    return (
-        PasswordResetOTP.query.filter_by(email=email, kode=kode, is_used=False)
-        .order_by(PasswordResetOTP.created_at.desc(), PasswordResetOTP.id.desc())
-        .first()
+def _find_active_otp(email: str, kode: str):
+    return mongo.db.password_reset_otp.find_one(
+        {"email": email, "kode": kode, "is_used": False},
+        sort=[("created_at", -1), ("_id", -1)]
     )
+
+
+def is_otp_expired(otp, now):
+    expired = otp.get("expired_at")
+    if getattr(expired, "isoformat", None):
+        return now > expired
+    return False
 
 
 @auth_bp.post("/register")
@@ -46,20 +52,22 @@ def register():
     if not nama or not email or not password:
         return response_error("Data register tidak lengkap", 400)
 
-    if User.query.filter_by(email=email).first():
+    if mongo.db.users.find_one({"email": email}):
         return response_error("Email sudah terdaftar", 400)
 
-    user = User(
-        nama=nama,
-        email=email,
-        password_hash=generate_password_hash(password),
-        role="user",
-    )
-    db.session.add(user)
-    db.session.commit()
+    user = {
+        "nama": nama,
+        "email": email,
+        "password_hash": generate_password_hash(password),
+        "role": "user",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    result = mongo.db.users.insert_one(user)
+    user["_id"] = result.inserted_id
 
-    token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
-    return response_success("Registrasi berhasil", {"token": token, "user": user.to_dict()}, 201)
+    token = create_access_token(identity=str(user["_id"]), additional_claims={"role": user["role"]})
+    return response_success("Registrasi berhasil", {"token": token, "user": format_doc(user, "password_hash")}, 201)
 
 
 @auth_bp.post("/login")
@@ -68,25 +76,30 @@ def login():
     email = (payload.get("email") or "").strip().lower()
     password = payload.get("password") or ""
 
-    user = User.query.filter_by(email=email).first()
-    if not user or not user.password_hash:
+    user = mongo.db.users.find_one({"email": email})
+    if not user or not user.get("password_hash"):
         return response_error("Email atau password salah", 401)
 
-    if not check_password_hash(user.password_hash, password):
+    if not check_password_hash(user["password_hash"], password):
         return response_error("Email atau password salah", 401)
 
-    token = create_access_token(identity=str(user.id), additional_claims={"role": user.role})
-    return response_success("Login berhasil", {"token": token, "user": user.to_dict()})
+    token = create_access_token(identity=str(user["_id"]), additional_claims={"role": user.get("role")})
+    return response_success("Login berhasil", {"token": token, "user": format_doc(user, "password_hash")})
 
 
 @auth_bp.post("/guest")
 def guest_login():
-    guest = User(nama="Pengguna Tamu", role="user")
-    db.session.add(guest)
-    db.session.commit()
+    guest = {
+        "nama": "Pengguna Tamu",
+        "role": "guest",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow()
+    }
+    result = mongo.db.users.insert_one(guest)
+    guest["_id"] = result.inserted_id
 
-    token = create_access_token(identity=str(guest.id), additional_claims={"role": guest.role})
-    return response_success("Login tamu berhasil", {"token": token, "user": guest.to_dict()})
+    token = create_access_token(identity=str(guest["_id"]), additional_claims={"role": guest["role"]})
+    return response_success("Login tamu berhasil", {"token": token, "user": format_doc(guest, "password_hash")})
 
 
 @auth_bp.post("/google")
@@ -107,10 +120,11 @@ def me():
     user_id = get_jwt_identity()
     if user_id is None:
         return response_error("Unauthorized", 401)
-    user = User.query.get(int(user_id))
+    
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         return response_error("User tidak ditemukan", 404)
-    return response_success("Profil berhasil diambil", {"user": user.to_dict()})
+    return response_success("Profil berhasil diambil", {"user": format_doc(user, "password_hash")})
 
 
 @auth_bp.put("/me")
@@ -121,7 +135,7 @@ def update_me():
     user_id = get_jwt_identity()
     if user_id is None:
         return response_error("Unauthorized", 401)
-    user = User.query.get(int(user_id))
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
     if not user:
         return response_error("User tidak ditemukan", 404)
 
@@ -133,16 +147,21 @@ def update_me():
         return response_error("Nama wajib diisi", 400)
 
     if email:
-        exists = User.query.filter(User.email == email, User.id != user.id).first()
+        exists = mongo.db.users.find_one({"email": email, "_id": {"$ne": ObjectId(user_id)}})
         if exists:
             return response_error("Email sudah digunakan user lain", 400)
-        user.email = email
     else:
-        user.email = None
+        email = None
 
-    user.nama = nama
-    db.session.commit()
-    return response_success("Profil berhasil diperbarui", {"user": user.to_dict()})
+    update_data = {
+        "nama": nama,
+        "email": email,
+        "updated_at": datetime.utcnow()
+    }
+    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+    
+    user.update(update_data)
+    return response_success("Profil berhasil diperbarui", {"user": format_doc(user, "password_hash")})
 
 
 @auth_bp.post("/lupa-password")
@@ -153,34 +172,52 @@ def lupa_password():
         data, code = _legacy_error("Email wajib diisi", 400)
         return data, code
 
-    user = User.query.filter_by(email=email).first()
+    user = mongo.db.users.find_one({"email": email})
     if not user:
         data, code = _legacy_error("Email tidak terdaftar", 404)
         return data, code
 
     now = datetime.utcnow()
-    (
-        PasswordResetOTP.query.filter_by(email=email, is_used=False)
-        .update({"is_used": True, "used_at": now, "updated_at": now}, synchronize_session=False)
+    mongo.db.password_reset_otp.update_many(
+        {"email": email, "is_used": False},
+        {"$set": {"is_used": True, "used_at": now, "updated_at": now}}
     )
 
     expires_seconds = int(current_app.config.get("PASSWORD_RESET_OTP_EXPIRES_SECONDS", 300))
     debug_otp = bool(current_app.config.get("PASSWORD_RESET_DEBUG_OTP_IN_RESPONSE", False))
 
     kode = _generate_otp_code()
-    otp = PasswordResetOTP(
-        email=email,
-        kode=kode,
-        expired_at=now + timedelta(seconds=expires_seconds),
-    )
-    db.session.add(otp)
-    db.session.commit()
+    otp = {
+        "email": email,
+        "kode": kode,
+        "expired_at": now + timedelta(seconds=expires_seconds),
+        "is_used": False,
+        "attempt_count": 0,
+        "created_at": now,
+        "updated_at": now
+    }
+    mongo.db.password_reset_otp.insert_one(otp)
+
+    # Kirim email asli (Ikhtiar Nyata)
+    try:
+        msg = Message(
+            subject="Kode OTP Lupa Password - Averroes",
+            recipients=[email],
+            body=f"Assalamu'alaikum,\n\nKode OTP Anda untuk reset password adalah: {kode}\n\nKode ini berlaku selama {expires_seconds // 60} menit. Jangan berikan kode ini kepada siapapun.\n\nSalam,\nTim Averroes"
+        )
+        mail.send(msg)
+    except Exception as e:
+        current_app.logger.error(f"Gagal mengirim email ke {email}: {str(e)}")
+        # Jika dalam mode debug, kita tetap biarkan proses lanjut agar bisa dites
+        if not debug_otp:
+            data, code = _legacy_error("Gagal mengirim email OTP, silakan coba lagi nanti", 500)
+            return data, code
 
     data_payload = {"email": email, "expires_in_seconds": expires_seconds}
     if debug_otp:
         data_payload["otp_debug"] = kode
 
-    data, code = _legacy_success("OTP berhasil dikirim", data_payload)
+    data, code = _legacy_success("OTP berhasil dikirim ke email Anda", data_payload)
     return data, code
 
 
@@ -200,15 +237,17 @@ def verifikasi_otp():
         return data, code
 
     now = datetime.utcnow()
-    otp.attempt_count = (otp.attempt_count or 0) + 1
-    if otp.is_expired(now):
-        db.session.commit()
+    attempt_count = otp.get("attempt_count", 0) + 1
+    
+    if is_otp_expired(otp, now):
+        mongo.db.password_reset_otp.update_one({"_id": otp["_id"]}, {"$set": {"attempt_count": attempt_count}})
         data, code = _legacy_error("Kode OTP sudah kedaluwarsa", 400)
         return data, code
 
-    otp.verified_at = now
-    otp.updated_at = now
-    db.session.commit()
+    mongo.db.password_reset_otp.update_one(
+        {"_id": otp["_id"]}, 
+        {"$set": {"attempt_count": attempt_count, "verified_at": now, "updated_at": now}}
+    )
 
     data, code = _legacy_success("Kode OTP valid", {"email": email, "verified": True})
     return data, code
@@ -228,7 +267,7 @@ def reset_password():
         data, code = _legacy_error("Password baru minimal 8 karakter", 400)
         return data, code
 
-    user = User.query.filter_by(email=email).first()
+    user = mongo.db.users.find_one({"email": email})
     if not user:
         data, code = _legacy_error("Email tidak terdaftar", 404)
         return data, code
@@ -239,18 +278,23 @@ def reset_password():
         return data, code
 
     now = datetime.utcnow()
-    if otp.is_expired(now):
+    if is_otp_expired(otp, now):
         data, code = _legacy_error("Kode OTP sudah kedaluwarsa", 400)
         return data, code
-    if not otp.verified_at:
+    
+    if not otp.get("verified_at"):
         data, code = _legacy_error("Kode OTP belum diverifikasi", 400)
         return data, code
 
-    user.password_hash = generate_password_hash(password_baru)
-    otp.is_used = True
-    otp.used_at = now
-    otp.updated_at = now
-    db.session.commit()
+    mongo.db.users.update_one(
+        {"_id": user["_id"]}, 
+        {"$set": {"password_hash": generate_password_hash(password_baru), "updated_at": now}}
+    )
+    
+    mongo.db.password_reset_otp.update_one(
+        {"_id": otp["_id"]},
+        {"$set": {"is_used": True, "used_at": now, "updated_at": now}}
+    )
 
     data, code = _legacy_success("Password berhasil diubah", None)
     return data, code

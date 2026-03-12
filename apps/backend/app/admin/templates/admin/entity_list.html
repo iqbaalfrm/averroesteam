@@ -46,7 +46,7 @@
         {% for row in rows %}
         <tr class="align-top">
           {% for field in fields %}
-            {% set value = row|attr(field.name) %}
+            {% set value = row.get(field.name) %}
             <td class="px-4 py-3 text-slate-700">
               {% if field.type == 'file' and value %}
                 <a href="{{ url_for('admin.uploaded_file', filename=value) }}" target="_blank" class="font-medium text-averroes-700 underline">{{ field.link_text if field.link_text else 'Lihat File' }}</a>

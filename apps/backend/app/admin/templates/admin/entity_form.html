@@ -28,9 +28,9 @@
         {% set current = obj|attr(field.name) if obj else None %}
         <select name="{{ field.name }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring">
           <option value="">Pilih {{ field.label }}</option>
-          {% for opt in field.model.query.order_by(field.model.id.asc()).all() %}
-            {% set selected = 'selected' if current == opt.id else '' %}
-            <option value="{{ opt.id }}" {{ selected }}>{{ opt|attr(field.option_label) }}</option>
+          {% for opt in select_options.get(field.name, []) %}
+            {% set selected = 'selected' if (current|string) == (opt.id|string) else '' %}
+            <option value="{{ opt.id }}" {{ selected }}>{{ opt.label }}</option>
           {% endfor %}
         </select>
       {% elif field.type == 'file' %}

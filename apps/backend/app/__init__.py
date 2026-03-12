@@ -10,11 +10,13 @@ from .api.berita import berita_bp
 from .api.diskusi import diskusi_bp
 from .api.edukasi import edukasi_bp
 from .api.portofolio import portofolio_bp
+from .api.pasar import pasar_bp
 from .api.pustaka import pustaka_admin_bp, pustaka_bp
 from .api.screener import screener_bp
+from .api.reels import reels_bp
 from .api.zakat import zakat_bp
 from .config import DevelopmentConfig, ProductionConfig
-from .extensions import csrf, db, jwt, migrate
+from .extensions import csrf, mongo, jwt, mail
 from .seed import seed_data
 from .services.berita_scraper import start_berita_scheduler
 
@@ -35,10 +37,10 @@ def create_app() -> Flask:
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-    db.init_app(app)
-    migrate.init_app(app, db)
+    mongo.init_app(app)
     jwt.init_app(app)
     csrf.init_app(app)
+    mail.init_app(app)
 
     if app.config.get("USE_PROXY_FIX", True):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
@@ -46,6 +48,7 @@ def create_app() -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(edukasi_bp)
     app.register_blueprint(portofolio_bp)
+    app.register_blueprint(pasar_bp)
     app.register_blueprint(zakat_bp)
     app.register_blueprint(screener_bp)
     app.register_blueprint(diskusi_bp)
@@ -53,21 +56,25 @@ def create_app() -> Flask:
     app.register_blueprint(pustaka_bp)
     app.register_blueprint(pustaka_admin_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(reels_bp)
 
     # API uses JWT header token, so CSRF is enforced only for admin forms.
     csrf.exempt(auth_bp)
     csrf.exempt(edukasi_bp)
     csrf.exempt(portofolio_bp)
+    csrf.exempt(pasar_bp)
     csrf.exempt(zakat_bp)
     csrf.exempt(screener_bp)
     csrf.exempt(diskusi_bp)
     csrf.exempt(berita_bp)
     csrf.exempt(pustaka_bp)
     csrf.exempt(pustaka_admin_bp)
+    csrf.exempt(reels_bp)
 
     with app.app_context():
         if app.config.get("AUTO_CREATE_DB"):
-            db.create_all()
+            from .models.indexes import setup_indexes
+            setup_indexes(mongo.db)
         if app.config.get("SEED_ON_STARTUP"):
             seed_data()
 

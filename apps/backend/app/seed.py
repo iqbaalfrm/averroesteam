@@ -1,463 +1,831 @@
-from datetime import datetime, timedelta
-import os
-
+import re
+import csv
+from datetime import datetime
+from pathlib import Path
 from werkzeug.security import generate_password_hash
+from app.extensions import mongo
 
-from .extensions import db
-from .models import (
-    Berita,
-    Buku,
-    Diskusi,
-    Kelas,
-    Materi,
-    MateriProgress,
-    Modul,
-    Quiz,
-    QuizSubmission,
-    Screener,
-    Sertifikat,
-    User,
-)
+
+def _topic_bank(title: str) -> list[str]:
+    t = (title or "").lower()
+    if "zakat" in t:
+        return [
+            "Nishab dan Haul",
+            "Objek Zakat Aset Digital",
+            "Perhitungan Nilai Aset",
+            "Waktu Pembayaran Zakat",
+            "Simulasi Portofolio Campuran",
+            "Kesalahan Umum Perhitungan",
+            "Strategi Pencatatan",
+            "Studi Kasus Zakat Kripto",
+            "Audit Perhitungan",
+            "Rencana Zakat Tahunan",
+        ]
+    if "fiqh" in t or "muamalah" in t:
+        return [
+            "Prinsip Dasar Muamalah",
+            "Gharar dalam Produk Digital",
+            "Maisir dan Spekulasi",
+            "Riba dalam Ekosistem Modern",
+            "Akad dalam Aset Digital",
+            "Kepemilikan dan Amanah",
+            "Etika Transaksi",
+            "Studi Kasus Kontemporer",
+            "Filter Syariah Praktis",
+            "Checklist Kepatuhan",
+        ]
+    if "analisis" in t or "pasar" in t:
+        return [
+            "Trend dan Struktur Market",
+            "Support dan Resistance",
+            "Volume dan Momentum",
+            "Risk Management Dasar",
+            "Entry dan Exit Plan",
+            "Manajemen Emosi",
+            "Jurnal Trading",
+            "Evaluasi Strategi",
+            "Studi Kasus Bull/Bear",
+            "Rencana Pengembangan",
+        ]
+    if "investasi" in t or "portofolio" in t:
+        return [
+            "Tujuan dan Profil Risiko",
+            "Alokasi Aset",
+            "Diversifikasi Praktis",
+            "Rebalancing Portofolio",
+            "Manajemen Drawdown",
+            "Evaluasi Kinerja",
+            "Strategi DCA",
+            "Perencanaan Jangka Panjang",
+            "Kesalahan Umum Investor",
+            "Checklist Investasi",
+        ]
+    return [
+        "Dasar-Dasar Kripto",
+        "Blockchain Fundamental",
+        "Tokenomics",
+        "Manajemen Risiko",
+        "Keamanan Aset",
+        "Diversifikasi",
+        "Analisis Fundamental",
+        "Analisis Teknikal",
+        "Studi Kasus",
+        "Rencana Belajar Lanjutan",
+    ]
+
+
+def _quiz_bank(title: str) -> list[dict]:
+    t = (title or "").lower()
+    if "zakat" in t:
+        return [
+            {"q": "Nishab zakat mal ditentukan oleh?", "a": {"A": "Harga emas/perak acuan", "B": "Jumlah transaksi", "C": "Durasi trading", "D": "Jumlah dompet"}, "k": "A"},
+            {"q": "Haul berarti?", "a": {"A": "Biaya admin", "B": "Kepemilikan 1 tahun hijriah", "C": "Profit 10%", "D": "Aset non-likuid"}, "k": "B"},
+            {"q": "Syarat wajib zakat mal?", "a": {"A": "Nishab dan haul terpenuhi", "B": "Punya 1 aset", "C": "Wajib trading", "D": "Aset selalu naik"}, "k": "A"},
+        ]
+    base = [
+        {"q": "Tujuan utama manajemen risiko adalah?", "a": {"A": "Menghapus rugi total", "B": "Membatasi kerugian", "C": "Melipatgandakan leverage", "D": "Menebak puncak harga"}, "k": "B"},
+        {"q": "Dalam fiqh muamalah, gharar berarti?", "a": {"A": "Akad jelas", "B": "Ketidakjelasan berlebihan", "C": "Sedekah wajib", "D": "Bagi hasil"}, "k": "B"},
+        {"q": "Diversifikasi berfungsi untuk?", "a": {"A": "Hilangkan risiko", "B": "Kurangi dampak risiko tunggal", "C": "Naikkan fee", "D": "Percepat likuidasi"}, "k": "B"},
+    ]
+    if "analisis" in t or "pasar" in t:
+        base.append({"q": "Support-resistance dipakai untuk?", "a": {"A": "Cek email", "B": "Identifikasi area harga penting", "C": "Hitung zakat", "D": "Audit server"}, "k": "B"})
+    if "fiqh" in t or "muamalah" in t:
+        base.append({"q": "Maisir identik dengan?", "a": {"A": "Produktivitas", "B": "Spekulasi/judi", "C": "Likuiditas", "D": "Hedging halal"}, "k": "B"})
+    if "investasi" in t or "portofolio" in t:
+        base.append({"q": "Rebalancing adalah?", "a": {"A": "Ganti password", "B": "Kembalikan komposisi aset ke target", "C": "Tutup akun", "D": "Naikkan leverage"}, "k": "B"})
+    return base
+
+
+def _ensure_quiz_count(kelas_id, kelas_title: str, now: datetime, quiz_count: int = 15) -> None:
+    quiz_rows = list(mongo.db.quiz.find({"kelas_id": kelas_id}).sort([("_id", 1)]))
+    if len(quiz_rows) > quiz_count:
+        extra = quiz_rows[quiz_count:]
+        extra_ids = [q["_id"] for q in extra]
+        mongo.db.quiz_submissions.delete_many({"quiz_id": {"$in": extra_ids}})
+        mongo.db.quiz.delete_many({"_id": {"$in": extra_ids}})
+        quiz_rows = quiz_rows[:quiz_count]
+
+    bank = _quiz_bank(kelas_title)
+    while len(quiz_rows) < quiz_count:
+        i = len(quiz_rows) + 1
+        tpl = bank[(i - 1) % len(bank)]
+        qid = mongo.db.quiz.insert_one(
+            {
+                "kelas_id": kelas_id,
+                "pertanyaan": f"Soal {i}. {tpl['q']}",
+                "pilihan": tpl["a"],
+                "jawaban_benar": tpl["k"],
+                "created_at": now,
+                "updated_at": now,
+            }
+        ).inserted_id
+        quiz_rows.append({"_id": qid})
+
+
+def _enforce_curriculum(
+    kelas_id,
+    kelas_title: str,
+    now: datetime,
+    module_count: int = 3,
+    materi_per_module: int = 3,
+) -> None:
+    topics = _topic_bank(kelas_title)
+    modul_rows = list(mongo.db.modul.find({"kelas_id": kelas_id}).sort("urutan", 1))
+
+    # Trim modul berlebih agar tepat jumlah modul per kelas.
+    if len(modul_rows) > module_count:
+        extra_moduls = modul_rows[module_count:]
+        extra_modul_ids = [m["_id"] for m in extra_moduls]
+        extra_materi_ids = [
+            m["_id"] for m in mongo.db.materi.find({"modul_id": {"$in": extra_modul_ids}})
+        ]
+        if extra_materi_ids:
+            mongo.db.materi_progress.delete_many({"materi_id": {"$in": extra_materi_ids}})
+            mongo.db.materi.delete_many({"_id": {"$in": extra_materi_ids}})
+        mongo.db.modul.delete_many({"_id": {"$in": extra_modul_ids}})
+        modul_rows = modul_rows[:module_count]
+
+    # Tambah modul jika kurang dari target.
+    while len(modul_rows) < module_count:
+        idx = len(modul_rows) + 1
+        topic = topics[(idx - 1) % len(topics)]
+        modul_id = mongo.db.modul.insert_one(
+            {
+                "kelas_id": kelas_id,
+                "judul": f"Modul {idx}: {topic}",
+                "deskripsi": f"Pendalaman topik {topic.lower()} untuk {kelas_title.lower()}.",
+                "urutan": idx,
+                "created_at": now,
+                "updated_at": now,
+            }
+        ).inserted_id
+        modul_rows.append({"_id": modul_id, "urutan": idx})
+
+    # Sinkronkan setiap modul: judul/deskripsi/urutan + materi tepat 3 item.
+    for idx, modul in enumerate(modul_rows, start=1):
+        topic = topics[(idx - 1) % len(topics)]
+        mongo.db.modul.update_one(
+            {"_id": modul["_id"]},
+            {
+                "$set": {
+                    "judul": f"Modul {idx}: {topic}",
+                    "deskripsi": f"Pendalaman topik {topic.lower()} untuk {kelas_title.lower()}.",
+                    "urutan": idx,
+                    "updated_at": now,
+                }
+            },
+        )
+
+        materi_rows = list(mongo.db.materi.find({"modul_id": modul["_id"]}).sort("urutan", 1))
+
+        if len(materi_rows) > materi_per_module:
+            extra_materi = materi_rows[materi_per_module:]
+            extra_materi_ids = [m["_id"] for m in extra_materi]
+            mongo.db.materi_progress.delete_many({"materi_id": {"$in": extra_materi_ids}})
+            mongo.db.materi.delete_many({"_id": {"$in": extra_materi_ids}})
+            materi_rows = materi_rows[:materi_per_module]
+
+        while len(materi_rows) < materi_per_module:
+            j = len(materi_rows) + 1
+            mid = mongo.db.materi.insert_one(
+                {
+                    "modul_id": modul["_id"],
+                    "judul": f"Materi {idx}.{j}: {topic}",
+                    "konten": (
+                        f"Pembahasan inti {topic.lower()} pada kelas {kelas_title}. "
+                        f"Bagian {j} dari {materi_per_module}."
+                    ),
+                    "url_video": "",
+                    "urutan": j,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            ).inserted_id
+            materi_rows.append({"_id": mid, "urutan": j})
+
+        for j, materi in enumerate(materi_rows, start=1):
+            mongo.db.materi.update_one(
+                {"_id": materi["_id"]},
+                {
+                    "$set": {
+                        "judul": f"Materi {idx}.{j}: {topic}",
+                        "urutan": j,
+                        "updated_at": now,
+                    }
+                },
+            )
+
+
+def _ensure_user(email: str, nama: str, role: str, password: str, now: datetime) -> None:
+    if mongo.db.users.find_one({"email": email}):
+        return
+    mongo.db.users.insert_one(
+        {
+            "nama": nama,
+            "email": email,
+            "password_hash": generate_password_hash(password),
+            "role": role,
+            "created_at": now,
+            "updated_at": now,
+        }
+    )
+
+
+def _slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", (text or "").strip().lower()).strip("-")
+    return slug or "buku"
+
+
+def _ensure_unique_buku_slug(base_text: str) -> str:
+    base = _slugify(base_text)
+    slug = base
+    i = 2
+    while mongo.db.buku.find_one({"slug": slug}):
+        slug = f"{base}-{i}"
+        i += 1
+    return slug
+
+
+def _extract_drive_file_id(url: str) -> str:
+    match = re.search(r"/d/([a-zA-Z0-9_-]+)", url or "")
+    return match.group(1) if match else ""
+
+
+def _seed_pustaka_books(now: datetime) -> None:
+    books = [
+        {
+            "judul": "Al-Ahkam Al-Fiqhiyyah Al-Muta'alliqah bil-'Umalat al-Iliktruniyyah",
+            "penulis": "Tim Riset Averroes",
+            "deskripsi": "Kajian hukum fiqih terkait transaksi dan muamalah elektronik.",
+            "drive_url": "https://drive.google.com/file/d/1hc1yBau9ub_DSvQR6mvIUjIwLhHcRC9S/view?usp=sharing",
+        },
+        {
+            "judul": "Hukum Fiqih terhadap Uang Kertas (Fiat)",
+            "penulis": "Tim Riset Averroes",
+            "deskripsi": "Pembahasan fiqih mengenai uang kertas (fiat) dalam perspektif muamalah.",
+            "drive_url": "https://drive.google.com/file/d/1KY-iwtK_ydpXECCqjmNTe3w9NgGpJa3s/view?usp=sharing",
+        },
+        {
+            "judul": "ISCHAIN - Soal Jawab Cryptocurrency",
+            "penulis": "ISCHAIN",
+            "deskripsi": "Kumpulan tanya jawab praktis seputar cryptocurrency dari perspektif syariah.",
+            "drive_url": "https://drive.google.com/file/d/1UpeSMuSjgEb-aqHuHE5xry1HAp5HSwK8/view?usp=sharing",
+        },
+        {
+            "judul": "ISCHAIN - Panduan Memilih Aset Kripto yang Halal",
+            "penulis": "ISCHAIN",
+            "deskripsi": "Panduan ringkas untuk menyaring aset kripto yang sesuai prinsip halal.",
+            "drive_url": "https://drive.google.com/file/d/159GtpjQKavAc-CH2owF3EjA9yXHIzP1M/view?usp=drive_link",
+        },
+    ]
+
+    for item in books:
+        drive_id = _extract_drive_file_id(item["drive_url"])
+        if not drive_id:
+            continue
+
+        existing = mongo.db.buku.find_one({"judul": item["judul"]})
+        if existing:
+            mongo.db.buku.update_one(
+                {"_id": existing["_id"]},
+                {
+                    "$set": {
+                        "penulis": item["penulis"],
+                        "deskripsi": item["deskripsi"],
+                        "drive_file_id": drive_id,
+                        "format_file": "pdf",
+                        "status": "published",
+                        "akses": existing.get("akses") or "gratis",
+                        "bahasa": existing.get("bahasa") or "id",
+                        "published_at": existing.get("published_at") or now,
+                        "updated_at": now,
+                    }
+                },
+            )
+            continue
+
+        mongo.db.buku.insert_one(
+            {
+                "judul": item["judul"],
+                "penulis": item["penulis"],
+                "deskripsi": item["deskripsi"],
+                "slug": _ensure_unique_buku_slug(item["judul"]),
+                "kategori_id": None,
+                "status": "published",
+                "akses": "gratis",
+                "bahasa": "id",
+                "is_featured": False,
+                "format_file": "pdf",
+                "drive_file_id": drive_id,
+                "published_at": now,
+                "created_at": now,
+                "updated_at": now,
+                "created_by": None,
+                "updated_by": None,
+            }
+        )
+
+
+def _normalize_screener_status(raw_value: str) -> str:
+    value = (raw_value or "").strip().lower()
+    if value.startswith("yes"):
+        return "halal"
+    if value.startswith("no"):
+        return "haram"
+    return "proses"
+
+
+def _extract_screener_symbol(asset_name: str) -> str:
+    text = (asset_name or "").strip()
+    match = re.search(r"\(([^)]+)\)", text)
+    if match:
+        symbol = re.sub(r"[^A-Za-z0-9]", "", match.group(1)).upper()
+        if symbol:
+            return symbol
+
+    candidates = re.findall(r"[A-Za-z0-9]{2,10}", text)
+    if candidates:
+        return candidates[-1].upper()
+    return "NA"
+
+
+def _clean_screener_name(asset_name: str) -> str:
+    text = (asset_name or "").strip()
+    text = re.sub(r"\([^)]*\)", "", text).strip()
+    return text or "Tanpa Nama"
+
+
+def _build_screener_explanation(row: dict[str, str]) -> str:
+    underlying = (row.get("Underlying") or "").strip()
+    nilai_jelas = (row.get("Nilai yang Jelas") or "").strip()
+    serah_terima = (row.get("Bisakah Diserah-terimakan") or "").strip()
+    sharia_raw = (row.get("Yes/No Sharia") or "").strip()
+
+    sections = []
+    if underlying:
+        sections.append(f"Underlying: {underlying}")
+    if nilai_jelas:
+        sections.append(f"Nilai: {nilai_jelas}")
+    if serah_terima:
+        sections.append(f"Serah-terima: {serah_terima}")
+    if sharia_raw:
+        sections.append(f"Sharia CSV: {sharia_raw}")
+    return " | ".join(sections) or "Tidak ada keterangan."
+
+
+def _seed_screener_from_csv(now: datetime) -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    csv_path = repo_root / "screener.csv"
+    if not csv_path.exists():
+        print(f"Seed screener dilewati: file tidak ditemukan ({csv_path}).")
+        return
+
+    rows: list[dict[str, str]] = []
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f, delimiter=";")
+        for row in reader:
+            if not row:
+                continue
+            item = {k: (v or "").strip() for k, v in row.items()}
+            if any(item.values()):
+                rows.append(item)
+
+    prepared = []
+    used_symbols: set[str] = set()
+    for row in rows:
+        asset_name = (row.get("Aset Kripto") or "").strip()
+        if not asset_name:
+            continue
+
+        base_symbol = _extract_screener_symbol(asset_name)
+        symbol = base_symbol
+        suffix = 2
+        while symbol in used_symbols:
+            symbol = f"{base_symbol}{suffix}"
+            suffix += 1
+        used_symbols.add(symbol)
+
+        status = _normalize_screener_status(row.get("Yes/No Sharia", ""))
+        prepared.append(
+            {
+                "nama_koin": _clean_screener_name(asset_name),
+                "simbol": symbol,
+                "status": status,
+                "status_syariah": status,
+                "penjelasan_fiqh": _build_screener_explanation(row),
+                "referensi_ulama": "Sumber: CSV Screener Averroes (kajian internal, bukan fatwa resmi).",
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
+
+    mongo.db.screener.delete_many({})
+    if prepared:
+        mongo.db.screener.insert_many(prepared)
+    print(f"Seed screener dari CSV: {len(prepared)} data masuk.")
+
+
+def _seed_kelas_bundle(bundle: dict, now: datetime) -> None:
+    existing = mongo.db.kelas.find_one({"judul": bundle["judul"]})
+    if existing:
+        kelas_id = existing["_id"]
+        mongo.db.kelas.update_one(
+            {"_id": kelas_id},
+            {
+                "$set": {
+                    "deskripsi": bundle["deskripsi"],
+                    "tingkat": bundle.get("tingkat", "Pemula"),
+                    "gambar_url": bundle.get("gambar_url"),
+                    "updated_at": now,
+                }
+            },
+        )
+    else:
+        kelas_doc = {
+            "judul": bundle["judul"],
+            "deskripsi": bundle["deskripsi"],
+            "tingkat": bundle.get("tingkat", "Pemula"),
+            "gambar_url": bundle.get("gambar_url"),
+            "created_at": now,
+            "updated_at": now,
+        }
+        kelas_id = mongo.db.kelas.insert_one(kelas_doc).inserted_id
+
+    for modul in bundle.get("modul", []):
+        modul_existing = mongo.db.modul.find_one(
+            {"kelas_id": kelas_id, "judul": modul["judul"]}
+        )
+        if modul_existing:
+            modul_id = modul_existing["_id"]
+            mongo.db.modul.update_one(
+                {"_id": modul_id},
+                {
+                    "$set": {
+                        "deskripsi": modul["deskripsi"],
+                        "urutan": modul["urutan"],
+                        "updated_at": now,
+                    }
+                },
+            )
+        else:
+            modul_doc = {
+                "kelas_id": kelas_id,
+                "judul": modul["judul"],
+                "deskripsi": modul["deskripsi"],
+                "urutan": modul["urutan"],
+                "created_at": now,
+                "updated_at": now,
+            }
+            modul_id = mongo.db.modul.insert_one(modul_doc).inserted_id
+
+        for materi in modul.get("materi", []):
+            materi_existing = mongo.db.materi.find_one(
+                {"modul_id": modul_id, "judul": materi["judul"]}
+            )
+            if materi_existing:
+                mongo.db.materi.update_one(
+                    {"_id": materi_existing["_id"]},
+                    {
+                        "$set": {
+                            "konten": materi["konten"],
+                            "url_video": materi.get("url_video", ""),
+                            "urutan": materi["urutan"],
+                            "updated_at": now,
+                        }
+                    },
+                )
+            else:
+                mongo.db.materi.insert_one(
+                    {
+                        "modul_id": modul_id,
+                        "judul": materi["judul"],
+                        "konten": materi["konten"],
+                        "url_video": materi.get("url_video", ""),
+                        "urutan": materi["urutan"],
+                        "created_at": now,
+                        "updated_at": now,
+                    }
+                )
+
+    for quiz in bundle.get("quiz", []):
+        quiz_existing = mongo.db.quiz.find_one(
+            {"kelas_id": kelas_id, "pertanyaan": quiz["pertanyaan"]}
+        )
+        if quiz_existing:
+            mongo.db.quiz.update_one(
+                {"_id": quiz_existing["_id"]},
+                {
+                    "$set": {
+                        "pilihan": quiz["pilihan"],
+                        "jawaban_benar": quiz["jawaban_benar"],
+                        "updated_at": now,
+                    }
+                },
+            )
+        else:
+            mongo.db.quiz.insert_one(
+                {
+                    "kelas_id": kelas_id,
+                    "pertanyaan": quiz["pertanyaan"],
+                    "pilihan": quiz["pilihan"],
+                    "jawaban_benar": quiz["jawaban_benar"],
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            )
+
+    if not mongo.db.sertifikat.find_one({"kelas_id": kelas_id}):
+        mongo.db.sertifikat.insert_one(
+            {
+                "kelas_id": kelas_id,
+                "nama_template": f"Sertifikat {bundle['judul']}",
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
 
 
 def seed_data():
-    if not User.query.filter_by(role="admin").first():
-        admin_email = os.getenv("ADMIN_EMAIL", "admin@averroes.local")
-        admin_password = os.getenv("ADMIN_PASSWORD", "admin123")
-        admin = User(
-            nama="Administrator Averroes",
-            email=admin_email,
-            password_hash=generate_password_hash(admin_password),
-            role="admin",
-        )
-        db.session.add(admin)
+    now = datetime.utcnow()
 
-    # Dummy users for CRUD "Pengguna" and related entities.
-    dummy_users = [
-        ("Aisyah Rahma", "aisyah@averroes.local"),
-        ("Fajar Pratama", "fajar@averroes.local"),
-        ("Nadia Putri", "nadia@averroes.local"),
-    ]
-    for nama, email in dummy_users:
-        if not User.query.filter_by(email=email).first():
-            db.session.add(
-                User(
-                    nama=nama,
-                    email=email,
-                    password_hash=generate_password_hash("user12345"),
-                    role="user",
-                )
-            )
+    _ensure_user("admin@averroes.com", "Admin Averroes", "admin", "admin123", now)
+    _ensure_user("user@averroes.com", "Coba User", "user", "user123", now)
 
-    target_title = "Dasar Fiqh Muamalah Digital"
-    target_desc = (
-        "Kelas inti untuk memahami prinsip halal-haram, adab transaksi, dan penerapan fiqh "
-        "muamalah pada aset digital secara bertahap."
-    )
-
-    kelas_target = Kelas.query.filter_by(judul=target_title).first()
-    if not kelas_target:
-        kelas_target = Kelas(judul=target_title, deskripsi=target_desc, tingkat="Pemula")
-        db.session.add(kelas_target)
-        db.session.flush()
-    else:
-        kelas_target.deskripsi = target_desc
-        kelas_target.tingkat = "Pemula"
-
-    kelas_lain = Kelas.query.filter(Kelas.id != kelas_target.id).all()
-    for kelas in kelas_lain:
-        modul_ids = [m.id for m in Modul.query.filter_by(kelas_id=kelas.id).all()]
-        if modul_ids:
-            materi_ids = [m.id for m in Materi.query.filter(Materi.modul_id.in_(modul_ids)).all()]
-            if materi_ids:
-                MateriProgress.query.filter(MateriProgress.materi_id.in_(materi_ids)).delete(
-                    synchronize_session=False
-                )
-        quiz_ids = [q.id for q in Quiz.query.filter_by(kelas_id=kelas.id).all()]
-        if quiz_ids:
-            QuizSubmission.query.filter(QuizSubmission.quiz_id.in_(quiz_ids)).delete(synchronize_session=False)
-        db.session.delete(kelas)
-    db.session.flush()
-
-    old_modul_ids = [m.id for m in Modul.query.filter_by(kelas_id=kelas_target.id).all()]
-    if old_modul_ids:
-        old_materi_ids = [m.id for m in Materi.query.filter(Materi.modul_id.in_(old_modul_ids)).all()]
-        if old_materi_ids:
-            MateriProgress.query.filter(MateriProgress.materi_id.in_(old_materi_ids)).delete(
-                synchronize_session=False
-            )
-            Materi.query.filter(Materi.modul_id.in_(old_modul_ids)).delete(synchronize_session=False)
-    old_quiz_ids = [q.id for q in Quiz.query.filter_by(kelas_id=kelas_target.id).all()]
-    if old_quiz_ids:
-        QuizSubmission.query.filter(QuizSubmission.quiz_id.in_(old_quiz_ids)).delete(synchronize_session=False)
-    Quiz.query.filter_by(kelas_id=kelas_target.id).delete(synchronize_session=False)
-    Sertifikat.query.filter_by(kelas_id=kelas_target.id).delete(synchronize_session=False)
-    Modul.query.filter_by(kelas_id=kelas_target.id).delete(synchronize_session=False)
-    db.session.flush()
-
-    modul_specs = [
-        (
-            "Modul 1: Pengantar Fiqh Muamalah Digital",
-            "Mengenal tujuan fiqh muamalah, ruang lingkup transaksi digital, dan kaidah dasar.",
-            "Fiqh muamalah digital membahas cara bertransaksi secara adil, transparan, dan bebas unsur terlarang. "
-            "Peserta memahami bahwa area muamalah berbeda dengan ibadah mahdhah: ruang ijtihad lebih luas selama "
-            "tujuan syariah terjaga. Dalam praktik modern, transaksi melalui aplikasi, dompet digital, dan aset "
-            "berbasis teknologi tetap wajib memenuhi prinsip keadilan, kerelaan, serta kejelasan hak dan kewajiban. "
-            "Kita juga menekankan hifzh al-mal (menjaga harta) agar keputusan finansial tidak merusak diri, keluarga, "
-            "atau masyarakat.\n\n"
-            "Dalil ayat: QS. Al-Baqarah: 275 menegaskan Allah menghalalkan jual beli dan mengharamkan riba. "
-            "Dalil ayat: QS. An-Nisa: 29 melarang memakan harta sesama dengan cara batil kecuali melalui perdagangan "
-            "atas dasar suka sama suka.",
-        ),
-        (
-            "Modul 2: Rukun dan Syarat Akad",
-            "Memahami subjek akad, objek akad, ijab qabul, dan syarat sah perjanjian.",
-            "Akad yang sah membutuhkan pihak yang cakap hukum, objek yang diketahui, serta kesepakatan tanpa paksaan. "
-            "Dalam konteks digital, ijab qabul dapat berbentuk persetujuan elektronik, klik terms, atau tanda tangan "
-            "digital selama unsur kerelaan dan kejelasan tidak hilang. Peserta belajar menilai apakah syarat transaksi "
-            "ditulis secara terbuka: biaya, risiko, waktu penyelesaian, dan mekanisme komplain. Tanpa informasi ini, "
-            "akad berpotensi cacat dan menimbulkan sengketa.\n\n"
-            "Dalil ayat: QS. Al-Ma'idah: 1 memerintahkan orang beriman untuk menepati akad. "
-            "Dalil hadits: 'Kaum muslimin terikat dengan syarat-syarat mereka' (HR. Abu Dawud, Tirmidzi).",
-        ),
-        (
-            "Modul 3: Larangan Riba dalam Transaksi Modern",
-            "Mempelajari bentuk riba dan penerapannya pada produk finansial digital.",
-            "Riba terjadi ketika ada tambahan yang disyaratkan secara zalim dalam pertukaran atau utang piutang. "
-            "Peserta mempelajari bentuk riba nasi'ah dan fadhl, lalu menilai produk modern yang tampak menguntungkan "
-            "namun menyimpan unsur bunga terselubung. Kita bedakan antara biaya layanan nyata (ujrah) dengan tambahan "
-            "yang tidak seimbang terhadap manfaat. Penekanan utama: keuntungan dalam Islam harus berjalan seiring "
-            "dengan risiko usaha yang wajar, bukan imbal hasil pasti tanpa aktivitas produktif.\n\n"
-            "Dalil ayat: QS. Al-Baqarah: 278-279 memerintahkan meninggalkan sisa riba. "
-            "Dalil hadits: Rasulullah melaknat pemakan riba, pemberi riba, pencatat, dan saksinya (HR. Muslim).",
-        ),
-        (
-            "Modul 4: Gharar dan Ketidakjelasan Informasi",
-            "Menganalisis risiko ketidakjelasan objek, harga, dan mekanisme transaksi.",
-            "Gharar muncul ketika informasi inti transaksi tidak jelas: objek, harga, kualitas, atau mekanisme "
-            "penyerahan. Dalam aset digital, peserta dilatih membaca dokumen proyek, tokenomics, struktur biaya, "
-            "dan hak pengguna agar tidak membeli sesuatu yang belum dipahami. Ketidakjelasan berlebihan akan "
-            "mendorong sengketa dan ketidakadilan. Karena itu, transparansi data menjadi syarat moral sekaligus "
-            "syariah dalam pengambilan keputusan investasi.\n\n"
-            "Dalil hadits: Nabi melarang jual beli gharar (HR. Muslim). "
-            "Dalil ayat: QS. Al-Baqarah: 282 mendorong pencatatan transaksi utang secara jelas untuk mencegah sengketa.",
-        ),
-        (
-            "Modul 5: Maysir dan Spekulasi Berlebihan",
-            "Mengenal batas antara investasi rasional dan praktik spekulatif menyerupai judi.",
-            "Maysir menekankan keuntungan berbasis untung-untungan, bukan nilai ekonomi nyata. "
-            "Peserta diajak membedakan aktivitas investasi dengan analisis yang terukur versus perilaku mengejar "
-            "sensasi harga tanpa rencana. Modul ini menyoroti gejala FOMO, overtrading, dan keputusan emosional "
-            "yang sering berakhir merusak harta. Prinsip syariah mendorong ketenangan, disiplin, dan kehati-hatian "
-            "agar harta menjadi sarana maslahat, bukan sumber kerusakan.\n\n"
-            "Dalil ayat: QS. Al-Ma'idah: 90 melarang khamr dan maysir. "
-            "Dalil hadits: 'Tidak boleh menimbulkan bahaya bagi diri sendiri dan orang lain' (HR. Ibn Majah).",
-        ),
-        (
-            "Modul 6: Kepemilikan dan Amanah Aset Digital",
-            "Membahas konsep milkiyyah, hak akses, dan tanggung jawab penjagaan aset.",
-            "Kepemilikan (milkiyyah) dalam Islam menuntut kemampuan menguasai, memanfaatkan, dan mempertanggungjawabkan "
-            "aset dengan benar. Dalam konteks digital, amanah itu meliputi pengamanan private key, pengaturan akses, "
-            "dan perlindungan data pribadi. Peserta belajar bahwa kelalaian keamanan bisa menimbulkan kerugian besar "
-            "serta berdampak pada pihak lain. Karena itu, keamanan bukan hanya isu teknis, tetapi bagian dari adab "
-            "muamalah dan tanggung jawab moral seorang muslim.\n\n"
-            "Dalil ayat: QS. An-Nisa: 58 memerintahkan menyampaikan amanah kepada yang berhak. "
-            "Dalil hadits: 'Tunaikan amanah kepada orang yang mempercayaimu' (HR. Abu Dawud, Tirmidzi).",
-        ),
-        (
-            "Modul 7: Etika Informasi dan Transparansi",
-            "Menegaskan pentingnya kejujuran data, keterbukaan risiko, dan anti-manipulasi.",
-            "Etika muamalah melarang tadlis (penipuan) dan menyembunyikan cacat informasi. "
-            "Peserta belajar menilai kredibilitas proyek melalui kualitas laporan, keterbukaan tim, dan konsistensi "
-            "komunikasi publik. Modul ini menekankan bahwa promosi yang berlebihan tanpa pengungkapan risiko adalah "
-            "bentuk ketidakjujuran yang merusak kepercayaan pasar. Transparansi bukan sekadar strategi branding, "
-            "tetapi tuntutan etis dalam syariah.\n\n"
-            "Dalil hadits: 'Siapa yang menipu maka ia bukan golongan kami' (HR. Muslim). "
-            "Dalil ayat: QS. Al-Mutaffifin: 1-3 mengecam kecurangan dalam timbangan dan takaran.",
-        ),
-        (
-            "Modul 8: Manajemen Risiko Syariah",
-            "Menerapkan prinsip kehati-hatian, diversifikasi, dan batas kerugian.",
-            "Syariah mendorong ikhtiar yang terukur, bukan sikap nekat. Modul ini membahas penyusunan rencana "
-            "alokasi modal, batas kerugian, evaluasi berkala, dan disiplin terhadap strategi yang telah disusun. "
-            "Peserta didorong memahami diversifikasi agar risiko tidak terkonsentrasi pada satu aset. Keputusan yang "
-            "berbasis data dan tujuan jangka panjang lebih dekat dengan maqashid syariah dibanding keputusan impulsif "
-            "yang dipicu emosi sesaat.\n\n"
-            "Dalil ayat: QS. Al-Hashr: 18 memerintahkan memperhatikan apa yang dipersiapkan untuk hari esok. "
-            "Dalil hadits: 'Ikatlah untamu lalu bertawakkal' (HR. Tirmidzi) sebagai prinsip ikhtiar sebelum tawakkal.",
-        ),
-        (
-            "Modul 9: Studi Kasus Muamalah Aset Digital",
-            "Membaca contoh kasus nyata dan menyusun penilaian hukum secara bertahap.",
-            "Pada modul studi kasus, peserta berlatih menilai proyek utilitas, token komunitas, dan skema imbal hasil "
-            "dengan kerangka fiqh muamalah. Setiap kasus dipetakan: jenis akadnya, manfaat nyatanya, risiko yang "
-            "muncul, serta indikasi unsur terlarang. Tujuan utama modul ini adalah membangun kebiasaan berpikir "
-            "sistematis dan tidak tergesa-gesa sebelum mengambil keputusan finansial.\n\n"
-            "Dalil ayat: QS. Al-Hujurat: 6 memerintahkan tabayyun (verifikasi) sebelum bertindak. "
-            "Dalil hadits: 'Tinggalkan yang meragukanmu menuju yang tidak meragukanmu' (HR. Tirmidzi, Nasa'i).",
-        ),
-        (
-            "Modul 10: Rangkuman dan Persiapan Ujian",
-            "Merangkum seluruh materi dan menyiapkan strategi menghadapi kuis akhir.",
-            "Modul penutup merangkum peta konsep dari seluruh pembahasan: akad, riba, gharar, maysir, amanah, "
-            "transparansi, hingga manajemen risiko. Peserta diarahkan meninjau kesalahan umum pemula dan teknik "
-            "menjawab soal evaluasi berdasarkan pemahaman prinsip, bukan hafalan semata. Target akhirnya adalah "
-            "membentuk pola pikir muamalah yang matang: hati-hati, adil, dan bertanggung jawab.\n\n"
-            "Dalil ayat: QS. Az-Zumar: 9 memuliakan orang berilmu dibanding yang tidak berilmu. "
-            "Dalil hadits: 'Barangsiapa menempuh jalan untuk mencari ilmu, Allah mudahkan baginya jalan ke surga' "
-            "(HR. Muslim).",
-        ),
-    ]
-
-    for idx, (judul, deskripsi, konten) in enumerate(modul_specs, start=1):
-        modul = Modul(
-            kelas_id=kelas_target.id,
-            judul=judul,
-            deskripsi=deskripsi,
-            urutan=idx,
-        )
-        db.session.add(modul)
-        db.session.flush()
-        db.session.add(
-            Materi(
-                modul_id=modul.id,
-                judul=f"Materi Bacaan {idx}",
-                konten=konten,
-                urutan=1,
-            )
-        )
-
-    quiz_specs = [
-        (
-            "Dalam kaidah fiqh muamalah, hukum asal transaksi adalah?",
-            "Haram sampai ada dalil yang membolehkan",
-            "Mubah sampai ada dalil yang melarang",
-            "Makruh dalam semua kondisi",
-            "Wajib jika menguntungkan",
-            "B",
-        ),
-        (
-            "Unsur utama agar akad sah adalah berikut ini, kecuali:",
-            "Pihak berakad yang cakap",
-            "Objek akad yang jelas",
-            "Kesepakatan tanpa paksaan",
-            "Janji keuntungan pasti",
-            "D",
-        ),
-        (
-            "Tambahan yang disyaratkan dalam pinjaman termasuk kategori:",
-            "Hibah",
-            "Ujrah",
-            "Riba",
-            "Mudharabah",
-            "C",
-        ),
-        (
-            "Contoh gharar dalam transaksi digital adalah:",
-            "Spesifikasi aset tidak jelas",
-            "Biaya layanan transparan",
-            "Akad tertulis rapi",
-            "Bukti transaksi tersimpan",
-            "A",
-        ),
-        (
-            "Perilaku yang mendekati maysir adalah:",
-            "Membeli aset setelah riset mendalam",
-            "Masuk pasar hanya karena rumor viral",
-            "Membaca whitepaper proyek",
-            "Membagi risiko ke beberapa aset",
-            "B",
-        ),
-        (
-            "Tujuan utama manajemen risiko syariah adalah:",
-            "Memaksimalkan leverage",
-            "Menghapus semua risiko",
-            "Menjaga harta dari mudarat berlebihan",
-            "Mengejar profit harian",
-            "C",
-        ),
-        (
-            "Salah satu bentuk tadlis adalah:",
-            "Menjelaskan risiko dengan jujur",
-            "Menyembunyikan informasi penting proyek",
-            "Mencatat transaksi dengan rapi",
-            "Menghindari janji berlebihan",
-            "B",
-        ),
-        (
-            "Bukti persetujuan akad digital dapat dianggap sah jika:",
-            "Tidak ada jejak sama sekali",
-            "Ada kerelaan dan kejelasan syarat",
-            "Hanya berdasarkan ucapan lisan pihak ketiga",
-            "Harga bisa diubah sepihak kapan saja",
-            "B",
-        ),
-        (
-            "Sikap paling tepat saat menemukan proyek yang tidak transparan adalah:",
-            "Tetap masuk karena potensi cuan tinggi",
-            "Mengajak teman ikut segera",
-            "Menunda keputusan sampai data jelas",
-            "Menggunakan seluruh tabungan",
-            "C",
-        ),
-        (
-            "Dalam perspektif syariah, aset yang layak dipertimbangkan adalah yang:",
-            "Tidak punya utilitas namun ramai promosi",
-            "Memiliki manfaat jelas dan tata kelola terbuka",
-            "Menjanjikan keuntungan tetap tanpa risiko",
-            "Dikendalikan penuh oleh pihak anonim",
-            "B",
-        ),
-        (
-            "Yang termasuk amanah dalam kepemilikan aset digital adalah:",
-            "Membagikan private key ke grup",
-            "Mengabaikan keamanan akun",
-            "Menjaga akses dan keamanan dompet",
-            "Menyimpan seed phrase di media publik",
-            "C",
-        ),
-        (
-            "Jika seluruh materi selesai namun nilai kuis 60, maka sertifikat:",
-            "Tetap terbit otomatis",
-            "Tidak terbit karena belum mencapai batas kelulusan",
-            "Terbit jika meminta ke admin",
-            "Terbit hanya untuk modul awal",
-            "B",
-        ),
-        (
-            "Kapan strategi DCA lebih relevan digunakan?",
-            "Saat ingin all-in satu kali",
-            "Saat ingin disiplin akumulasi bertahap",
-            "Saat mengejar untung cepat harian",
-            "Saat tidak punya rencana risiko",
-            "B",
-        ),
-        (
-            "Contoh keputusan yang sesuai adab muamalah adalah:",
-            "Mempromosikan aset tanpa paham risikonya",
-            "Mencela pihak lain saat rugi",
-            "Menyampaikan analisis dengan jujur dan proporsional",
-            "Memaksa orang lain membeli aset tertentu",
-            "C",
-        ),
-        (
-            "Parameter awal sebelum membeli aset digital adalah:",
-            "Tren influencer semata",
-            "Ketersediaan utilitas, akad, dan transparansi",
-            "Prediksi tanpa data",
-            "Bonus referral terbesar",
-            "B",
-        ),
+    kelas_bundles = [
+        {
+            "judul": "Fundamental Kripto & Fiqh Muamalah",
+            "deskripsi": "Belajar dasar-dasar aset kripto sesuai prinsip syariah.",
+            "tingkat": "Pemula",
+            "gambar_url": "https://images.unsplash.com/photo-1621761191319-c6fb62004040?auto=format&fit=crop&w=1200&q=80",
+            "modul": [
+                {
+                    "judul": "Modul 1: Pengenalan Blockchain",
+                    "deskripsi": "Konsep dasar blockchain.",
+                    "urutan": 1,
+                    "materi": [
+                        {
+                            "judul": "Materi 1.1: Apa itu Blockchain?",
+                            "konten": "Blockchain adalah buku besar digital terdistribusi untuk mencatat transaksi secara transparan.",
+                            "url_video": "https://youtube.com/watch?v=sc2P0I8W0-0",
+                            "urutan": 1,
+                        },
+                        {
+                            "judul": "Materi 1.2: Nilai Syariah di Ekosistem Kripto",
+                            "konten": "Mengenal prinsip halal-haram, gharar, dan maisir dalam aktivitas aset digital.",
+                            "urutan": 2,
+                        },
+                    ],
+                },
+                {
+                    "judul": "Modul 2: Prinsip Halal-Haram Aset Digital",
+                    "deskripsi": "Kerangka fiqh muamalah untuk menilai aset kripto.",
+                    "urutan": 2,
+                    "materi": [
+                        {
+                            "judul": "Materi 2.1: Objek Transaksi yang Halal",
+                            "konten": "Memahami syarat objek muamalah yang jelas, bernilai, dan tidak bertentangan syariah.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 3: Risiko Gharar dan Maisir",
+                    "deskripsi": "Identifikasi ketidakjelasan dan spekulasi berlebihan.",
+                    "urutan": 3,
+                    "materi": [
+                        {
+                            "judul": "Materi 3.1: Studi Kasus Gharar di Produk Kripto",
+                            "konten": "Menilai praktik high-risk trading, leverage, dan produk yang minim transparansi.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 4: Wallet, Custody, dan Keamanan",
+                    "deskripsi": "Manajemen aset dengan aman dan bertanggung jawab.",
+                    "urutan": 4,
+                    "materi": [
+                        {
+                            "judul": "Materi 4.1: Self-custody vs Exchange Wallet",
+                            "konten": "Perbedaan kontrol aset, risiko pihak ketiga, serta praktik keamanan seed phrase.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 5: Fundamental Token dan Use Case",
+                    "deskripsi": "Menilai utilitas proyek agar tidak hanya ikut hype.",
+                    "urutan": 5,
+                    "materi": [
+                        {
+                            "judul": "Materi 5.1: Cara Membaca Whitepaper",
+                            "konten": "Parameter dasar untuk mengevaluasi model bisnis, tokenomics, dan roadmap.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 6: Manajemen Risiko Investasi",
+                    "deskripsi": "Aturan dasar agar keputusan investasi lebih disiplin.",
+                    "urutan": 6,
+                    "materi": [
+                        {
+                            "judul": "Materi 6.1: Position Sizing dan Batas Kerugian",
+                            "konten": "Menentukan porsi modal, stop-loss, dan target berbasis profil risiko.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 7: Portofolio Syariah Dasar",
+                    "deskripsi": "Membangun komposisi aset digital yang lebih seimbang.",
+                    "urutan": 7,
+                    "materi": [
+                        {
+                            "judul": "Materi 7.1: Diversifikasi dan Rebalancing",
+                            "konten": "Strategi membagi aset inti-satelit dan evaluasi berkala.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+                {
+                    "judul": "Modul 8: Etika dan Kepatuhan Investasi",
+                    "deskripsi": "Menjaga adab investasi dan menghindari praktik terlarang.",
+                    "urutan": 8,
+                    "materi": [
+                        {
+                            "judul": "Materi 8.1: Checklist Investasi Bertanggung Jawab",
+                            "konten": "Daftar cek sebelum membeli aset: niat, data, risiko, dan kepatuhan syariah.",
+                            "urutan": 1,
+                        }
+                    ],
+                },
+            ],
+            "quiz": [
+                {
+                    "pertanyaan": "Apa fungsi utama blockchain?",
+                    "pilihan": {
+                        "A": "Mencatat transaksi secara terdesentralisasi",
+                        "B": "Menghapus semua risiko investasi",
+                        "C": "Menjamin harga naik",
+                        "D": "Menggantikan bank sentral",
+                    },
+                    "jawaban_benar": "A",
+                }
+            ],
+        },
+        {
+            "judul": "Analisis Pasar Kripto untuk Pemula",
+            "deskripsi": "Belajar membaca tren, support-resistance, dan manajemen risiko dasar.",
+            "tingkat": "Pemula",
+            "gambar_url": "https://images.unsplash.com/photo-1642052502317-9f1bde08d54d?auto=format&fit=crop&w=1200&q=80",
+            "modul": [
+                {
+                    "judul": "Modul 1: Dasar Analisis",
+                    "deskripsi": "Pengenalan price action dan volume.",
+                    "urutan": 1,
+                    "materi": [
+                        {
+                            "judul": "Materi 1.1: Membaca Candle",
+                            "konten": "Memahami pola candlestick untuk membantu keputusan entry/exit.",
+                            "urutan": 1,
+                        },
+                        {
+                            "judul": "Materi 1.2: Risk Management",
+                            "konten": "Atur ukuran posisi dan stop-loss agar risiko tetap terkendali.",
+                            "urutan": 2,
+                        },
+                    ],
+                }
+            ],
+            "quiz": [
+                {
+                    "pertanyaan": "Tujuan stop-loss adalah?",
+                    "pilihan": {
+                        "A": "Menambah profit",
+                        "B": "Membatasi kerugian",
+                        "C": "Menjamin menang",
+                        "D": "Menghindari pajak",
+                    },
+                    "jawaban_benar": "B",
+                }
+            ],
+        },
+        {
+            "judul": "Investasi Syariah: Portofolio Aset Digital",
+            "deskripsi": "Strategi diversifikasi portofolio kripto sesuai kaidah syariah.",
+            "tingkat": "Menengah",
+            "gambar_url": "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=80",
+            "modul": [
+                {
+                    "judul": "Modul 1: Diversifikasi",
+                    "deskripsi": "Menyusun portofolio berimbang.",
+                    "urutan": 1,
+                    "materi": [
+                        {
+                            "judul": "Materi 1.1: Alokasi Aset",
+                            "konten": "Pisahkan aset inti dan aset spekulatif berdasarkan profil risiko.",
+                            "urutan": 1,
+                        }
+                    ],
+                }
+            ],
+            "quiz": [
+                {
+                    "pertanyaan": "Manfaat utama diversifikasi adalah?",
+                    "pilihan": {
+                        "A": "Menghilangkan risiko",
+                        "B": "Menaikkan leverage",
+                        "C": "Mengurangi dampak risiko tunggal",
+                        "D": "Menambah biaya transaksi",
+                    },
+                    "jawaban_benar": "C",
+                }
+            ],
+        },
+        {
+            "judul": "Fiqh Muamalah Lanjutan untuk Aset Digital",
+            "deskripsi": "Pendalaman kaidah fiqh muamalah pada transaksi dan produk kripto modern.",
+            "tingkat": "Lanjutan",
+            "gambar_url": "https://images.unsplash.com/photo-1587614382346-4ec70e388b28?auto=format&fit=crop&w=1200&q=80",
+            "modul": [
+                {
+                    "judul": "Modul 1: Gharar dan Maisir",
+                    "deskripsi": "Menilai akad dan instrumen yang rawan spekulasi berlebihan.",
+                    "urutan": 1,
+                    "materi": [
+                        {
+                            "judul": "Materi 1.1: Studi Kasus Produk Derivatif",
+                            "konten": "Analisis praktik derivatif dan tingkat ketidakpastian dalam perspektif syariah.",
+                            "urutan": 1,
+                        }
+                    ],
+                }
+            ],
+            "quiz": [
+                {
+                    "pertanyaan": "Dalam fiqh muamalah, gharar berarti?",
+                    "pilihan": {
+                        "A": "Transaksi jelas dan transparan",
+                        "B": "Ketidakjelasan berlebihan dalam akad",
+                        "C": "Keuntungan pasti",
+                        "D": "Sedekah wajib",
+                    },
+                    "jawaban_benar": "B",
+                }
+            ],
+        },
+        {
+            "judul": "Zakat Aset Kripto Praktis",
+            "deskripsi": "Cara menghitung nishab, haul, dan simulasi zakat aset kripto.",
+            "tingkat": "Pemula",
+            "gambar_url": "https://images.unsplash.com/photo-1565514020179-026b92b84bb6?auto=format&fit=crop&w=1200&q=80",
+            "modul": [
+                {
+                    "judul": "Modul 1: Dasar Zakat Kripto",
+                    "deskripsi": "Nishab, haul, dan skenario perhitungan.",
+                    "urutan": 1,
+                    "materi": [
+                        {
+                            "judul": "Materi 1.1: Simulasi Perhitungan",
+                            "konten": "Simulasi perhitungan zakat ketika nilai portofolio menyentuh nishab.",
+                            "urutan": 1,
+                        }
+                    ],
+                }
+            ],
+            "quiz": [
+                {
+                    "pertanyaan": "Syarat wajib zakat mal adalah?",
+                    "pilihan": {
+                        "A": "Melebihi nishab dan mencapai haul",
+                        "B": "Memiliki 1 aset saja",
+                        "C": "Trading harian",
+                        "D": "Nilai aset stabil",
+                    },
+                    "jawaban_benar": "A",
+                }
+            ],
+        },
     ]
 
-    for pertanyaan, a, b, c, d, jawaban in quiz_specs:
-        db.session.add(
-            Quiz(
-                kelas_id=kelas_target.id,
-                pertanyaan=pertanyaan,
-                pilihan_a=a,
-                pilihan_b=b,
-                pilihan_c=c,
-                pilihan_d=d,
-                jawaban_benar=jawaban,
+    for bundle in kelas_bundles:
+        _seed_kelas_bundle(bundle, now)
+        kelas = mongo.db.kelas.find_one({"judul": bundle["judul"]})
+        if kelas:
+            _enforce_curriculum(
+                kelas["_id"],
+                bundle["judul"],
+                now,
+                module_count=3,
+                materi_per_module=3,
             )
-        )
+            _ensure_quiz_count(kelas["_id"], bundle["judul"], now, quiz_count=15)
 
-    db.session.add(
-        Sertifikat(
-            kelas_id=kelas_target.id,
-            nama_template="Sertifikat Dasar Fiqh Muamalah Digital",
-            deskripsi="Diberikan setelah menyelesaikan seluruh materi dan lulus kuis akhir (minimal 70).",
-        )
-    )
+    _seed_screener_from_csv(now)
+    _seed_pustaka_books(now)
 
-    if Buku.query.count() == 0:
-        db.session.add_all(
-            [
-                Buku(
-                    judul="Fiqh Muamalah Kontemporer",
-                    penulis="Tim Averroes",
-                    deskripsi="Panduan dasar muamalah modern.",
-                    file_pdf=None,
-                ),
-                Buku(
-                    judul="Aset Digital dan Syariah",
-                    penulis="Averroes Research",
-                    deskripsi="Telaah aset digital dari sudut pandang syariah.",
-                    file_pdf=None,
-                ),
-            ]
-        )
+    print("Seeding MongoDB berhasil.")
 
-    if Screener.query.count() == 0:
-        db.session.add_all(
-            [
-                Screener(nama_koin="Bitcoin", simbol="BTC", status="proses", alasan="Masih dalam kajian metodologi internal."),
-                Screener(nama_koin="Ethereum", simbol="ETH", status="proses", alasan="Masih dalam kajian metodologi internal."),
-                Screener(nama_koin="Tether", simbol="USDT", status="haram", alasan="Catatan ketidakjelasan underlying di beberapa aspek."),
-                Screener(nama_koin="BNB", simbol="BNB", status="proses", alasan="Perlu kajian lanjutan struktur utilitas token."),
-                Screener(nama_koin="Solana", simbol="SOL", status="halal", alasan="Memenuhi indikator utilitas dan transparansi dasar versi internal."),
-            ]
-        )
-
-    if Berita.query.count() == 0:
-        now = datetime.utcnow()
-        for idx in range(1, 6):
-            db.session.add(
-                Berita(
-                    judul=f"Update Pasar Syariah #{idx}",
-                    ringkasan="Ringkasan berita aset digital syariah.",
-                    konten="Konten berita lengkap untuk kebutuhan aplikasi Averroes.",
-                    sumber_url="https://averroes.web.id",
-                    published_at=now - timedelta(days=idx),
-                )
-            )
-
-    if Diskusi.query.count() == 0:
-        users = User.query.filter_by(role="user").limit(3).all()
-        if users:
-            topik = [
-                (
-                    users[0].id,
-                    "Apakah staking termasuk gharar?",
-                    "Saya masih bingung apakah staking masuk gharar atau tidak. Mohon pencerahan.",
-                ),
-                (
-                    users[min(1, len(users) - 1)].id,
-                    "Bagaimana cara baca screener syariah?",
-                    "Indikator paling penting yang harus dilihat dulu apa ya?",
-                ),
-                (
-                    users[min(2, len(users) - 1)].id,
-                    "Portofolio pemula yang aman",
-                    "Untuk pemula, lebih baik fokus belajar dulu atau langsung mulai nominal kecil?",
-                ),
-            ]
-            for user_id, judul, isi in topik:
-                db.session.add(Diskusi(user_id=user_id, judul=judul, isi=isi))
-
-    fajar = User.query.filter_by(email="fajar@averroes.local").first()
-    if fajar and Diskusi.query.filter_by(user_id=fajar.id, parent_id=None).count() == 0:
-        thread1 = Diskusi(
-            user_id=fajar.id,
-            judul="Checklist Syariah Sebelum Beli Coin",
-            isi="Teman-teman, ini checklist yang biasa saya pakai: cek utilitas, transparansi tim, tokenomics, dan potensi gharar. Ada tambahan?",
-        )
-        db.session.add(thread1)
-        db.session.flush()
-        db.session.add(
-            Diskusi(
-                user_id=fajar.id,
-                parent_id=thread1.id,
-                isi="Tambahan dari saya: hindari token yang model bisnisnya cuma hype tanpa produk nyata.",
-            )
-        )
-        db.session.add(
-            Diskusi(
-                user_id=fajar.id,
-                judul="Belajar DCA Spot Tanpa FOMO",
-                isi="Saya lagi coba strategi DCA mingguan nominal kecil, fokus ke aset yang lolos screener syariah.",
-            )
-        )
-
-    db.session.commit()
+if __name__ == "__main__":
+    seed_data()
