@@ -6,6 +6,7 @@ class RuteAplikasi {
   static const String penyaring = '/screener';
   static const String pasar = '/pasar';
   static const String edukasi = '/edukasi';
+  static const String diskusi = '/diskusi';
   static const String pustaka = '/pustaka';
   static const String portofolio = '/portofolio';
   static const String zakat = '/zakat';

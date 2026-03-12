@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -16,10 +18,14 @@ class HalamanScreener extends StatefulWidget {
 class _HalamanScreenerState extends State<HalamanScreener> {
   final Dio _dio = ApiDio.create();
   final TextEditingController _searchController = TextEditingController();
+  final GetStorage _box = GetStorage();
+  static const String _cacheKey = 'screener_cache_v1';
+  static const String _cacheAllKey = 'screener_cache_all_v1';
 
   bool _popupSudahTampil = false;
   bool _isLoading = true;
   String? _error;
+  bool _usingCache = false;
   String _statusFilter = 'all';
   List<_ScreenerItem> _items = <_ScreenerItem>[];
 
@@ -50,45 +56,133 @@ class _HalamanScreenerState extends State<HalamanScreener> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _usingCache = false;
     });
 
-    try {
-      final Map<String, dynamic> query = <String, dynamic>{};
-      final String q = _searchController.text.trim();
-      if (q.isNotEmpty) {
-        query['q'] = q;
+    final Map<String, dynamic> query = <String, dynamic>{};
+    final String q = _searchController.text.trim();
+    if (q.isNotEmpty) {
+      query['q'] = q;
+    }
+    if (_statusFilter != 'all') {
+      query['status'] = _statusFilter;
+    }
+
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        final Response<dynamic> response = await _dio.get<dynamic>(
+          '${AppConfig.apiBaseUrl}/api/screener',
+          queryParameters: query,
+          options: Options(receiveTimeout: const Duration(seconds: 35)),
+        );
+
+        final List<dynamic> rows = _extractList(response.data);
+        final List<_ScreenerItem> parsed = rows
+            .whereType<Map<dynamic, dynamic>>()
+            .map(
+              (Map<dynamic, dynamic> row) => _ScreenerItem.fromJson(
+                Map<String, dynamic>.from(row),
+              ),
+            )
+            .toList();
+
+        final List<Map<String, dynamic>> cacheRows = rows
+            .whereType<Map<dynamic, dynamic>>()
+            .map((Map<dynamic, dynamic> row) => Map<String, dynamic>.from(row))
+            .toList();
+        _box.write(_cacheKey, cacheRows);
+        final bool isAllFilter = _statusFilter == 'all' && q.isEmpty;
+        if (isAllFilter) {
+          _box.write(_cacheAllKey, cacheRows);
+        }
+
+        if (!mounted) return;
+        setState(() {
+          _items = parsed;
+          _usingCache = false;
+          _error = null;
+          _isLoading = false;
+        });
+        return;
+      } catch (e) {
+        if (attempt < 2) {
+          await Future<void>.delayed(const Duration(milliseconds: 450));
+        }
       }
-      if (_statusFilter != 'all') {
-        query['status'] = _statusFilter;
-      }
+    }
 
-      final Response<dynamic> response = await _dio.get<dynamic>(
-        '${AppConfig.apiBaseUrl}/api/screener',
-        queryParameters: query,
-      );
-
-      final List<dynamic> rows = _extractList(response.data);
-      final List<_ScreenerItem> parsed = rows
-          .whereType<Map<dynamic, dynamic>>()
-          .map(
-            (Map<dynamic, dynamic> row) => _ScreenerItem.fromJson(
-              Map<String, dynamic>.from(row),
-            ),
-          )
-          .toList();
-
+    final List<_ScreenerItem> cached = _readCachedItems();
+    final List<_ScreenerItem> filteredFromAll = _readAllAndFilterLocally(
+      q: q,
+      statusFilter: _statusFilter,
+    );
+    final List<_ScreenerItem> fallback =
+        filteredFromAll.isNotEmpty ? filteredFromAll : cached;
+    if (fallback.isNotEmpty) {
+      if (!mounted) return;
       setState(() {
-        _items = parsed;
+        _items = fallback;
+        _usingCache = true;
+        _error = null;
       });
-    } catch (_) {
+    } else {
+      if (!mounted) return;
       setState(() {
-        _error = 'Gagal memuat data screener.';
+        _error = 'screener_error_load'.tr;
       });
-    } finally {
+    }
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  List<_ScreenerItem> _readCachedItems() {
+    final dynamic raw = _box.read(_cacheKey);
+    if (raw is! List) return <_ScreenerItem>[];
+    return raw
+        .whereType<Map<dynamic, dynamic>>()
+        .map((Map<dynamic, dynamic> row) =>
+            _ScreenerItem.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+  }
+
+  List<_ScreenerItem> _readAllAndFilterLocally({
+    required String q,
+    required String statusFilter,
+  }) {
+    final dynamic raw = _box.read(_cacheAllKey);
+    if (raw is! List) return <_ScreenerItem>[];
+    final List<_ScreenerItem> allItems = raw
+        .whereType<Map<dynamic, dynamic>>()
+        .map((Map<dynamic, dynamic> row) =>
+            _ScreenerItem.fromJson(Map<String, dynamic>.from(row)))
+        .toList();
+    Iterable<_ScreenerItem> result = allItems;
+    final String search = q.trim().toLowerCase();
+    if (search.isNotEmpty) {
+      result = result.where((item) {
+        final name = item.namaKoin.toLowerCase();
+        final symbol = item.simbol.toLowerCase();
+        return name.contains(search) || symbol.contains(search);
+      });
+    }
+    if (statusFilter != 'all') {
+      result = result
+          .where((item) => item.statusSyariah.toLowerCase() == statusFilter);
+    }
+    return result.toList();
+  }
+
+  String _logoForItem(_ScreenerItem item) {
+    // Prioritaskan logo CoinGecko dari API
+    if (item.logoUrl.isNotEmpty) return item.logoUrl;
+    // Fallback ke Binance logo
+    final String clean =
+        item.simbol.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (clean.isEmpty || clean == '-') return '';
+    return 'https://bin.bnbstatic.com/static/assets/logos/$clean.png';
   }
 
   List<dynamic> _extractList(dynamic raw) {
@@ -126,7 +220,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Screener Syariah',
+                        'screener_title'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -178,6 +272,27 @@ class _HalamanScreenerState extends State<HalamanScreener> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  if (_usingCache)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFA7F3D0)),
+                      ),
+                      child: Text(
+                        'screener_cache_notice'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF065F46),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 2),
                   if (_isLoading)
                     const Padding(
                       padding: EdgeInsets.only(top: 32),
@@ -193,6 +308,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _KartuStatus(
                           item: item,
+                          logoUrl: _logoForItem(item),
                           onTap: () => _showDetailItem(context, item),
                         ),
                       ),
@@ -276,7 +392,7 @@ class _SearchField extends StatelessWidget {
             size: 20,
             color: Color(0xFF94A3B8),
           ),
-          hintText: 'Cari nama koin atau ticker...',
+          hintText: 'screener_search_hint'.tr,
           hintStyle: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -304,10 +420,10 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<_FilterItem> filters = <_FilterItem>[
-      const _FilterItem(value: 'all', label: 'Semua'),
-      const _FilterItem(value: 'halal', label: 'Halal'),
-      const _FilterItem(value: 'proses', label: 'Proses'),
-      const _FilterItem(value: 'haram', label: 'Haram'),
+      _FilterItem(value: 'all', label: 'screener_filter_all'.tr),
+      _FilterItem(value: 'halal', label: 'screener_filter_halal'.tr),
+      _FilterItem(value: 'proses', label: 'screener_filter_process'.tr),
+      _FilterItem(value: 'haram', label: 'screener_filter_haram'.tr),
     ];
 
     return SingleChildScrollView(
@@ -349,15 +465,35 @@ class _FilterItem {
 }
 
 class _KartuStatus extends StatelessWidget {
-  const _KartuStatus({required this.item, this.onTap});
+  const _KartuStatus({required this.item, this.logoUrl, this.onTap});
 
   final _ScreenerItem item;
+  final String? logoUrl;
   final VoidCallback? onTap;
+
+  String _formatHarga(double? harga) {
+    if (harga == null) return '-';
+    if (harga >= 1) {
+      return '\$${harga.toStringAsFixed(2)}';
+    } else if (harga >= 0.01) {
+      return '\$${harga.toStringAsFixed(4)}';
+    } else {
+      return '\$${harga.toStringAsFixed(6)}';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final _StatusStyle statusStyle =
         _StatusStyle.fromStatus(item.statusSyariah);
+
+    final double? perubahan = item.perubahan24j;
+    final bool isPositive = (perubahan ?? 0) >= 0;
+    final Color perubahanColor =
+        isPositive ? const Color(0xFF059669) : const Color(0xFFF43F5E);
+    final String perubahanText = perubahan != null
+        ? '${isPositive ? "+" : ""}${perubahan.toStringAsFixed(2)}%'
+        : '-';
 
     return GestureDetector(
       onTap: onTap,
@@ -376,30 +512,43 @@ class _KartuStatus extends StatelessWidget {
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: statusStyle.badgeColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
+            // Logo koin
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: statusStyle.badgeColor,
+                shape: BoxShape.circle,
+              ),
+              child: (logoUrl ?? '').isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        logoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          statusStyle.icon,
+                          size: 20,
+                          color: statusStyle.iconColor,
+                        ),
+                      ),
+                    )
+                  : Icon(
                       statusStyle.icon,
                       size: 20,
                       color: statusStyle.iconColor,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
+            ),
+            const SizedBox(width: 12),
+            // Nama koin + simbol + rank
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Flexible(
+                        child: Text(
                           item.namaKoin,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
@@ -409,39 +558,87 @@ class _KartuStatus extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.simbol,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.4,
-                            color: const Color(0xFF94A3B8),
+                      ),
+                      if (item.peringkatMarketCap != null) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '#${item.peringkatMarketCap}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF64748B),
+                            ),
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.simbol,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: const Color(0xFF94A3B8),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: statusStyle.badgeColor,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                    color: statusStyle.badgeColor.withValues(alpha: 0.7)),
-              ),
-              child: Text(
-                statusStyle.label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: statusStyle.textColor,
+            // Harga + perubahan 24j + status badge
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                if (item.hargaUsd != null)
+                  Text(
+                    _formatHarga(item.hargaUsd),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                if (perubahan != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      perubahanText,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: perubahanColor,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusStyle.badgeColor,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                        color: statusStyle.badgeColor.withValues(alpha: 0.7)),
+                  ),
+                  child: Text(
+                    statusStyle.label,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: statusStyle.textColor,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -468,8 +665,8 @@ class _StatusStyle {
   factory _StatusStyle.fromStatus(String raw) {
     final String status = raw.toLowerCase();
     if (status == 'halal') {
-      return const _StatusStyle(
-        label: 'Halal',
+      return _StatusStyle(
+        label: 'screener_filter_halal'.tr,
         icon: Symbols.verified,
         iconColor: Color(0xFF059669),
         badgeColor: Color(0xFFECFDF5),
@@ -477,16 +674,16 @@ class _StatusStyle {
       );
     }
     if (status == 'haram') {
-      return const _StatusStyle(
-        label: 'Haram',
+      return _StatusStyle(
+        label: 'screener_filter_haram'.tr,
         icon: Symbols.block,
         iconColor: Color(0xFFF43F5E),
         badgeColor: Color(0xFFFFE4E6),
         textColor: Color(0xFFF43F5E),
       );
     }
-    return const _StatusStyle(
-      label: 'Proses',
+    return _StatusStyle(
+      label: 'screener_filter_process'.tr,
       icon: Symbols.pending,
       iconColor: Color(0xFF64748B),
       badgeColor: Color(0xFFF1F5F9),
@@ -503,23 +700,49 @@ class _ScreenerItem {
     required this.statusSyariah,
     required this.penjelasanFiqh,
     required this.referensiUlama,
+    this.hargaUsd,
+    this.marketCap,
+    this.perubahan24j,
+    this.logoUrl = '',
+    this.peringkatMarketCap,
+    this.coingeckoId = '',
   });
 
-  final int id;
+  final String id;
   final String namaKoin;
   final String simbol;
   final String statusSyariah;
   final String penjelasanFiqh;
   final String referensiUlama;
+  final double? hargaUsd;
+  final double? marketCap;
+  final double? perubahan24j;
+  final String logoUrl;
+  final int? peringkatMarketCap;
+  final String coingeckoId;
 
   factory _ScreenerItem.fromJson(Map<String, dynamic> json) {
     return _ScreenerItem(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: (json['id'] ?? '').toString(),
       namaKoin: (json['nama_koin'] as String?)?.trim() ?? '-',
       simbol: (json['simbol'] as String?)?.trim() ?? '-',
       statusSyariah: (json['status_syariah'] as String?)?.trim() ?? 'proses',
       penjelasanFiqh: (json['penjelasan_fiqh'] as String?)?.trim() ?? '-',
       referensiUlama: (json['referensi_ulama'] as String?)?.trim() ?? '-',
+      hargaUsd: (json['harga_usd'] is num)
+          ? (json['harga_usd'] as num).toDouble()
+          : null,
+      marketCap: (json['market_cap'] is num)
+          ? (json['market_cap'] as num).toDouble()
+          : null,
+      perubahan24j: (json['perubahan_24j'] is num)
+          ? (json['perubahan_24j'] as num).toDouble()
+          : null,
+      logoUrl: (json['logo_url'] as String?)?.trim() ?? '',
+      peringkatMarketCap: (json['peringkat_market_cap'] is int)
+          ? json['peringkat_market_cap'] as int
+          : null,
+      coingeckoId: (json['coingecko_id'] as String?)?.trim() ?? '',
     );
   }
 }
@@ -552,7 +775,7 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 10),
           OutlinedButton(
             onPressed: onRetry,
-            child: const Text('Coba lagi'),
+            child: Text('try_again'.tr),
           ),
         ],
       ),
@@ -573,7 +796,7 @@ class _EmptyCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Text(
-        'Data screener tidak ditemukan.',
+        'screener_empty'.tr,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -585,158 +808,439 @@ class _EmptyCard extends StatelessWidget {
 }
 
 void _showMetodologi(BuildContext context) {
-  showModalBottomSheet<void>(
+  showDialog<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+    barrierDismissible: true,
     builder: (BuildContext context) {
-      return const _SheetMetodologi();
+      return const _MetodologiDialog();
     },
   );
 }
 
 void _showDetailItem(BuildContext context, _ScreenerItem item) {
-  showModalBottomSheet<void>(
+  showDialog<void>(
     context: context,
-    backgroundColor: Colors.white,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+    barrierDismissible: true,
     builder: (BuildContext context) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Wrap(
-          children: <Widget>[
-            Text(
-              '${item.namaKoin} (${item.simbol})',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
+      final _StatusStyle style = _StatusStyle.fromStatus(item.statusSyariah);
+      final Map<String, String> fiqh = _parseFiqhSummary(item.penjelasanFiqh);
+      return Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            item.namaKoin,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.simbol,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Symbols.close, size: 18),
+                      color: const Color(0xFF64748B),
+                      splashRadius: 18,
+                      tooltip: 'common_close'.tr,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: style.badgeColor,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                        color: style.badgeColor.withValues(alpha: 0.75)),
+                  ),
+                  child: Text(
+                    'screener_status'
+                        .trParams(<String, String>{'status': style.label}),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: style.textColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'screener_fiqh_analysis'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _FiqhLine(
+                                  label: 'screener_underlying'.tr,
+                                  value: fiqh['underlying'] ?? '-'),
+                              const SizedBox(height: 4),
+                              _FiqhLine(
+                                  label: 'screener_value'.tr,
+                                  value: fiqh['nilai'] ?? '-'),
+                              const SizedBox(height: 4),
+                              _FiqhLine(
+                                  label: 'screener_delivery'.tr,
+                                  value: fiqh['serah_terima'] ?? '-'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'screener_source'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'screener_source_text'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'common_close'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              'Status: ${_StatusStyle.fromStatus(item.statusSyariah).label}',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF059669),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.penjelasanFiqh,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF334155),
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.referensiUlama,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF64748B),
-                height: 1.35,
-              ),
-            ),
-          ],
+          ),
         ),
       );
     },
   );
 }
 
-class _SheetMetodologi extends StatelessWidget {
-  const _SheetMetodologi();
+Map<String, String> _parseFiqhSummary(String raw) {
+  final Map<String, String> out = <String, String>{};
+  final List<String> parts =
+      raw.split('|').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+  for (final p in parts) {
+    final int idx = p.indexOf(':');
+    if (idx <= 0) continue;
+    final String key = p.substring(0, idx).trim().toLowerCase();
+    final String value = p.substring(idx + 1).trim();
+    if (key.startsWith('underlying')) {
+      out['underlying'] = value;
+    } else if (key.startsWith('nilai')) {
+      out['nilai'] = value;
+    } else if (key.startsWith('serah-terima') || key.startsWith('serah')) {
+      out['serah_terima'] = value;
+    }
+  }
+  return out;
+}
+
+class _FiqhLine extends StatelessWidget {
+  const _FiqhLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.9,
-      builder: (BuildContext context, ScrollController scrollController) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    return RichText(
+      text: TextSpan(
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF334155),
+          height: 1.4,
+        ),
+        children: <TextSpan>[
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
-          child: ListView(
-            controller: scrollController,
+          TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetodologiDialog extends StatelessWidget {
+  const _MetodologiDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle bodyStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: const Color(0xFF475569),
+      height: 1.45,
+    );
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 560),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
               Row(
                 children: <Widget>[
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: const Color(0xFFECFDF5),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Symbols.gavel,
-                      size: 20,
+                      size: 18,
                       color: Color(0xFF059669),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Metodologi & Catatan Analisis',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                        Text(
-                          'Standar Dewan Pengawas',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.1,
-                            color: const Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      'screener_method_title'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF0F172A),
+                      ),
                     ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Symbols.close, size: 18),
+                    color: const Color(0xFF64748B),
+                    splashRadius: 18,
+                    tooltip: 'common_close'.tr,
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          'screener_method_data'.tr,
+                          style: bodyStyle,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'screener_method_rules'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _MethodItem(
+                        text: 'screener_method_rule_1'.tr,
+                        style: bodyStyle,
+                      ),
+                      const SizedBox(height: 8),
+                      _MethodItem(
+                        text: 'screener_method_rule_2'.tr,
+                        style: bodyStyle,
+                      ),
+                      const SizedBox(height: 8),
+                      _MethodItem(
+                        text: 'screener_method_rule_3'.tr,
+                        style: bodyStyle,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'screener_status_legend'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: <Widget>[
+                          _StatusPill(label: 'screener_filter_halal'.tr),
+                          _StatusPill(label: 'screener_filter_process'.tr),
+                          _StatusPill(label: 'screener_status_grey'.tr),
+                          _StatusPill(label: 'screener_filter_haram'.tr),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: Text(
+                          'screener_status_note'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF065F46),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
-              Text(
-                'Data screener bersumber dari CSV Averroes yang dimasukkan ke database, dengan mapping status halal/proses/haram sesuai kolom sharia.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF64748B),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'common_close'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+class _MethodItem extends StatelessWidget {
+  const _MethodItem({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.only(top: 6, right: 8),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F766E),
+            shape: BoxShape.circle,
+          ),
+        ),
+        Expanded(child: Text(text, style: style)),
+      ],
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF334155),
+        ),
+      ),
     );
   }
 }

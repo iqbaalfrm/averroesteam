@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -79,7 +80,7 @@ class _HalamanZakatState extends State<HalamanZakat> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Kalkulator Zakat',
+                            'zakat_title'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -167,7 +168,7 @@ class _IconCircleButton extends StatelessWidget {
 class _TabZakat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final List<String> tabs = <String>['Zakat Maal', 'Perdagangan', 'Kripto & Aset'];
+    final List<String> tabs = <String>['zakat_maal'.tr, 'zakat_trade'.tr, 'zakat_crypto'.tr];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -248,12 +249,12 @@ class _KartuInput extends StatelessWidget {
       child: Column(
         children: <Widget>[
           _InputZakat(
-            label: 'Total Aset (Portofolio Crypto)',
+            label: 'zakat_total_assets'.tr,
             placeholder: loading ? '...' : _nominal(totalAset),
           ),
           const SizedBox(height: 16),
           _InputZakat(
-            label: 'Hutang Jatuh Tempo',
+            label: 'zakat_debt'.tr,
             placeholder: '0',
           ),
           const SizedBox(height: 16),
@@ -267,13 +268,13 @@ class _KartuInput extends StatelessWidget {
             child: Column(
               children: <Widget>[
                 _InfoRow(
-                  label: 'Harga Emas Saat Ini',
+                  label: 'zakat_gold_price'.tr,
                   value: 'Rp 1.340.000/gr',
                   icon: Symbols.info,
                 ),
                 const SizedBox(height: 10),
                 _InfoRow(
-                  label: 'Nisab (85gr Emas)',
+                  label: 'zakat_nisab'.tr,
                   value: loading ? '...' : _idr(nishab),
                 ),
                 const SizedBox(height: 10),
@@ -288,7 +289,7 @@ class _KartuInput extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
                       Text(
-                        'Status',
+                        'zakat_status'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -304,7 +305,7 @@ class _KartuInput extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            wajibZakat ? 'Wajib Zakat' : 'Belum Wajib',
+                            wajibZakat ? 'zakat_obligatory'.tr : 'zakat_not_obligatory'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
@@ -479,7 +480,7 @@ class _KartuTotalZakat extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'TOTAL ZAKAT DIBAYARKAN',
+                'zakat_total_paid'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -527,7 +528,7 @@ class _KartuTotalZakat extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Pembayaran via Lembaga Resmi Baznas',
+                      'zakat_baznas_info'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -594,7 +595,7 @@ class _KartuKetentuan extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  'Ketentuan Zakat Maal',
+                  'zakat_rules_title'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -603,7 +604,7 @@ class _KartuKetentuan extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Zakat maal wajib dikeluarkan jika harta telah mencapai nisab dan haul (1 tahun hijriah).',
+                  'zakat_rules_desc'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
@@ -655,7 +656,7 @@ class _BottomBayar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Bayar Sekarang',
+                  'zakat_pay_now'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
@@ -676,7 +677,7 @@ class _BottomBayar extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Transaksi aman & terenkripsi',
+                'zakat_secure_tx'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,

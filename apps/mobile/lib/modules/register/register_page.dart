@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
+import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
 class HalamanRegister extends StatefulWidget {
@@ -41,7 +42,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
       return;
     }
     if (!_agreeTerms) {
-      _showMessage('Anda harus menyetujui syarat & ketentuan.', isError: true);
+      _showMessage('must_agree_terms'.tr, isError: true);
       return;
     }
 
@@ -77,10 +78,10 @@ class _HalamanRegisterState extends State<HalamanRegister> {
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
       final String message =
-          _extractMessage(data, fallback: 'Terjadi kesalahan jaringan');
+          _extractMessage(data, fallback: 'network_error'.tr);
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Terjadi kesalahan', isError: true);
+      _showMessage('general_error'.tr, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -95,7 +96,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
       Get.offAllNamed(RuteAplikasi.login);
       return;
     }
-    _showMessage('Terjadi kesalahan', isError: true);
+    _showMessage('general_error'.tr, isError: true);
   }
 
   bool _isSuccess(Map<String, dynamic> data) {
@@ -144,34 +145,34 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                       _HeadlineSection(),
                       const SizedBox(height: 18),
                       _TextFieldBlock(
-                        label: 'Nama Lengkap',
-                        hint: 'Contoh: Ahmad Fauzi',
+                        label: 'full_name'.tr,
+                        hint: 'name_hint'.tr,
                         controller: _nameController,
                         keyboardType: TextInputType.name,
                         validator: (String? value) {
                           final String input = value?.trim() ?? '';
                           if (input.isEmpty) {
-                            return 'Nama lengkap wajib diisi';
+                            return 'name_required'.tr;
                           }
                           if (input.length < 3) {
-                            return 'Nama minimal 3 karakter';
+                            return 'name_min'.tr;
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 8),
                       _TextFieldBlock(
-                        label: 'Email',
-                        hint: 'fauzi@example.com',
+                        label: 'email'.tr,
+                        hint: 'email_hint'.tr,
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         validator: (String? value) {
                           final String input = value?.trim() ?? '';
                           if (input.isEmpty) {
-                            return 'Email wajib diisi';
+                            return 'email_required'.tr;
                           }
                           if (!input.contains('@') || !input.contains('.')) {
-                            return 'Format email tidak valid';
+                            return 'invalid_email'.tr;
                           }
                           return null;
                         },
@@ -232,8 +233,12 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          const AuthBrandTile(),
-          const SizedBox(width: 40),
+          const AppLogoBadge(
+            size: 48,
+            radius: 14,
+            padding: 8,
+          ),
+          const SizedBox(width: 8),
         ],
       ),
     );
@@ -247,7 +252,7 @@ class _HeadlineSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
-          'Buat Akun Baru',
+          'register_title'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 30,
             fontWeight: FontWeight.w700,
@@ -257,7 +262,7 @@ class _HeadlineSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Bergabunglah dengan ekosistem finansial Syariah masa kini.',
+          'register_subtitle'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -327,7 +332,7 @@ class _PasswordBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Kata Sandi',
+            'password_label'.tr,
             style: AuthUiKit.labelStyle(),
           ),
           const SizedBox(height: 8),
@@ -335,7 +340,7 @@ class _PasswordBlock extends StatelessWidget {
             controller: controller,
             obscureText: obscure,
             decoration: AuthUiKit.inputDecoration(
-              hintText: 'Minimum 8 karakter',
+              hintText: 'password_hint_8'.tr,
               suffixIcon: IconButton(
                 onPressed: onToggle,
                 icon: Icon(
@@ -347,10 +352,10 @@ class _PasswordBlock extends StatelessWidget {
             validator: (String? value) {
               final String input = value ?? '';
               if (input.trim().isEmpty) {
-                return 'Kata sandi wajib diisi';
+                return 'password_required'.tr;
               }
               if (input.length < 8) {
-                return 'Minimal 8 karakter';
+                return 'password_hint_8'.tr;
               }
               return null;
             },
@@ -382,7 +387,7 @@ class _TermsRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Saya setuju dengan Syarat & Ketentuan serta Kebijakan Privasi Averroes.',
+              'agree_terms'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 height: 1.4,
@@ -431,7 +436,7 @@ class _PrimaryButton extends StatelessWidget {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Text('Daftar'),
+                  Text('register_button'.tr),
                   const SizedBox(width: 8),
                   const Icon(Symbols.arrow_forward, size: 18),
                 ],
@@ -452,7 +457,7 @@ class _SwitchLogin extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Text(
-          'Sudah punya akun? Masuk di sini',
+          'already_have_account'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
@@ -478,7 +483,7 @@ class _FooterNote extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            'Diawasi oleh OJK & Dewan Syariah Nasional',
+            'supervised_by'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w700,

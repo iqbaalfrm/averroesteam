@@ -1,5 +1,6 @@
 import 'package:averroes_core/averroes_core.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -47,7 +48,7 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
       });
     } catch (_) {
       setState(() {
-        _error = 'Gagal memuat data kelas.';
+        _error = 'edu_load_error'.tr;
       });
     } finally {
       setState(() {
@@ -94,7 +95,7 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Akademi Muamalah',
+                            'edu_title'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -102,7 +103,7 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
                             ),
                           ),
                           Text(
-                            'TERHUBUNG API KELAS',
+                            'edu_subtitle'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
@@ -139,8 +140,10 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   AppSectionHeader(
-                    title: 'Direkomendasikan',
-                    actionText: '${filtered.length} Kelas',
+                    title: 'edu_recommended'.tr,
+                    actionText: 'edu_classes_count'.trParams(
+                      <String, String>{'count': '${filtered.length}'},
+                    ),
                     leadingIcon: Symbols.auto_awesome,
                   ),
                   const SizedBox(height: 12),
@@ -149,7 +152,7 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Semua Kelas',
+                    'edu_all_classes'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -165,8 +168,8 @@ class _HalamanEdukasiState extends State<HalamanEdukasi> {
                       onRetry: () => _loadKelas(),
                     )
                   else if (filtered.isEmpty)
-                    const AppEmptyStateCard(
-                      text: 'Kelas tidak ditemukan.',
+                    AppEmptyStateCard(
+                      text: 'edu_class_not_found'.tr,
                       icon: Symbols.search_off,
                     )
                   else
@@ -196,18 +199,11 @@ class _IconCircleButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
+          border: Border.all(color: AppColors.line),
         ),
-        child: Icon(icon, size: 18, color: const Color(0xFF64748B)),
+        child: Icon(icon, size: 18, color: AppColors.slate),
       ),
     );
   }
@@ -221,36 +217,14 @@ class _SearchBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          icon: const Icon(
-            Symbols.search,
-            size: 20,
-            color: Color(0xFF94A3B8),
-          ),
-          hintText: 'Cari kelas...',
-          hintStyle: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF94A3B8),
-          ),
-          border: InputBorder.none,
-        ),
+    return CustomTextField(
+      controller: controller,
+      onChanged: onChanged,
+      hint: 'edu_search_hint'.tr,
+      prefixIcon: const Icon(
+        Symbols.search,
+        size: 20,
+        color: AppColors.muted,
       ),
     );
   }
@@ -264,14 +238,14 @@ class _RekomendasiCarousel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const AppEmptyStateCard(
-        text: 'Belum ada kelas untuk ditampilkan.',
+      return AppEmptyStateCard(
+        text: 'edu_empty_recommendation'.tr,
         icon: Symbols.menu_book,
       );
     }
 
     return SizedBox(
-      height: 195,
+      height: 276,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (BuildContext context, int index) {
@@ -292,78 +266,85 @@ class _KelasRekomendasiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => HalamanDetailKelas(kelas: item),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 270,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
+    return SizedBox(
+      width: 270,
+      child: CustomCard(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => HalamanDetailKelas(kelas: item),
+            ),
+          );
+        },
+        padding: EdgeInsets.zero,
+        hasShadow: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'REKOMENDASI',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF047857),
+            _KelasCover(item: item, width: 270, height: 112, borderRadius: 14),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.emeraldSoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'edu_recommended'.tr.toUpperCase(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.emeraldDark,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      item.judul,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slate,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.deskripsi,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: <Widget>[
+                        const Icon(Symbols.play_circle,
+                            size: 18, color: AppColors.emerald),
+                        const SizedBox(width: 6),
+                        Text(
+                          'edu_view_material'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.emeraldDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              item.judul,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              item.deskripsi,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-            const Spacer(),
-            Row(
-              children: <Widget>[
-                const Icon(Symbols.play_circle,
-                    size: 16, color: Color(0xFF10B981)),
-                const SizedBox(width: 6),
-                Text(
-                  'Lihat materi',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF047857),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -379,74 +360,133 @@ class _KelasCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => HalamanDetailKelas(kelas: item),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE0F2FE),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Symbols.menu_book,
-                  color: Color(0xFF2563EB),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      item.judul,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF1E293B),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.deskripsi,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Symbols.chevron_right,
-                color: Color(0xFF94A3B8),
-              ),
-            ],
+    return CustomCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => HalamanDetailKelas(kelas: item),
           ),
-        ),
+        );
+      },
+      padding: const EdgeInsets.all(16),
+      hasShadow: false,
+      child: Row(
+        children: <Widget>[
+          _KelasCover(item: item, width: 64, height: 64, borderRadius: 12),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  item.judul,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slate,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.deskripsi,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Icon(
+            Symbols.chevron_right,
+            color: AppColors.muted,
+          ),
+        ],
       ),
     );
   }
+}
+
+class _KelasCover extends StatelessWidget {
+  const _KelasCover({
+    required this.item,
+    required this.width,
+    required this.height,
+    required this.borderRadius,
+  });
+
+  final KelasEdukasi item;
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final String assetImage = _resolveKelasAsset(item);
+    final String? networkUrl = item.gambarUrl;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: (networkUrl != null && networkUrl.isNotEmpty)
+          ? Image.network(
+              networkUrl,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Image.asset(
+                assetImage,
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+              ),
+            )
+          : Image.asset(
+              assetImage,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: width,
+                height: height,
+                color: const Color(0xFFDCF4EE),
+                alignment: Alignment.center,
+                child: const Icon(Symbols.menu_book,
+                    color: AppColors.emerald, size: 26),
+              ),
+            ),
+    );
+  }
+}
+
+String _resolveKelasAsset(KelasEdukasi item) {
+  final String haystack = '${item.judul} ${item.deskripsi}'.toLowerCase();
+  if (haystack.contains('zakat')) {
+    return 'assets/images/kelas/zakat_1.jpg';
+  }
+  if (haystack.contains('blockchain')) {
+    return 'assets/images/kelas/blockchain_1.jpg';
+  }
+  if (haystack.contains('kripto') || haystack.contains('crypto')) {
+    if (haystack.contains('fundamental') ||
+        haystack.contains('muamalah') ||
+        haystack.contains('syariah')) {
+      return 'assets/images/kelas/crypto_syariah_1.jpg';
+    }
+    return 'assets/images/kelas/crypto_chart_1.jpg';
+  }
+  if (haystack.contains('fiqh') ||
+      haystack.contains('muamalah') ||
+      haystack.contains('syariah')) {
+    return 'assets/images/kelas/finance_halal_1.jpg';
+  }
+  if (haystack.contains('investasi') ||
+      haystack.contains('pasar') ||
+      haystack.contains('portofolio')) {
+    return 'assets/images/kelas/finance_halal_1.jpg';
+  }
+  return 'assets/images/kelas/education_1.jpg';
 }

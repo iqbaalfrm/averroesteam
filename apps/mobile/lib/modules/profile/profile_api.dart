@@ -3,6 +3,29 @@ import 'package:dio/dio.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
 
+int _asInt(dynamic value, {int fallback = 0}) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim()) ?? fallback;
+  return fallback;
+}
+
+bool _asBool(dynamic value, {bool fallback = false}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final v = value.trim().toLowerCase();
+    if (v == 'true' || v == '1' || v == 'yes') return true;
+    if (v == 'false' || v == '0' || v == 'no') return false;
+  }
+  return fallback;
+}
+
+String _asString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final s = value.toString().trim();
+  return s.isEmpty ? fallback : s;
+}
+
 class ProfileUser {
   const ProfileUser({
     required this.id,
@@ -12,7 +35,7 @@ class ProfileUser {
     this.createdAt,
   });
 
-  final int id;
+  final String id;
   final String nama;
   final String? email;
   final String role;
@@ -20,13 +43,13 @@ class ProfileUser {
 
   factory ProfileUser.fromJson(Map<String, dynamic> json) {
     return ProfileUser(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
       nama: (json['nama'] ?? json['Nama'] ?? 'Pengguna').toString(),
       email: (json['email'] as String?)?.trim().isEmpty == true
           ? null
           : (json['email'] as String?),
       role: (json['role'] ?? json['Role'] ?? 'user').toString(),
-      createdAt: json['created_at'] as String?,
+      createdAt: json['created_at']?.toString(),
     );
   }
 }
@@ -92,45 +115,71 @@ class ProfileApi {
   }
 
   Future<ProfileLearningSummary> fetchLearningSummary() async {
-    final kelasRs = await _getWithFallback('/api/kelas');
-    final kelasData = kelasRs.data is Map ? (kelasRs.data as Map)['data'] : null;
-    final kelasItems = kelasData is List ? kelasData : const [];
-    if (kelasItems.isEmpty) {
+    try {
+      final kelasRs = await _getWithFallback('/api/kelas');
+      final kelasData = kelasRs.data is Map ? (kelasRs.data as Map)['data'] : null;
+      final kelasItems = kelasData is List ? kelasData : const [];
+      if (kelasItems.isEmpty) {
+        return const ProfileLearningSummary.empty();
+      }
+
+      final firstKelas = kelasItems.first;
+      final kelasId = firstKelas is Map ? _asString(firstKelas['id']) : '';
+      final kelasJudul = firstKelas is Map ? (firstKelas['judul'] ?? 'Kelas').toString() : 'Kelas';
+
+      Map progressMap = const {};
+      try {
+        final progressRs = await _getWithFallback('/api/kelas/$kelasId/progress');
+        final progressData = progressRs.data is Map ? (progressRs.data as Map)['data'] : null;
+        progressMap = progressData is Map ? progressData : const {};
+      } catch (_) {}
+
+      Map lastMap = const {};
+      try {
+        final lastRs = await _getWithFallback('/api/kelas/last-learning');
+        final lastData = lastRs.data is Map ? (lastRs.data as Map)['data'] : null;
+        lastMap = lastData is Map ? lastData : const {};
+      } catch (_) {}
+
+      final completedMateri = _asInt(progressMap['completed_materi']);
+      final totalMateri = _asInt(progressMap['total_materi']);
+      final progressPercent = _asInt(progressMap['progress_materi_percent']);
+      final isEligible = _asBool(progressMap['is_eligible_certificate']);
+      final scorePercent = _asInt(progressMap['score_percent']);
+
+      final lastTitleRaw = lastMap['last_materi_judul'];
+      final lastTitle = lastTitleRaw is String ? lastTitleRaw.trim() : null;
+      final nextIndex = _asInt(lastMap['next_materi_index'], fallback: completedMateri + 1);
+
+      int certCount = 0;
+      String? latestCert;
+      try {
+        final certRs = await _getWithFallback('/api/sertifikat/saya');
+        final certData = certRs.data is Map ? (certRs.data as Map)['data'] : null;
+        final certItems = certData is List ? certData : const [];
+        certCount = certItems.length;
+        if (certItems.isNotEmpty && certItems.first is Map) {
+          final first = certItems.first as Map;
+          latestCert = (first['nama_sertifikat'] ?? first['kelas'] ?? '').toString();
+        }
+      } catch (_) {}
+
+      return ProfileLearningSummary(
+        kelasId: kelasId,
+        kelasJudul: kelasJudul,
+        completedMateri: completedMateri,
+        totalMateri: totalMateri,
+        progressMateriPercent: progressPercent,
+        certificateEligible: isEligible,
+        scorePercent: scorePercent,
+        lastMateriJudul: (lastTitle == null || lastTitle.isEmpty) ? null : lastTitle,
+        nextMateriIndex: nextIndex,
+        totalSertifikat: certCount,
+        lastSertifikatJudul: latestCert,
+      );
+    } catch (_) {
       return const ProfileLearningSummary.empty();
     }
-
-    final firstKelas = kelasItems.first;
-    final kelasId = firstKelas is Map ? ((firstKelas['id'] as num?)?.toInt() ?? 0) : 0;
-    final kelasJudul = firstKelas is Map ? (firstKelas['judul'] ?? 'Kelas').toString() : 'Kelas';
-
-    final progressRs = await _getWithFallback('/api/kelas/$kelasId/progress');
-    final progressData = progressRs.data is Map ? (progressRs.data as Map)['data'] : null;
-    final progress = progressData is Map ? progressData : const {};
-
-    final lastRs = await _getWithFallback('/api/kelas/last-learning');
-    final lastData = lastRs.data is Map ? (lastRs.data as Map)['data'] : null;
-    final last = lastData is Map ? lastData : const {};
-
-    final completedMateri = (progress['completed_materi'] as num?)?.toInt() ?? 0;
-    final totalMateri = (progress['total_materi'] as num?)?.toInt() ?? 0;
-    final progressPercent = (progress['progress_materi_percent'] as num?)?.toInt() ?? 0;
-    final isEligible = (progress['is_eligible_certificate'] as bool?) ?? false;
-    final scorePercent = (progress['score_percent'] as num?)?.toInt() ?? 0;
-
-    final lastTitle = (last['last_materi_judul'] as String?)?.trim();
-    final nextIndex = (last['next_materi_index'] as num?)?.toInt() ?? (completedMateri + 1);
-
-    return ProfileLearningSummary(
-      kelasId: kelasId,
-      kelasJudul: kelasJudul,
-      completedMateri: completedMateri,
-      totalMateri: totalMateri,
-      progressMateriPercent: progressPercent,
-      certificateEligible: isEligible,
-      scorePercent: scorePercent,
-      lastMateriJudul: (lastTitle == null || lastTitle.isEmpty) ? null : lastTitle,
-      nextMateriIndex: nextIndex,
-    );
   }
 }
 
@@ -145,10 +194,12 @@ class ProfileLearningSummary {
     required this.scorePercent,
     required this.lastMateriJudul,
     required this.nextMateriIndex,
+    required this.totalSertifikat,
+    required this.lastSertifikatJudul,
   });
 
   const ProfileLearningSummary.empty()
-      : kelasId = 0,
+      : kelasId = '',
         kelasJudul = 'Kelas',
         completedMateri = 0,
         totalMateri = 0,
@@ -156,9 +207,11 @@ class ProfileLearningSummary {
         certificateEligible = false,
         scorePercent = 0,
         lastMateriJudul = null,
-        nextMateriIndex = 1;
+        nextMateriIndex = 1,
+        totalSertifikat = 0,
+        lastSertifikatJudul = null;
 
-  final int kelasId;
+  final String kelasId;
   final String kelasJudul;
   final int completedMateri;
   final int totalMateri;
@@ -167,4 +220,6 @@ class ProfileLearningSummary {
   final int scorePercent;
   final String? lastMateriJudul;
   final int nextMateriIndex;
+  final int totalSertifikat;
+  final String? lastSertifikatJudul;
 }

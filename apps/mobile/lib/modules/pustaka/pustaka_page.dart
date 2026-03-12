@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
@@ -83,7 +84,7 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Gagal memuat pustaka';
+        _error = 'pustaka_load_error'.tr;
         _loading = false;
       });
     }
@@ -125,6 +126,43 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     );
   }
 
+  Future<void> _openBukuAccess(PustakaBuku buku, String action) async {
+    try {
+      final access = await _api.requestAccessUrl(
+        bukuId: buku.id,
+        action: action,
+      );
+      final uri = Uri.tryParse(access.url);
+      if (uri == null || access.url.isEmpty) {
+        throw Exception('pustaka_invalid_url'.tr);
+      }
+      if (action == 'read' && (buku.formatFile ?? 'pdf').toLowerCase() == 'pdf'
+          && !uri.host.contains('drive.google.com')) {
+        if (!mounted) return;
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => _PdfReaderPage(
+              title: buku.judul,
+              pdfUrl: access.url,
+            ),
+          ),
+        );
+        return;
+      }
+      final mode = action == 'download'
+          ? LaunchMode.externalApplication
+          : LaunchMode.inAppWebView;
+      await launchUrl(uri, mode: mode);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(action == 'download'
+            ? 'pustaka_download_failed'.tr
+            : 'pustaka_open_failed'.tr)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,37 +181,35 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      _IconButtonCard(
-                        icon: Symbols.arrow_back_ios_new_rounded,
-                        onTap: () => Navigator.of(context).maybePop(),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            'Pustaka',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: const Color(0xFF1F2937),
-                            ),
+                  Expanded(
+                    child: Row(
+                      children: <Widget>[
+                        _IconButtonCard(
+                          icon: Symbols.arrow_back_ios_new_rounded,
+                          onTap: () => Navigator.of(context).maybePop(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'pustaka_title'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(
-                            'Koleksi Digital',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.6,
-                              color: const Color(0xFF059669),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   const _IconButtonCard(
                     icon: Symbols.search_rounded,
                   ),
@@ -198,8 +234,8 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                   _BannerUnggulan(),
                   const SizedBox(height: 24),
                   _JudulBagian(
-                    judul: 'Koleksi Terbaru',
-                    aksi: 'Lihat Semua',
+                    judul: 'pustaka_newest_col'.tr,
+                    aksi: 'pustaka_see_all'.tr,
                   ),
                   const SizedBox(height: 16),
                   if (_error != null)
@@ -228,15 +264,19 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                           coverUrl: buku.coverUrl,
                           nonAktif: buku.akses == 'internal',
                           onTap: () => _openDetail(buku),
-                          onReadTap: () => _openDetail(buku),
-                          onDownloadTap: () => _openDetail(buku),
+                          onReadTap: buku.hasFile
+                              ? () => _openBukuAccess(buku, 'read')
+                              : () => _openDetail(buku),
+                          onDownloadTap: buku.hasFile
+                              ? () => _openBukuAccess(buku, 'download')
+                              : () => _openDetail(buku),
                         ),
                       );
                     }),
                   if (!_loading && _error == null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      _total > 0 ? 'Menampilkan ${_buku.length} dari $_total buku' : 'Belum ada buku terbit',
+                      _total > 0 ? 'pustaka_showing_books'.trParams({'count': '${_buku.length}', 'total': '$_total'}) : 'pustaka_no_books'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -261,7 +301,7 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                                   color: const Color(0xFFE2E8F0)),
                             ),
                             child: Text(
-                              'Muat Lagi',
+                              'pustaka_load_more'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
@@ -381,7 +421,7 @@ class _KategoriPustaka extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<_ChipKategori> items = <_ChipKategori>[
       _ChipKategori(
-        label: 'Semua',
+        label: 'pustaka_all'.tr,
         icon: Symbols.grid_view,
         aktif: true,
         onTap: loading ? null : () => onSelect(null),
@@ -552,7 +592,7 @@ class _BannerUnggulan extends StatelessWidget {
                   border: Border.all(color: Colors.white30),
                 ),
                 child: Text(
-                  'Unggulan Bulan Ini',
+                  'pustaka_featured'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -563,7 +603,7 @@ class _BannerUnggulan extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Panduan Investasi Kripto Syariah 2026',
+                'Al-Ahkam Al-Fiqhiyyah Al-Muta‘alliqa bil-‘Umalaat al-Iliktirūniyyah',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -572,7 +612,7 @@ class _BannerUnggulan extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Temukan hikmah di balik aset digital bersama Averroes Academy.',
+                'Kajian fiqih muamalah terkait transaksi elektronik.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -583,7 +623,7 @@ class _BannerUnggulan extends StatelessWidget {
               Row(
                 children: <Widget>[
                   _AksiBanner(
-                    label: 'Baca',
+                    label: 'pustaka_read'.tr,
                     icon: Symbols.chrome_reader_mode,
                     warna: Colors.white,
                     warnaText: const Color(0xFF065F46),
@@ -991,7 +1031,7 @@ class _PustakaDetailPage extends StatefulWidget {
     required this.api,
   });
 
-  final int bukuId;
+  final String bukuId;
   final PustakaBuku initialData;
   final PustakaApi api;
 
@@ -1042,7 +1082,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
       );
       final uri = Uri.tryParse(access.url);
       if (uri == null || access.url.isEmpty) {
-        throw Exception('URL buku tidak valid');
+        throw Exception('pustaka_invalid_url'.tr);
       }
       final bool isDrive = uri.host.contains('drive.google.com');
       if (action == 'read' && isDrive) {
@@ -1226,7 +1266,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                                 : () => _openAccess('read'),
                             icon: const Icon(Symbols.chrome_reader_mode, size: 18),
                             label: Text(
-                              _opening ? 'Memuat...' : 'Baca',
+                              _opening ? 'Memuat...' : 'pustaka_read'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1316,7 +1356,7 @@ class _PdfReaderPageState extends State<_PdfReaderPage> {
     });
     try {
       final Dio dio = Dio();
-      final Response<List<int>> response = await dio.get<List<int>>(
+      final response = await dio.get<List<int>>(
         widget.pdfUrl,
         options: Options(responseType: ResponseType.bytes),
       );

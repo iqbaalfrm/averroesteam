@@ -1,8 +1,10 @@
+import 'package:averroes_core/averroes_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
+import '../../app/localization/app_locale_service.dart';
 import '../../app/routes/app_routes.dart';
 import '../../app/services/auth_service.dart';
 import 'profile_api.dart';
@@ -18,11 +20,13 @@ class _HalamanProfilState extends State<HalamanProfil> {
   final ProfileApi _api = ProfileApi();
   ProfileUser? _user;
   ProfileLearningSummary _learning = const ProfileLearningSummary.empty();
+  late final AppLocaleService _localeService;
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
+    _localeService = Get.find<AppLocaleService>();
     _hydrateLocal();
     _refresh();
   }
@@ -57,6 +61,63 @@ class _HalamanProfilState extends State<HalamanProfil> {
     await _refresh();
   }
 
+  Future<void> _chooseLanguage() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'choose_language'.tr,
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0D1B18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _LanguageOptionTile(
+                  label: 'language_indonesian'.tr,
+                  locale: AppLocaleService.localeId,
+                  currentLocale: _localeService.locale,
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _localeService.changeLocale(AppLocaleService.localeId);
+                  },
+                ),
+                _LanguageOptionTile(
+                  label: 'language_english'.tr,
+                  locale: AppLocaleService.localeEn,
+                  currentLocale: _localeService.locale,
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _localeService.changeLocale(AppLocaleService.localeEn);
+                  },
+                ),
+                _LanguageOptionTile(
+                  label: 'language_arabic'.tr,
+                  locale: AppLocaleService.localeAr,
+                  currentLocale: _localeService.locale,
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _localeService.changeLocale(AppLocaleService.localeAr);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
@@ -66,7 +127,7 @@ class _HalamanProfilState extends State<HalamanProfil> {
     final role = (_user?.role ?? AuthService.instance.role ?? 'user').toLowerCase();
     final email = (_user?.email?.trim().isNotEmpty ?? false)
         ? _user!.email!
-        : 'email belum diatur';
+        : 'email_not_set'.tr;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
@@ -90,7 +151,7 @@ class _HalamanProfilState extends State<HalamanProfil> {
                   else
                     const SizedBox(width: 40, height: 40),
                   Text(
-                    'Profil Pengguna',
+                    'profile_title'.tr,
                     style: GoogleFonts.inter(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -118,44 +179,40 @@ class _HalamanProfilState extends State<HalamanProfil> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                   child: Column(
                     children: [
-                      _StatsGrid(learning: _learning),
-                      const SizedBox(height: 22),
+
                       _SectionHeader(
-                        title: 'Sertifikat Saya',
-                        action: 'Lihat Semua',
+                        title: 'my_certificates'.tr,
+                        action: 'see_all'.tr,
                         onTap: () => Get.toNamed(RuteAplikasi.sertifikat),
                       ),
                       const SizedBox(height: 10),
                       _SertifikatCard(learning: _learning),
                       const SizedBox(height: 22),
-                      const _SectionHeader(title: 'Riwayat Pembelajaran'),
+                      _SectionHeader(title: 'learning_history'.tr),
                       const SizedBox(height: 10),
                       _RiwayatCard(learning: _learning),
                       const SizedBox(height: 22),
-                      const _SectionHeader(title: 'Pengaturan Akun'),
+                      _SectionHeader(title: 'account_settings'.tr),
                       const SizedBox(height: 10),
-                      _PengaturanList(onEdit: _openEdit),
+                      _PengaturanList(
+                        onEdit: _openEdit,
+                        onLanguage: _chooseLanguage,
+                        currentLanguage: _localeService.currentLanguageLabel,
+                      ),
                       const SizedBox(height: 14),
-                      OutlinedButton(
+                      CustomButton(
+                        text: 'logout'.tr,
+                        type: ButtonType.outline,
                         onPressed: () async {
                           await AuthService.instance.logout();
                           if (!mounted) return;
                           Get.offAllNamed(RuteAplikasi.login);
                         },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFFFEE2E2)),
-                          foregroundColor: const Color(0xFFEF4444),
-                          minimumSize: const Size.fromHeight(48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          'Keluar',
-                          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
+                        customColor: AppColors.error,
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Versi Aplikasi 2.4.0',
+                        'app_version'.trParams(<String, String>{'version': '2.4.0'}),
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: const Color(0xFF9CA3AF),
@@ -190,8 +247,8 @@ class _HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge = role == 'admin' ? 'ADMIN' : 'USER';
-    final label = role == 'admin' ? 'Administrator' : 'Pengguna Terdaftar';
+    final badge = role == 'admin' ? 'admin_badge'.tr : 'user_badge'.tr;
+    final label = role == 'admin' ? 'administrator'.tr : 'registered_user'.tr;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
       child: Stack(
@@ -226,10 +283,10 @@ class _HeroSection extends StatelessWidget {
                     width: 132,
                     height: 132,
                     padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
                           color: Color(0x3313ECB9),
                           blurRadius: 18,
@@ -344,96 +401,6 @@ class _HeroSection extends StatelessWidget {
   }
 }
 
-class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.learning});
-
-  final ProfileLearningSummary learning;
-
-  @override
-  Widget build(BuildContext context) {
-    final streak = learning.completedMateri;
-    final xp = learning.completedMateri * 150;
-    return Row(
-      children: [
-        Expanded(
-          child: _StatTile(
-            icon: Symbols.local_fire_department,
-            iconColor: const Color(0xFFF97316),
-            value: '$streak',
-            label: 'Hari Streak',
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatTile(
-            icon: Symbols.bolt,
-            iconColor: const Color(0xFFEAB308),
-            value: '$xp',
-            label: 'Total XP',
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 5)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: iconColor),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: GoogleFonts.inter(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0D1B18),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF6B7280),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, this.action, this.onTap});
 
@@ -478,8 +445,29 @@ class _SertifikatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use dynamic to guard against hot-reload null on new fields
+    final int certCount = (learning as dynamic).totalSertifikat as int? ?? 0;
+    final String? lastCertJudul = (learning as dynamic).lastSertifikatJudul as String?;
+    final hasCert = certCount > 0;
     final ready = learning.certificateEligible;
-    return _Card(
+
+    String primaryText = 'no_certificates'.tr;
+    String secondaryText = 'complete_materials_and_quiz'.tr;
+    String tertiaryText = 'not_eligible_yet'.tr;
+
+    if (hasCert) {
+      primaryText = lastCertJudul ?? 'certificate_collection'.tr;
+      secondaryText = 'you_have_certificates'.trParams(<String, String>{'count': '$certCount'});
+      tertiaryText = 'view_all_collections'.tr;
+    } else if (ready) {
+      primaryText = learning.kelasJudul;
+      secondaryText = 'score_percent'.trParams(<String, String>{'score': '${learning.scorePercent}'});
+      tertiaryText = 'ready_to_claim_certificate'.tr;
+    }
+
+    return CustomCard(
+      padding: const EdgeInsets.all(14),
+      hasShadow: true,
       child: Row(
         children: [
           Container(
@@ -501,23 +489,27 @@ class _SertifikatCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ready ? learning.kelasJudul : 'Belum ada sertifikat',
+                  primaryText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  ready ? 'Skor ${learning.scorePercent}%' : 'Selesaikan materi dan kuis (>=70)',
+                  secondaryText,
                   style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280)),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Symbols.star, size: 14, color: Color(0xFFEAB308)),
+                    Icon(
+                      hasCert ? Symbols.verified : Symbols.star, 
+                      size: 14, 
+                      color: hasCert ? const Color(0xFF0D9488) : const Color(0xFFEAB308),
+                    ),
                     const SizedBox(width: 5),
                     Text(
-                      ready ? 'Siap klaim sertifikat' : 'Belum memenuhi syarat',
+                      tertiaryText,
                       style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF6B7280)),
                     ),
                   ],
@@ -539,12 +531,17 @@ class _RiwayatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = learning.lastMateriJudul ?? 'Belum ada materi dipelajari';
+    final title = learning.lastMateriJudul ?? 'no_learning_history'.tr;
     final subtitle = learning.totalMateri > 0
-        ? 'Materi ${learning.nextMateriIndex}/${learning.totalMateri}'
-        : 'Mulai dari kelas utama';
+        ? 'material_progress'.trParams(<String, String>{
+            'current': '${learning.nextMateriIndex}',
+            'total': '${learning.totalMateri}',
+          })
+        : 'start_from_main_class'.tr;
     final progress = (learning.progressMateriPercent.clamp(0, 100)) / 100.0;
-    return _Card(
+    return CustomCard(
+      padding: const EdgeInsets.all(14),
+      hasShadow: true,
       child: Column(
         children: [
           Row(
@@ -578,7 +575,7 @@ class _RiwayatCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Lanjut',
+                  'continue'.tr,
                   style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0D1B18)),
                 ),
               ),
@@ -590,15 +587,15 @@ class _RiwayatCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0EB58E)),
+              backgroundColor: AppColors.line.withValues(alpha: 0.5),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.emerald),
             ),
           ),
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Progres', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF))),
+              Text('progress'.tr, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF))),
               Text('${learning.progressMateriPercent}%', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF6B7280))),
             ],
           ),
@@ -609,21 +606,43 @@ class _RiwayatCard extends StatelessWidget {
 }
 
 class _PengaturanList extends StatelessWidget {
-  const _PengaturanList({required this.onEdit});
+  const _PengaturanList({
+    required this.onEdit,
+    required this.onLanguage,
+    required this.currentLanguage,
+  });
 
   final VoidCallback onEdit;
+  final VoidCallback onLanguage;
+  final String currentLanguage;
 
   @override
   Widget build(BuildContext context) {
-    return _Card(
+    return CustomCard(
       padding: EdgeInsets.zero,
+      hasShadow: true,
       child: Column(
         children: [
-          _SettingRow(icon: Symbols.person_outline, label: 'Edit Profil', onTap: onEdit),
+          _SettingRow(icon: Symbols.person_outline, label: 'edit_profile'.tr, onTap: onEdit),
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          _SettingRow(icon: Symbols.notifications_none, label: 'Notifikasi', onTap: () => Get.toNamed(RuteAplikasi.notifikasi)),
+          _SettingRow(
+            icon: Symbols.translate,
+            label: 'language'.tr,
+            subtitle: currentLanguage,
+            onTap: onLanguage,
+          ),
           const Divider(height: 1, color: Color(0xFFF1F5F9)),
-          _SettingRow(icon: Symbols.help_outline, label: 'Bantuan & Dukungan', onTap: () => Get.toNamed(RuteAplikasi.bantuan)),
+          _SettingRow(
+            icon: Symbols.notifications_none,
+            label: 'notifications'.tr,
+            onTap: () => Get.toNamed(RuteAplikasi.notifikasi),
+          ),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          _SettingRow(
+            icon: Symbols.help_outline,
+            label: 'help_support'.tr,
+            onTap: () => Get.toNamed(RuteAplikasi.bantuan),
+          ),
         ],
       ),
     );
@@ -631,11 +650,17 @@ class _PengaturanList extends StatelessWidget {
 }
 
 class _SettingRow extends StatelessWidget {
-  const _SettingRow({required this.icon, required this.label, required this.onTap});
+  const _SettingRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.subtitle,
+  });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -653,12 +678,78 @@ class _SettingRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0D1B18)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0D1B18)),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle!,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const Icon(Symbols.chevron_right, color: Color(0xFFCBD5E1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageOptionTile extends StatelessWidget {
+  const _LanguageOptionTile({
+    required this.label,
+    required this.locale,
+    required this.currentLocale,
+    required this.onTap,
+  });
+
+  final String label;
+  final Locale locale;
+  final Locale currentLocale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = locale.languageCode == currentLocale.languageCode;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? const Color(0xFF13ECB9) : const Color(0xFFE5E7EB),
+          ),
+          color: selected ? const Color(0xFFEFFCF8) : Colors.white,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0D1B18),
+                ),
+              ),
+            ),
+            if (selected)
+              const Icon(Symbols.check_circle, color: Color(0xFF0EB58E)),
           ],
         ),
       ),
@@ -691,28 +782,7 @@ class _CircleIconButton extends StatelessWidget {
   }
 }
 
-class _Card extends StatelessWidget {
-  const _Card({required this.child, this.padding = const EdgeInsets.all(14)});
-
-  final Widget child;
-  final EdgeInsets padding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEAEFF5)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 6)),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
+// Removed _Card
 
 class _DotPatternPainter extends CustomPainter {
   @override

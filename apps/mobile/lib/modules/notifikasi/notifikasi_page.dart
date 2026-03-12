@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -39,7 +40,7 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
                   ),
                   Expanded(
                     child: Text(
-                      'Pengaturan Notifikasi',
+                      'notification_settings'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 17,
@@ -59,12 +60,12 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  _SectionTitle(title: 'Jenis Pemberitahuan'),
+                  _SectionTitle(title: 'notification_types'.tr),
                   const SizedBox(height: 12),
                   _ToggleCard(
                     icon: Symbols.mosque,
-                    title: 'Waktu Sholat',
-                    subtitle: 'Peringatan adzan & iqomah',
+                    title: 'prayer_times'.tr,
+                    subtitle: 'prayer_alerts'.tr,
                     iconBg: const Color(0xFFECFDF5),
                     iconColor: const Color(0xFF064E3B),
                     value: waktuSholat,
@@ -73,8 +74,8 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
                   const SizedBox(height: 10),
                   _ToggleCard(
                     icon: Symbols.currency_bitcoin,
-                    title: 'Berita Crypto Syariah',
-                    subtitle: 'Update fatwa & pasar crypto',
+                    title: 'sharia_crypto_news'.tr,
+                    subtitle: 'fatwa_crypto_updates'.tr,
                     iconBg: const Color(0xFFFEF3C7),
                     iconColor: const Color(0xFFCA8A04),
                     value: beritaCrypto,
@@ -83,8 +84,8 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
                   const SizedBox(height: 10),
                   _ToggleCard(
                     icon: Symbols.pie_chart,
-                    title: 'Update Portofolio',
-                    subtitle: 'Laporan performa harian',
+                    title: 'portfolio_updates'.tr,
+                    subtitle: 'daily_performance'.tr,
                     iconBg: const Color(0xFFDBEAFE),
                     iconColor: const Color(0xFF2563EB),
                     value: updatePortofolio,
@@ -93,19 +94,19 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
                   const SizedBox(height: 10),
                   _ToggleCard(
                     icon: Symbols.forum,
-                    title: 'Aktivitas Diskusi',
-                    subtitle: 'Balasan & mention komunitas',
+                    title: 'discussion_activity'.tr,
+                    subtitle: 'community_replies'.tr,
                     iconBg: const Color(0xFFF5F3FF),
                     iconColor: const Color(0xFF7C3AED),
                     value: aktivitasDiskusi,
                     onChanged: (bool value) => setState(() => aktivitasDiskusi = value),
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Metode Pengiriman'),
+                  _SectionTitle(title: 'delivery_methods'.tr),
                   const SizedBox(height: 12),
                   _ToggleRow(
                     icon: Symbols.notifications_active,
-                    title: 'Push Notification',
+                    title: 'push_notification'.tr,
                     iconColor: const Color(0xFF9CA3AF),
                     value: pushNotif,
                     onChanged: (bool value) => setState(() => pushNotif = value),
@@ -113,7 +114,7 @@ class _HalamanNotifikasiState extends State<HalamanNotifikasi> {
                   const Divider(height: 1, color: Color(0xFFF1F5F9)),
                   _ToggleRow(
                     icon: Symbols.chat,
-                    title: 'WhatsApp',
+                    title: 'whatsapp'.tr,
                     iconColor: const Color(0xFF22C55E),
                     value: whatsapp,
                     onChanged: (bool value) => setState(() => whatsapp = value),
@@ -337,7 +338,7 @@ class _InfoCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Pengaturan akan disimpan secara otomatis. Beberapa notifikasi mungkin tertunda berdasarkan pengaturan penghemat baterai perangkat Anda.',
+              'notification_info'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,

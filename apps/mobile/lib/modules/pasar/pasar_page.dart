@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import '../../app/config/app_config.dart';
 
 class HalamanPasar extends StatefulWidget {
   const HalamanPasar({super.key});
@@ -17,7 +19,7 @@ enum _Sort { cap, chg }
 enum _ChartRange { h24, d7, m1, m3, ytd, y1 }
 
 class _HalamanPasarState extends State<HalamanPasar> {
-  final Dio dio = Dio(BaseOptions(baseUrl: 'https://api.coingecko.com/api/v3'));
+  final Dio dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
   final ScrollController scroll = ScrollController();
   final TextEditingController search = TextEditingController();
   final GetStorage box = GetStorage();
@@ -75,7 +77,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
 
   Future<void> _loadGlobal() async {
     try {
-      final r = await dio.get('/global');
+      final r = await dio.get('/api/pasar/global');
       final data = (r.data as Map?)?['data'] as Map?;
       global24h = _d(data?['market_cap_change_percentage_24h_usd']);
       if (mounted) setState(() {});
@@ -87,16 +89,15 @@ class _HalamanPasarState extends State<HalamanPasar> {
     if (!reset && mounted) setState(() => loadingMore = true);
     final int p = reset ? 1 : page;
     try {
-      final r =
-          await dio.get('/coins/markets', queryParameters: <String, dynamic>{
+      final r = await dio
+          .get('/api/pasar/markets', queryParameters: <String, dynamic>{
         'vs_currency': 'idr',
         'order': 'market_cap_desc',
         'per_page': 100,
         'page': p,
-        'sparkline': false,
-        'price_change_percentage': '24h',
       });
-      final rows = (r.data as List).cast<dynamic>();
+      final rows =
+          ((r.data as Map?)?['data'] as List?)?.cast<dynamic>() ?? <dynamic>[];
       final list = rows
           .whereType<Map>()
           .map((e) => _Coin.fromJson(Map<String, dynamic>.from(e)))
@@ -118,12 +119,12 @@ class _HalamanPasarState extends State<HalamanPasar> {
     } on DioException catch (e) {
       if (mounted) {
         setState(() => error = e.response?.statusCode == 429
-            ? 'Rate limit CoinGecko'
-            : 'Gagal memuat data');
+            ? 'market_rate_limit'.tr
+            : 'market_load_failed'.tr);
       }
     } catch (_) {
       if (mounted) {
-        setState(() => error = 'Gagal memuat data');
+        setState(() => error = 'market_load_failed'.tr);
       }
     } finally {
       if (mounted) {
@@ -192,16 +193,18 @@ class _HalamanPasarState extends State<HalamanPasar> {
     final pageItems = list.sublist(start, end);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pasar Spot'),
+        title: Text('market_title'.tr),
         actions: <Widget>[
           PopupMenuButton<_Sort>(
             onSelected: (v) => setState(() {
               sort = v;
               uiPage = 1;
             }),
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: _Sort.cap, child: Text('Sort: Market Cap')),
-              PopupMenuItem(value: _Sort.chg, child: Text('Sort: 24h %')),
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                  value: _Sort.cap, child: Text('market_sort_cap'.tr)),
+              PopupMenuItem(
+                  value: _Sort.chg, child: Text('market_sort_24h'.tr)),
             ],
           ),
           IconButton(onPressed: refresh, icon: const Icon(Icons.refresh)),
@@ -223,7 +226,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
                       TextField(
                         controller: search,
                         decoration: InputDecoration(
-                          hintText: 'Cari koin (BTC, ETH, Solana)',
+                          hintText: 'market_search_hint'.tr,
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: q.isEmpty
                               ? null
@@ -238,14 +241,16 @@ class _HalamanPasarState extends State<HalamanPasar> {
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(children: <Widget>[
-                          _chip('Semua', filter == _Filter.all,
+                          _chip(
+                              'market_filter_all'.tr,
+                              filter == _Filter.all,
                               () => setState(() {
                                     filter = _Filter.all;
                                     uiPage = 1;
                                   })),
                           const SizedBox(width: 8),
                           _chip(
-                              'Top Gainers',
+                              'market_filter_gainers'.tr,
                               filter == _Filter.gainers,
                               () => setState(() {
                                     filter = _Filter.gainers;
@@ -254,7 +259,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
                                   })),
                           const SizedBox(width: 8),
                           _chip(
-                              'Top Losers',
+                              'market_filter_losers'.tr,
                               filter == _Filter.losers,
                               () => setState(() {
                                     filter = _Filter.losers;
@@ -262,7 +267,9 @@ class _HalamanPasarState extends State<HalamanPasar> {
                                     uiPage = 1;
                                   })),
                           const SizedBox(width: 8),
-                          _chip('Watchlist', filter == _Filter.watchlist,
+                          _chip(
+                              'market_filter_watchlist'.tr,
+                              filter == _Filter.watchlist,
                               () => setState(() {
                                     filter = _Filter.watchlist;
                                     uiPage = 1;
@@ -273,9 +280,14 @@ class _HalamanPasarState extends State<HalamanPasar> {
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('CoinGecko Markets',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${list.length} tampil',
+                            Text('market_binance_markets'.tr,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            Text(
+                                'market_showing_count'
+                                    .trParams(<String, String>{
+                                  'count': '${list.length}'
+                                }),
                                 style: const TextStyle(color: Colors.green)),
                           ]),
                       if (list.isNotEmpty) ...[
@@ -283,10 +295,19 @@ class _HalamanPasarState extends State<HalamanPasar> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Halaman $currentUiPage / $totalPages',
+                            Text(
+                                'market_page_label'.trParams(<String, String>{
+                                  'current': '$currentUiPage',
+                                  'total': '$totalPages'
+                                }),
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.black54)),
-                            Text('${start + 1}-$end dari ${list.length}',
+                            Text(
+                                'market_range_label'.trParams(<String, String>{
+                                  'start': '${start + 1}',
+                                  'end': '$end',
+                                  'total': '${list.length}'
+                                }),
                                 style: const TextStyle(
                                     fontSize: 12, color: Colors.black54)),
                           ],
@@ -303,13 +324,12 @@ class _HalamanPasarState extends State<HalamanPasar> {
                             padding: const EdgeInsets.only(top: 12),
                             child: _Err(message: error!, onRetry: refresh)),
                       if (!loading && error == null && list.isEmpty)
-                        const Padding(
-                            padding: EdgeInsets.only(top: 12),
+                        Padding(
+                            padding: const EdgeInsets.only(top: 12),
                             child: Card(
                                 child: Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Text(
-                                        'Data kosong / tidak ditemukan')))),
+                                    padding: const EdgeInsets.all(16),
+                                    child: Text('market_empty'.tr)))),
                     ]),
               ),
             ),
@@ -344,7 +364,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
                             ? () => _changeUiPage(currentUiPage - 1, totalPages)
                             : null,
                         icon: const Icon(Icons.chevron_left),
-                        label: const Text('Prev'),
+                        label: Text('market_prev'.tr),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -354,7 +374,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
                             ? () => _changeUiPage(currentUiPage + 1, totalPages)
                             : null,
                         icon: const Icon(Icons.chevron_right),
-                        label: const Text('Next'),
+                        label: Text('market_next'.tr),
                       ),
                     ),
                   ]),
@@ -371,7 +391,7 @@ class _HalamanPasarState extends State<HalamanPasar> {
                         padding: EdgeInsets.all(8),
                         child: CircularProgressIndicator()),
                   if (!hasMore && coins.isNotEmpty)
-                    const Text('Semua halaman CoinGecko sudah dimuat'),
+                    Text('market_all_loaded'.tr),
                 ]),
               ),
             ),
@@ -443,7 +463,7 @@ class _CoinDetailPage extends StatefulWidget {
 }
 
 class _CoinDetailPageState extends State<_CoinDetailPage> {
-  final Dio dio = Dio(BaseOptions(baseUrl: 'https://api.coingecko.com/api/v3'));
+  final Dio dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
   bool loading = true;
   bool loadingChart = false;
   String? error;
@@ -470,35 +490,32 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
     });
     try {
       final rs = await Future.wait<Response<dynamic>>([
-        dio.get('/coins/${widget.coin.id}', queryParameters: {
-          'localization': false,
-          'tickers': false,
-          'market_data': true,
-          'community_data': false,
-          'developer_data': false
+        dio.get('/api/pasar/detail', queryParameters: {
+          'symbol': widget.coin.symbol.toUpperCase(),
         }),
-        dio.get('/coins/${widget.coin.id}/market_chart', queryParameters: {
-          'vs_currency': 'idr',
+        dio.get('/api/pasar/chart', queryParameters: {
+          'symbol': widget.coin.symbol.toUpperCase(),
           'days': _chartDays(chartRange),
         }),
       ]);
-      d = _Detail.fromJson(Map<String, dynamic>.from(rs[0].data as Map));
-      final raw = (rs[1].data as Map)['prices'];
+      final detailRaw = (rs[0].data as Map?)?['data'];
+      d = _Detail.fromJson(detailRaw is Map
+          ? Map<String, dynamic>.from(detailRaw)
+          : <String, dynamic>{});
+      final raw = (rs[1].data as Map?)?['data'];
       chart = <double>[];
       if (raw is List) {
         for (final p in raw) {
-          if (p is List && p.length > 1) {
-            final v = _d(p[1]);
-            if (v != null) chart.add(v);
-          }
+          final v = _d(p);
+          if (v != null) chart.add(v);
         }
       }
     } on DioException catch (e) {
       error = e.response?.statusCode == 429
-          ? 'Rate limit CoinGecko'
-          : 'Gagal memuat detail';
+          ? 'market_rate_limit'.tr
+          : 'market_detail_failed'.tr;
     } catch (_) {
-      error = 'Gagal memuat detail';
+      error = 'market_detail_failed'.tr;
     }
     if (mounted) {
       setState(() => loading = false);
@@ -544,17 +561,17 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
   String _chartTitle(_ChartRange r) {
     switch (r) {
       case _ChartRange.h24:
-        return 'Chart 24 Jam (IDR)';
+        return 'market_chart_24h'.tr;
       case _ChartRange.d7:
-        return 'Chart 7 Hari (IDR)';
+        return 'market_chart_7d'.tr;
       case _ChartRange.m1:
-        return 'Chart 1 Bulan (IDR)';
+        return 'market_chart_1m'.tr;
       case _ChartRange.m3:
-        return 'Chart 3 Bulan (IDR)';
+        return 'market_chart_3m'.tr;
       case _ChartRange.ytd:
-        return 'Chart YTD (IDR)';
+        return 'market_chart_ytd'.tr;
       case _ChartRange.y1:
-        return 'Chart 1 Tahun (IDR)';
+        return 'market_chart_1y'.tr;
     }
   }
 
@@ -562,19 +579,16 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
     if (loadingChart) return;
     if (mounted) setState(() => loadingChart = true);
     try {
-      final rs = await dio.get('/coins/${widget.coin.id}/market_chart',
-          queryParameters: {
-            'vs_currency': 'idr',
-            'days': _chartDays(chartRange),
-          });
-      final raw = (rs.data as Map)['prices'];
+      final rs = await dio.get('/api/pasar/chart', queryParameters: {
+        'symbol': widget.coin.symbol.toUpperCase(),
+        'days': _chartDays(chartRange),
+      });
+      final raw = (rs.data as Map?)?['data'];
       final next = <double>[];
       if (raw is List) {
         for (final p in raw) {
-          if (p is List && p.length > 1) {
-            final v = _d(p[1]);
-            if (v != null) next.add(v);
-          }
+          final v = _d(p);
+          if (v != null) next.add(v);
         }
       }
       if (!mounted) return;
@@ -683,25 +697,28 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
                                               child:
                                                   CircularProgressIndicator())
                                           : chart.length < 2
-                                          ? const Center(
-                                              child:
-                                                  Text('Chart tidak tersedia'))
-                                          : ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: DecoratedBox(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.shade50,
-                                                  border: Border.all(
-                                                      color: Colors.black12),
-                                                ),
-                                                child: CustomPaint(
-                                                  painter: _Chart(chart),
-                                                  child:
-                                                      const SizedBox.expand(),
-                                                ),
-                                              ),
-                                            )),
+                                              ? Center(
+                                                  child: Text(
+                                                      'market_chart_unavailable'
+                                                          .tr))
+                                              : ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child: DecoratedBox(
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.grey.shade50,
+                                                      border: Border.all(
+                                                          color:
+                                                              Colors.black12),
+                                                    ),
+                                                    child: CustomPaint(
+                                                      painter: _Chart(chart),
+                                                      child: const SizedBox
+                                                          .expand(),
+                                                    ),
+                                                  ),
+                                                )),
                                 ]))),
                     const SizedBox(height: 12),
                     Card(
@@ -716,16 +733,18 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
                                   runSpacing: 8,
                                   alignment: WrapAlignment.center,
                                   children: [
-                                    _kv('Market Cap', _idr(d!.cap),
+                                    _kv('market_market_cap'.tr, _idr(d!.cap),
                                         width: itemWidth),
-                                    _kv('Volume 24h', _idr(d!.vol),
+                                    _kv('market_volume_24h'.tr, _idr(d!.vol),
                                         width: itemWidth),
-                                    _kv('High 24h', _idr(d!.h24),
+                                    _kv('market_high_24h'.tr, _idr(d!.h24),
                                         width: itemWidth),
-                                    _kv('Low 24h', _idr(d!.l24),
+                                    _kv('market_low_24h'.tr, _idr(d!.l24),
                                         width: itemWidth),
-                                    _kv('ATH', _idr(d!.ath), width: itemWidth),
-                                    _kv('ATL', _idr(d!.atl), width: itemWidth),
+                                    _kv('market_ath'.tr, _idr(d!.ath),
+                                        width: itemWidth),
+                                    _kv('market_atl'.tr, _idr(d!.atl),
+                                        width: itemWidth),
                                   ],
                                 );
                               },
@@ -737,16 +756,18 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
                             child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Tentang Koin',
-                                      style: TextStyle(
+                                  Text('market_about_coin'.tr,
+                                      style: const TextStyle(
                                           fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 8),
                                   Text(d!.desc.isEmpty
-                                      ? 'Deskripsi tidak tersedia.'
+                                      ? 'market_desc_unavailable'.tr
                                       : d!.desc),
                                   if (d!.home.isNotEmpty) ...[
                                     const SizedBox(height: 8),
-                                    Text('Website: ${d!.home}',
+                                    Text(
+                                        'market_website'.trParams(
+                                            <String, String>{'url': d!.home}),
                                         style:
                                             const TextStyle(color: Colors.teal))
                                   ],
@@ -804,13 +825,10 @@ class _Chart extends CustomPainter {
     c.drawPath(
         fill,
         Paint()
-          ..shader = LinearGradient(
-                  colors: [
-                    col.withValues(alpha: 0.2),
-                    col.withValues(alpha: 0.02)
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter)
+          ..shader = LinearGradient(colors: [
+            col.withValues(alpha: 0.2),
+            col.withValues(alpha: 0.02)
+          ], begin: Alignment.topCenter, end: Alignment.bottomCenter)
               .createShader(Offset.zero & s));
     c.drawPath(
         line,
@@ -839,16 +857,19 @@ class _GlobalCard extends StatelessWidget {
         child:
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Sentimen Global',
-                style: TextStyle(fontSize: 11, color: Colors.black54)),
+            Text('market_sentiment'.tr,
+                style: const TextStyle(fontSize: 11, color: Colors.black54)),
             const SizedBox(height: 4),
-            Text(v == null ? 'MEMUAT...' : (up ? 'BULLISH' : 'BEARISH'),
+            Text(
+                v == null
+                    ? 'market_loading'.tr
+                    : (up ? 'market_bullish'.tr : 'market_bearish'.tr),
                 style:
                     const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           ]),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            const Text('24H MCAP',
-                style: TextStyle(fontSize: 11, color: Colors.black54)),
+            Text('market_24h_mcap'.tr,
+                style: const TextStyle(fontSize: 11, color: Colors.black54)),
             const SizedBox(height: 4),
             Text(v == null ? '--' : _pct(v),
                 style: TextStyle(
@@ -868,7 +889,7 @@ class _Err extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(children: [
         Text(message, textAlign: TextAlign.center),
-        TextButton(onPressed: onRetry, child: const Text('Coba lagi'))
+        TextButton(onPressed: onRetry, child: Text('try_again'.tr))
       ]);
 }
 
@@ -912,6 +933,23 @@ class _Detail {
       required this.desc,
       required this.home});
   factory _Detail.fromJson(Map<String, dynamic> j) {
+    if (j.containsKey('price') ||
+        j.containsKey('cap') ||
+        j.containsKey('vol')) {
+      return _Detail(
+        price: _d(j['price']) ?? 0,
+        chg24: _d(j['chg24']),
+        cap: _d(j['cap']) ?? 0,
+        vol: _d(j['vol']) ?? 0,
+        h24: _d(j['h24']) ?? 0,
+        l24: _d(j['l24']) ?? 0,
+        ath: _d(j['ath']) ?? 0,
+        atl: _d(j['atl']) ?? 0,
+        desc: (j['desc'] ?? '').toString(),
+        home: (j['home'] ?? '').toString(),
+      );
+    }
+
     final m = j['market_data'] is Map
         ? Map<String, dynamic>.from(j['market_data'] as Map)
         : <String, dynamic>{};

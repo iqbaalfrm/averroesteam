@@ -85,7 +85,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
   Future<void> _verifikasiOTP() async {
     final String kode = _otpValue;
     if (kode.length < 6) {
-      _showMessage('Masukkan 6 digit kode OTP', isError: true);
+      _showMessage('enter_6_digit_otp'.tr, isError: true);
       return;
     }
     if (_isVerifying) {
@@ -109,21 +109,21 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
           _otpVerified = true;
           _verifiedKode = kode;
         });
-        _showMessage('Kode OTP valid! Silakan buat password baru.');
+        _showMessage('otp_valid'.tr);
       } else {
-        _showMessage('Kode OTP tidak valid', isError: true);
+        _showMessage('otp_invalid'.tr, isError: true);
       }
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
       final String message = _extractMessage(
         data,
         fallback: data is Map<String, dynamic>
-            ? 'Terjadi kesalahan'
-            : 'Terjadi kesalahan jaringan',
+            ? 'general_error'.tr
+            : 'network_error'.tr,
       );
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Terjadi kesalahan', isError: true);
+      _showMessage('general_error'.tr, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isVerifying = false);
@@ -136,11 +136,11 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     final String confirmPw = _confirmPasswordController.text;
 
     if (pw.isEmpty || pw.length < 8) {
-      _showMessage('Password baru minimal 8 karakter', isError: true);
+      _showMessage('new_password_min'.tr, isError: true);
       return;
     }
     if (pw != confirmPw) {
-      _showMessage('Konfirmasi password tidak cocok', isError: true);
+      _showMessage('password_not_match'.tr, isError: true);
       return;
     }
     if (_isResetting) {
@@ -161,23 +161,23 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
 
       final dynamic data = response.data;
       if (data is Map<String, dynamic> && data['status'] == true) {
-        _showMessage(_extractMessage(data, fallback: 'Password berhasil diubah'));
+        _showMessage(_extractMessage(data, fallback: 'password_changed_success'.tr));
         // Kembali ke login
         Get.offAllNamed(RuteAplikasi.login);
       } else {
-        _showMessage('Gagal mengubah password', isError: true);
+        _showMessage('failed_change_password'.tr, isError: true);
       }
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
       final String message = _extractMessage(
         data,
         fallback: data is Map<String, dynamic>
-            ? 'Terjadi kesalahan'
-            : 'Terjadi kesalahan jaringan',
+            ? 'general_error'.tr
+            : 'network_error'.tr,
       );
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Terjadi kesalahan', isError: true);
+      _showMessage('general_error'.tr, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isResetting = false);
@@ -195,7 +195,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         '/api/auth/lupa-password',
         data: <String, dynamic>{'email': _email},
       );
-      _showMessage('Kode OTP baru telah dikirim');
+      _showMessage('new_otp_sent'.tr);
       _startCountdown();
       // Clear fields
       for (final TextEditingController c in _otpControllers) {
@@ -204,10 +204,10 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
       _focusNodes[0].requestFocus();
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
-      final String message = _extractMessage(data, fallback: 'Gagal mengirim ulang OTP');
+      final String message = _extractMessage(data, fallback: 'failed_resend_otp'.tr);
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Gagal mengirim ulang OTP', isError: true);
+      _showMessage('failed_resend_otp'.tr, isError: true);
     }
   }
 
@@ -298,7 +298,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         ),
         const SizedBox(height: 20),
         Text(
-          'Verifikasi Kode OTP',
+          'verify_otp_title'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 26,
             fontWeight: FontWeight.w700,
@@ -316,7 +316,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
               height: 1.5,
             ),
             children: <TextSpan>[
-              const TextSpan(text: 'Kode verifikasi 6 digit telah dikirim ke '),
+              TextSpan(text: 'otp_sent_to'.tr),
               TextSpan(
                 text: _email,
                 style: const TextStyle(
@@ -410,7 +410,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
                           AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                : const Text('Verifikasi'),
+                : Text('verify_button'.tr),
           ),
         ),
         const SizedBox(height: 20),
@@ -426,11 +426,11 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
                   color: const Color(0xFF94A3B8),
                 ),
                 children: <TextSpan>[
-                  const TextSpan(text: 'Belum menerima kode? '),
+                  TextSpan(text: 'not_receive_code'.tr),
                   TextSpan(
                     text: _countdown > 0
-                        ? 'Kirim ulang (${_countdown}d)'
-                        : 'Kirim Ulang',
+                        ? '${'resend'.tr} (${_countdown}d)'
+                        : 'resend_capital'.tr,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: _countdown > 0
@@ -468,7 +468,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         ),
         const SizedBox(height: 20),
         Text(
-          'Buat Password Baru',
+          'create_new_password'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 26,
             fontWeight: FontWeight.w700,
@@ -478,7 +478,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Password baru harus berbeda dari password sebelumnya dan minimal 8 karakter.',
+          'new_password_subtitle'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -491,7 +491,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Password Baru',
+            'new_password'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -503,7 +503,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
           controller: _newPasswordController,
           obscureText: _obscureNew,
           decoration: InputDecoration(
-            hintText: 'Minimal 8 karakter',
+            hintText: 'password_hint_8'.tr,
             hintStyle:
                 GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8)),
             filled: true,
@@ -536,7 +536,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Konfirmasi Password',
+            'confirm_password'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -548,7 +548,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
           controller: _confirmPasswordController,
           obscureText: _obscureConfirm,
           decoration: InputDecoration(
-            hintText: 'Masukkan ulang password baru',
+            hintText: 'reenter_new_password'.tr,
             hintStyle:
                 GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8)),
             filled: true,
@@ -614,7 +614,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
                     children: <Widget>[
                       const Icon(Symbols.check_circle, size: 18),
                       const SizedBox(width: 8),
-                      const Text('Simpan Password Baru'),
+                      Text('save_new_password'.tr),
                     ],
                   ),
           ),

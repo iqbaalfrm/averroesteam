@@ -8,6 +8,8 @@ import '../services/auth_service.dart';
 
 /// Daftar fitur yang dibatasi untuk pengguna tamu.
 const Set<String> fiturTerbatasGuest = <String>{
+  RuteAplikasi.edukasi,
+  RuteAplikasi.diskusi,
   RuteAplikasi.portofolio,
   RuteAplikasi.zakat,
   RuteAplikasi.psikolog,
@@ -23,13 +25,13 @@ const Set<String> fiturTerbatasGuest = <String>{
 bool cekAksesGuest(BuildContext context, String rute) {
   final AuthService auth = AuthService.instance;
 
-  // Jika belum login atau bukan guest, izinkan akses
-  if (!auth.sudahLogin || !auth.adalahTamu) {
+  // Jika fitur tidak dibatasi, izinkan
+  if (!fiturTerbatasGuest.contains(rute)) {
     return false;
   }
 
-  // Jika fitur tidak dibatasi, izinkan
-  if (!fiturTerbatasGuest.contains(rute)) {
+  // Batasi jika belum login atau login sebagai tamu.
+  if (auth.sudahLogin && !auth.adalahTamu) {
     return false;
   }
 
@@ -39,8 +41,8 @@ bool cekAksesGuest(BuildContext context, String rute) {
 }
 
 /// Tampilkan bottom sheet ajakan daftar akun.
-void tampilkanDialogDaftar(BuildContext context) {
-  showModalBottomSheet<void>(
+Future<void> tampilkanDialogDaftar(BuildContext context) {
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -69,12 +71,12 @@ void tampilkanDialogDaftar(BuildContext context) {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
+                color: const Color(0xFFECFDF5),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
                 Symbols.lock,
-                color: Color(0xFFF59E0B),
+                color: Color(0xFF059669),
                 size: 36,
               ),
             ),
@@ -91,7 +93,7 @@ void tampilkanDialogDaftar(BuildContext context) {
             const SizedBox(height: 8),
             // Description
             Text(
-              'Fitur ini memerlukan akun terdaftar.\nBuat akun gratis untuk mengakses portofolio,\nzakat, konsultasi, dan fitur lainnya.',
+              'Fitur ini khusus pengguna terdaftar. Masuk atau daftar untuk lanjut.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/services/auth_service.dart';
+import '../../app/routes/app_routes.dart';
 import 'edukasi_api.dart';
 
 class HalamanKuis extends StatefulWidget {
@@ -21,7 +24,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
   bool _isLoadingProgress = true;
   String? _error;
   KelasProgressEdukasi? _progress;
-  final Map<int, String> _selectedAnswerByQuizId = <int, String>{};
+  final Map<String, String> _selectedAnswerByQuizId = <String, String>{};
 
   List<KuisEdukasi> get _kuis => widget.detail.kuis;
 
@@ -53,7 +56,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
         return;
       }
       setState(() {
-        _error = 'Gagal memuat progress quiz.';
+        _error = 'edu_quiz_progress_failed'.tr;
       });
     } finally {
       if (mounted) {
@@ -66,15 +69,15 @@ class _HalamanKuisState extends State<HalamanKuis> {
 
   Future<void> _submitJawaban() async {
     if (!AuthService.instance.sudahLogin) {
-      _showSnack('Login dulu untuk mengerjakan kuis.');
+      _showSnack('edu_login_to_quiz'.tr);
       return;
     }
     if (_kuis.isEmpty) {
-      _showSnack('Belum ada soal kuis untuk kelas ini.');
+      _showSnack('edu_no_quiz_for_class'.tr);
       return;
     }
     if (_selectedAnswerByQuizId.length < _kuis.length) {
-      _showSnack('Jawab semua soal sebelum dikumpulkan.');
+      _showSnack('edu_answer_all_first'.tr);
       return;
     }
 
@@ -91,9 +94,30 @@ class _HalamanKuisState extends State<HalamanKuis> {
         await _api.submitQuiz(quizId: soal.id, jawaban: jawaban);
       }
       await _loadProgress();
-      _showSnack('Jawaban kuis berhasil dikirim.');
+      if (!mounted) return;
+      final KelasProgressEdukasi? p = _progress;
+      if (p == null) {
+        _showSnack('edu_quiz_submit_success'.tr);
+        return;
+      }
+      await showDialog<void>(
+        context: context,
+        barrierColor: const Color(0x99040B18),
+        builder: (BuildContext context) => _ResultDialogCard(
+          correctQuiz: p.correctQuiz,
+          totalQuiz: p.totalQuiz,
+          scorePercent: p.scorePercent,
+          onClose: () => Navigator.of(context).pop(),
+          onDownload: p.scorePercent >= 95
+              ? () async {
+                  Navigator.of(context).pop();
+                  await _generateSertifikat();
+                }
+              : null,
+        ),
+      );
     } catch (_) {
-      _showSnack('Gagal mengirim jawaban kuis.');
+      _showSnack('edu_quiz_submit_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -105,7 +129,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
 
   Future<void> _generateSertifikat() async {
     if (!AuthService.instance.sudahLogin) {
-      _showSnack('Login dulu untuk generate sertifikat.');
+      _showSnack('edu_login_to_certificate'.tr);
       return;
     }
     setState(() {
@@ -120,21 +144,29 @@ class _HalamanKuisState extends State<HalamanKuis> {
       showDialog<void>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: const Text('Sertifikat Berhasil Dibuat'),
+          title: Text('edu_certificate_created'.tr),
           content: Text(
-            'Kelas: ${result.kelas}\nNama Sertifikat: ${result.namaSertifikat}\nNomor: ${result.nomor}\nNilai: ${result.scorePercent}',
+            "${'class_label'.tr}${result.kelas}\n${result.namaSertifikat}\n${result.nomor}\n${'score_percent'.trParams(<String, String>{
+                  'score': '${result.scorePercent}'
+                })}",
           ),
           actions: <Widget>[
             TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Get.toNamed(RuteAplikasi.sertifikat);
+              },
+              child: Text('edu_view_in_profile'.tr),
+            ),
+            TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Tutup'),
+              child: Text('common_close'.tr),
             ),
           ],
         ),
       );
     } catch (_) {
-      _showSnack(
-          'Belum memenuhi syarat sertifikat (selesaikan materi + nilai >= 70).');
+      _showSnack('edu_not_eligible_certificate'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -161,7 +193,9 @@ class _HalamanKuisState extends State<HalamanKuis> {
         foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
         title: Text(
-          'Kuis: ${widget.kelas.judul}',
+          'edu_quiz_title'.trParams(
+            <String, String>{'class': widget.kelas.judul},
+          ),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w800,
@@ -175,7 +209,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
           children: <Widget>[
             if (_isLoadingProgress) ...<Widget>[
-              const _InfoCard(text: 'Memuat progress kuis...'),
+              _InfoCard(text: 'edu_loading_quiz_progress'.tr),
               const SizedBox(height: 8),
             ],
             if (_progress != null) _ProgressCard(progress: _progress!),
@@ -185,7 +219,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
             ],
             const SizedBox(height: 12),
             if (_kuis.isEmpty)
-              const _EmptyCard(text: 'Belum ada soal kuis di kelas ini.')
+              _EmptyCard(text: 'edu_no_quiz'.tr)
             else
               ..._kuis.asMap().entries.map((MapEntry<int, KuisEdukasi> entry) {
                 final int idx = entry.key;
@@ -211,7 +245,7 @@ class _HalamanKuisState extends State<HalamanKuis> {
                 height: 46,
                 child: OutlinedButton(
                   onPressed: _isSubmitting ? null : _generateSertifikat,
-                  child: const Text('Generate Sertifikat'),
+                  child: Text('edu_download_certificate'.tr),
                 ),
               ),
           ],
@@ -232,12 +266,181 @@ class _HalamanKuisState extends State<HalamanKuis> {
               ),
             ),
             child: Text(
-              _isSubmitting ? 'Memproses...' : 'Kumpulkan Jawaban',
+              _isSubmitting ? 'edu_processing'.tr : 'edu_submit_answers'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultDialogCard extends StatelessWidget {
+  const _ResultDialogCard({
+    required this.correctQuiz,
+    required this.totalQuiz,
+    required this.scorePercent,
+    required this.onClose,
+    this.onDownload,
+  });
+
+  final int correctQuiz;
+  final int totalQuiz;
+  final int scorePercent;
+  final VoidCallback onClose;
+  final VoidCallback? onDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool passed = scorePercent >= 95;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[Color(0xFFF8FFFC), Colors.white],
+          ),
+          border: Border.all(color: const Color(0xFFD6F5EA)),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x26040B18),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    passed ? Symbols.workspace_premium : Symbols.info,
+                    color: const Color(0xFF047857),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    passed ? 'edu_passed'.tr : 'edu_not_passed'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$scorePercent%',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF065F46),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                'edu_correct_answers'.trParams(
+                  <String, String>{
+                    'correct': '$correctQuiz',
+                    'total': '$totalQuiz',
+                  },
+                ),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF334155),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              passed ? 'edu_certificate_ready'.tr : 'edu_min_score_notice'.tr,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF475569),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onClose,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(44),
+                      side: const BorderSide(color: Color(0xFFD1D5DB)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'common_close'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+                ),
+                if (onDownload != null) ...<Widget>[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onDownload,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44),
+                        backgroundColor: const Color(0xFF0EA5A4),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'edu_download'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -262,7 +465,7 @@ class _ProgressCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Progress Kelas',
+            'edu_class_progress'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -271,7 +474,15 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Materi ${progress.completedMateri}/${progress.totalMateri} · Quiz ${progress.answeredQuiz}/${progress.totalQuiz} · Nilai ${progress.scorePercent}',
+            'edu_class_progress_summary'.trParams(
+              <String, String>{
+                'done': '${progress.completedMateri}',
+                'total': '${progress.totalMateri}',
+                'answered': '${progress.answeredQuiz}',
+                'totalQuiz': '${progress.totalQuiz}',
+                'score': '${progress.scorePercent}',
+              },
+            ),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -313,7 +524,9 @@ class _QuestionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            'Soal $nomor',
+            'edu_question_label'.trParams(
+              <String, String>{'number': '$nomor'},
+            ),
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -370,9 +583,9 @@ class _ErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         children: <Widget>[
@@ -381,13 +594,13 @@ class _ErrorCard extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFB91C1C),
+              color: const Color(0xFF475569),
             ),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
             onPressed: onRetry,
-            child: const Text('Coba lagi'),
+            child: Text('try_again'.tr),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -43,7 +44,7 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Gagal memuat portofolio. Pastikan sudah login.';
+        _error = 'portofolio_load_error'.tr;
         _loading = false;
       });
     }
@@ -63,11 +64,11 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Hapus aset'),
-        content: Text('Hapus ${item.namaAset} (${item.simbol}) dari portofolio?'),
+        title: Text('portofolio_delete_asset'.tr),
+        content: Text('portofolio_delete_confirm'.trParams({'asset': '${item.namaAset} (${item.simbol})'})),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Hapus')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('portofolio_cancel'.tr)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('portofolio_delete'.tr)),
         ],
       ),
     );
@@ -80,7 +81,7 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal menghapus aset')),
+        SnackBar(content: Text('portofolio_delete_failed'.tr)),
       );
     }
   }
@@ -140,7 +141,7 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Portofolio Saya',
+                          'portofolio_title'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
@@ -172,8 +173,8 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
                     _KartuAlokasiAset(items: _items, totalNilai: _total),
                     const SizedBox(height: 24),
                     _JudulBagian(
-                      judul: 'Daftar Aset',
-                      aksi: 'Filter',
+                      judul: 'portofolio_asset_list'.tr,
+                      aksi: 'portofolio_filter'.tr,
                       ikon: Symbols.sort,
                     ),
                     const SizedBox(height: 16),
@@ -194,7 +195,7 @@ class _HalamanPortofolioState extends State<HalamanPortofolio> {
                           padding: EdgeInsets.only(bottom: i == _items.length - 1 ? 0 : 12),
                           child: _KartuAset(
                             judul: '${item.namaAset} (${item.simbol})',
-                            subjudul: 'Kripto Manual',
+                            subjudul: 'portofolio_crypto_manual'.tr,
                             nilai: _idr(item.nilai),
                             perubahan: '${item.jumlah} @ ${_idr(item.hargaBeli)}',
                             naik: null,
@@ -262,7 +263,7 @@ class _RingkasanSaldo extends StatelessWidget {
     return Column(
       children: <Widget>[
         Text(
-          'Estimasi Total Saldo',
+          'portofolio_est_balance'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -297,7 +298,7 @@ class _RingkasanSaldo extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                '$jumlahAset aset kripto',
+                'portofolio_crypto_asset_count'.trParams({'count': '$jumlahAset'}),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -311,7 +312,7 @@ class _RingkasanSaldo extends StatelessWidget {
                 color: const Color(0xFFBBF7D0),
               ),
               Text(
-                'Manual',
+                'portofolio_manual_coin'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -350,7 +351,7 @@ class _AksiCepat extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: _AksiButton(
-            label: 'Tambah',
+            label: 'portofolio_add'.tr,
             icon: Symbols.add,
             warnaIcon: const Color(0xFF10B981),
             warnaLatar: const Color(0xFFECFDF5),
@@ -360,7 +361,7 @@ class _AksiCepat extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: _AksiButton(
-            label: 'Riwayat',
+            label: 'portofolio_history'.tr,
             icon: Symbols.history,
             warnaIcon: const Color(0xFF6366F1),
             warnaLatar: const Color(0xFFE0E7FF),
@@ -463,7 +464,7 @@ class _KartuAlokasiAset extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Alokasi Aset',
+                    'portofolio_asset_allocation'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -473,8 +474,8 @@ class _KartuAlokasiAset extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     items.isEmpty
-                        ? 'Belum ada aset'
-                        : 'Distribusi ${items.length} koin aktif',
+                        ? 'portofolio_no_assets'.tr
+                        : 'portofolio_active_coins'.trParams({'count': '${items.length}'}),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -559,7 +560,7 @@ class _DonatAset extends StatelessWidget {
                 ),
               ),
               Text(
-                'KOIN',
+                'portofolio_coin'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
@@ -584,7 +585,7 @@ class _DetailAset extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty || totalNilai <= 0) {
       return Text(
-        'Tambah aset crypto untuk melihat alokasi.',
+        'portofolio_add_to_see'.tr,
         style: GoogleFonts.plusJakartaSans(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -1130,7 +1131,7 @@ class _PortofolioFormSheetState extends State<_PortofolioFormSheet> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: _saving ? null : () => Navigator.pop(context),
-                        child: const Text('Batal'),
+                        child: Text('portofolio_cancel'.tr),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1214,11 +1215,11 @@ class _RiwayatPortofolioSheetState extends State<_RiwayatPortofolioSheet> {
   String _aksiLabel(String aksi) {
     switch (aksi) {
       case 'create':
-        return 'Tambah';
+        return 'portofolio_add'.tr;
       case 'update':
         return 'Ubah';
       case 'delete':
-        return 'Hapus';
+        return 'portofolio_delete'.tr;
       default:
         return aksi;
     }

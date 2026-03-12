@@ -1,9 +1,64 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class HalamanKonsultasi extends StatelessWidget {
+import '../../app/models/ahli_syariah_model.dart';
+import '../../app/services/api_dio.dart';
+
+class HalamanKonsultasi extends StatefulWidget {
   const HalamanKonsultasi({super.key});
+
+  @override
+  State<HalamanKonsultasi> createState() => _HalamanKonsultasiState();
+}
+
+class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
+  final Dio _dio = ApiDio.create();
+  List<AhliSyariahModel> _ahliList = <AhliSyariahModel>[];
+  bool _isLoading = true;
+  String _selectedKategori = 'Semua Ahli';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAhli();
+  }
+
+  Future<void> _fetchAhli() async {
+    setState(() => _isLoading = true);
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        '/api/konsultasi/ahli',
+        queryParameters: <String, dynamic>{
+          if (_selectedKategori != 'Semua Ahli') 'kategori_id': _selectedKategori,
+        },
+      );
+
+      if (response.data != null && response.data['status'] == true) {
+        final List<dynamic> data = response.data['data'] as List<dynamic>;
+        setState(() {
+          _ahliList = data
+              .map((dynamic e) => AhliSyariahModel.fromJson(e as Map<String, dynamic>))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching ahli: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _hubungiWhatsApp(String phone, String nama) async {
+    final String message = "Assalamu'alaikum ustadz $nama, saya ingin berkonsultasi mengenai syariah di aplikasi Averroes.";
+    final Uri url = Uri.parse("https://wa.me/$phone?text=${Uri.encodeComponent(message)}");
+    
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +107,13 @@ class HalamanKonsultasi extends StatelessWidget {
                 children: <Widget>[
                   _MenuUtama(),
                   const SizedBox(height: 14),
-                  _KategoriAhli(),
+                  _KategoriAhli(
+                    selected: _selectedKategori,
+                    onSelected: (String val) {
+                      setState(() => _selectedKategori = val);
+                      _fetchAhli();
+                    },
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -76,35 +137,31 @@ class HalamanKonsultasi extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const _KartuAhli(
-                    nama: 'Dr. Ahmad Hidayat',
-                    spesialis: 'Ahli Fiqh Muamalah',
-                    rating: '4.9 (120+)',
-                    pengalaman: '12 Thn',
-                    foto:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuA6wdv3CSHlAgUXUTKatvNd7pFq5_DtsGM5RXtCNGOOg_FU7kQl_zsy6d-mZRxZR6VS5VhgGppyQaAUOvufZt1VGPFG7ekWi3ARygped7vn-a8uwu-hQVzKQiShYe6XGZG7iWpIZT3rPVboSeCheveyEiBF4CPevnwm-W8OLlEKqn66-niZwCGPBw31vXAoC7jxRSF3Y5cgW2qQpNgkDIOGEyNyx7Nbc0a1dthidyyrHhFlAWfBxDVVwIWWhFvViKkuK7chHa2C4dA',
-                    online: true,
-                  ),
-                  const SizedBox(height: 12),
-                  const _KartuAhli(
-                    nama: 'H. Muhammad Zaki, Lc',
-                    spesialis: 'Spesialis Zakat Digital',
-                    rating: '4.8 (85)',
-                    pengalaman: '8 Thn',
-                    foto:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuDCr7P7hom-AXpyjbrbfu4HfnbzDYI8Gv0h0BPZOHZ21IcsjuqkMf6209xp4v5wDA1JpaI9bVWwtHQyft5fgfsg1P_Q5nNjppIXiVt70xmOp6mmvegcUDLWzFRu2TUe9OPWaF9cWM5JJhIfhaAaOikdZlqN_V6Rfv1Y6aM2Gtnhmwb-Xdy8lKwhyEUJGarJF2zMuucnRRk8ovkwaJcLvJpzJfE6TJvdTBzUV_nRk__VJNPePhpMWdOgc54o_ptnzVPmt90FuVbEnW8',
-                    online: true,
-                  ),
-                  const SizedBox(height: 12),
-                  const _KartuAhli(
-                    nama: 'Dr. Fatimah Zahra',
-                    spesialis: 'Dewan Pengawas Syariah',
-                    rating: '5.0 (210)',
-                    pengalaman: '15 Thn',
-                    foto:
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBcrW3ePyd8Fk9_N4w5WUyl--cOXRfh0habRU9qOqlpJZfAz53Bb1U3WdHxaSVJhDMkAZT8KsElfABog3-_2WNB39kD6KIg_aYLjFK6NNgmnYi_UltjDLzbaaer1-1lsR5ue178r_xXlf9RNwnJG0WFrZcaVmtDej_QuZWUMlhqE4VeIjL9U6cV0kDnkkmjdyA5nD07VMtHSHJCmT9eRi1ZylMAxtha5Iny-zb_vlOJyvf7cwXvlazs_GEJo9M0iZE_svtysIxc5tk',
-                    online: false,
-                  ),
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40.0),
+                        child: CircularProgressIndicator(color: Color(0xFF064E3B)),
+                      ),
+                    )
+                  else if (_ahliList.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40.0),
+                        child: Text(
+                          'Maaf, ustadz belum tersedia untuk kategori ini.',
+                          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B)),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._ahliList.map((AhliSyariahModel ahli) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _KartuAhli(
+                            ahli: ahli,
+                            onTap: () => _hubungiWhatsApp(ahli.noWhatsapp, ahli.nama),
+                          ),
+                        )),
                   const SizedBox(height: 20),
                   _KartuAman(),
                 ],
@@ -207,6 +264,11 @@ class _MenuItem {
 }
 
 class _KategoriAhli extends StatelessWidget {
+  const _KategoriAhli({required this.selected, required this.onSelected});
+
+  final String selected;
+  final ValueChanged<String> onSelected;
+
   @override
   Widget build(BuildContext context) {
     final List<String> labels = <String>[
@@ -220,24 +282,26 @@ class _KategoriAhli extends StatelessWidget {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: labels
-            .asMap()
-            .entries
             .map(
-              (MapEntry<int, String> entry) => Padding(
+              (String label) => Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: entry.key == 0 ? const Color(0xFF064E3B) : Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Text(
-                    entry.value,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: entry.key == 0 ? Colors.white : const Color(0xFF64748B),
+                child: InkWell(
+                  onTap: () => onSelected(label),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected == label ? const Color(0xFF064E3B) : Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      label,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected == label ? Colors.white : const Color(0xFF64748B),
+                      ),
                     ),
                   ),
                 ),
@@ -251,25 +315,17 @@ class _KategoriAhli extends StatelessWidget {
 
 class _KartuAhli extends StatelessWidget {
   const _KartuAhli({
-    required this.nama,
-    required this.spesialis,
-    required this.rating,
-    required this.pengalaman,
-    required this.foto,
-    required this.online,
+    required this.ahli,
+    required this.onTap,
   });
 
-  final String nama;
-  final String spesialis;
-  final String rating;
-  final String pengalaman;
-  final String foto;
-  final bool online;
+  final AhliSyariahModel ahli;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Opacity(
-      opacity: online ? 1 : 0.8,
+      opacity: ahli.isOnline ? 1 : 0.8,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -294,7 +350,7 @@ class _KartuAhli extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     image: DecorationImage(
-                      image: NetworkImage(foto),
+                      image: NetworkImage(ahli.fotoUrl),
                       fit: BoxFit.cover,
                     ),
                     color: const Color(0xFFE2E8F0),
@@ -307,7 +363,7 @@ class _KartuAhli extends StatelessWidget {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: online ? const Color(0xFF10B981) : const Color(0xFFCBD5F5),
+                      color: ahli.isOnline ? const Color(0xFF10B981) : const Color(0xFFCBD5F5),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
@@ -324,7 +380,7 @@ class _KartuAhli extends StatelessWidget {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          nama,
+                          ahli.nama,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
@@ -333,16 +389,17 @@ class _KartuAhli extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Icon(
-                        Symbols.verified,
-                        size: 14,
-                        color: Color(0xFF3B82F6),
-                      ),
+                      if (ahli.isVerified)
+                        const Icon(
+                          Symbols.verified,
+                          size: 14,
+                          color: Color(0xFF3B82F6),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    spesialis.toUpperCase(),
+                    ahli.spesialis.toUpperCase(),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -362,7 +419,7 @@ class _KartuAhli extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            rating,
+                            '${ahli.rating} (${ahli.totalReview}+)',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -381,7 +438,7 @@ class _KartuAhli extends StatelessWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            pengalaman,
+                            '${ahli.pengalamanTahun} Thn',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -392,24 +449,37 @@ class _KartuAhli extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Rp ${ahli.hargaPerSesi ~/ 1000}rb / Sesi',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF064E3B),
+                    ),
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: online ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: online ? const Color(0xFFD1FAE5) : const Color(0xFFE2E8F0),
+            InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: ahli.isOnline ? const Color(0xFFECFDF5) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: ahli.isOnline ? const Color(0xFFD1FAE5) : const Color(0xFFE2E8F0),
+                  ),
                 ),
-              ),
-              child: Text(
-                online ? 'Konsultasi' : 'Offline',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: online ? const Color(0xFF064E3B) : const Color(0xFF94A3B8),
+                child: Text(
+                  ahli.isOnline ? 'Konsultasi' : 'Offline',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: ahli.isOnline ? const Color(0xFF064E3B) : const Color(0xFF94A3B8),
+                  ),
                 ),
               ),
             ),

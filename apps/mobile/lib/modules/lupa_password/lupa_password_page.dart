@@ -48,7 +48,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
 
       final dynamic data = response.data;
       if (data is Map<String, dynamic> && data['status'] == true) {
-        final String pesan = _extractMessage(data, fallback: 'OTP terkirim');
+        final String pesan = _extractMessage(data, fallback: 'otp_sent'.tr);
         _showMessage(pesan);
 
         // Navigate ke halaman OTP verification
@@ -59,19 +59,19 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
           },
         );
       } else {
-        _showMessage('Gagal mengirim OTP', isError: true);
+        _showMessage('failed_send_otp'.tr, isError: true);
       }
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
       final String message = _extractMessage(
         data,
         fallback: data is Map<String, dynamic>
-            ? 'Terjadi kesalahan'
-            : 'Terjadi kesalahan jaringan',
+            ? 'general_error'.tr
+            : 'network_error'.tr,
       );
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Terjadi kesalahan', isError: true);
+      _showMessage('general_error'.tr, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -156,7 +156,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Lupa Password?',
+                        'forgot_password_title'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
@@ -166,7 +166,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Masukkan email yang terdaftar, kami akan mengirimkan kode OTP untuk mengatur ulang password Anda.',
+                        'forgot_password_subtitle'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -179,7 +179,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
-                          'Email',
+                          'email'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -191,7 +191,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          hintText: 'Masukkan email terdaftar',
+                          hintText: 'enter_registered_email'.tr,
                           hintStyle: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFF94A3B8),
                           ),
@@ -225,10 +225,10 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                         validator: (String? value) {
                           final String input = value?.trim() ?? '';
                           if (input.isEmpty) {
-                            return 'Email wajib diisi';
+                            return 'email_required'.tr;
                           }
                           if (!input.contains('@') || !input.contains('.')) {
-                            return 'Format email tidak valid';
+                            return 'invalid_email'.tr;
                           }
                           return null;
                         },
@@ -269,7 +269,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                                   children: <Widget>[
                                     const Icon(Symbols.send, size: 18),
                                     const SizedBox(width: 8),
-                                    const Text('Kirim Kode OTP'),
+                                    Text('send_otp'.tr),
                                   ],
                                 ),
                         ),
@@ -280,7 +280,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                         child: GestureDetector(
                           onTap: () => Get.back(),
                           child: Text(
-                            'Kembali ke halaman Masuk',
+                            'back_to_login'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,

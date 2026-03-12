@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -35,9 +36,9 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
   void initState() {
     super.initState();
     _checks = <_LearningCheck>[
-      _LearningCheck('Saya sudah membaca ringkasan materi ini'),
-      _LearningCheck('Saya memahami inti konsep dan larangan utamanya'),
-      _LearningCheck('Saya siap lanjut ke materi berikutnya'),
+      _LearningCheck('edu_check_read_summary'.tr),
+      _LearningCheck('edu_check_understand'.tr),
+      _LearningCheck('edu_check_ready_next'.tr),
     ];
   }
 
@@ -57,7 +58,9 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
               title: Text(
-                'Materi ${widget.materi.urutan}',
+                'edu_material_title'.trParams(
+                  <String, String>{'index': '${widget.materi.urutan}'},
+                ),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
@@ -70,7 +73,8 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
                   Image.network(
                     _heroImage(widget.materi.id),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F766E)),
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: const Color(0xFF0F766E)),
                   ),
                   Container(
                     decoration: const BoxDecoration(
@@ -107,23 +111,25 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _MetaCard(kelasJudul: widget.kelasJudul, modulJudul: widget.modulJudul),
+                  _MetaCard(
+                      kelasJudul: widget.kelasJudul,
+                      modulJudul: widget.modulJudul),
                   const SizedBox(height: 14),
-                  _SectionTitle('Poin Inti Materi'),
+                  _SectionTitle('edu_key_points'.tr),
                   const SizedBox(height: 8),
                   ...points.map((p) => _PointTile(text: p)),
                   if (dalil != null) ...[
                     const SizedBox(height: 14),
-                    _SectionTitle('Dalil Ayat (Arab)'),
+                    _SectionTitle('edu_arabic_verse'.tr),
                     const SizedBox(height: 8),
                     _ArabicCard(text: dalil.$1),
                     const SizedBox(height: 10),
-                    _SectionTitle('Dalil Hadits (Arab)'),
+                    _SectionTitle('edu_arabic_hadith'.tr),
                     const SizedBox(height: 8),
                     _ArabicCard(text: dalil.$2),
                   ],
                   const SizedBox(height: 14),
-                  _SectionTitle('Konten Lengkap'),
+                  _SectionTitle('edu_full_content'.tr),
                   const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
@@ -144,7 +150,7 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _SectionTitle('Checklist Belajar'),
+                  _SectionTitle('edu_learning_checklist'.tr),
                   const SizedBox(height: 8),
                   ..._checks.map(
                     (item) => CheckboxListTile(
@@ -152,7 +158,8 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
                       controlAffinity: ListTileControlAffinity.leading,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                       activeColor: const Color(0xFF10B981),
-                      onChanged: (v) => setState(() => item.checked = v ?? false),
+                      onChanged: (v) =>
+                          setState(() => item.checked = v ?? false),
                       title: Text(
                         item.text,
                         style: GoogleFonts.plusJakartaSans(
@@ -179,16 +186,20 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
                   Navigator.of(this.context).pop();
                 }
               : null,
-          icon: Icon(widget.sudahSelesai ? Symbols.check_circle : Symbols.task_alt),
+          icon: Icon(
+              widget.sudahSelesai ? Symbols.check_circle : Symbols.task_alt),
           label: Text(
-            widget.sudahSelesai ? 'Materi Sudah Selesai' : 'Tandai Selesai',
+            widget.sudahSelesai
+                ? 'edu_mark_completed'.tr
+                : 'edu_mark_complete'.tr,
             style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
           ),
           style: ElevatedButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             backgroundColor: const Color(0xFF10B981),
             foregroundColor: const Color(0xFF052E2B),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ),
@@ -196,8 +207,9 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
   }
 
   List<String> _extractPoints(String content) {
-    final normalized = content.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
-    if (normalized.isEmpty) return <String>['Belum ada ringkasan materi.'];
+    final normalized =
+        content.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (normalized.isEmpty) return <String>['edu_no_summary'.tr];
     final parts = normalized
         .split(RegExp(r'(?<=[.!?])\s+'))
         .where((e) => e.trim().isNotEmpty)
@@ -207,7 +219,7 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
     return parts;
   }
 
-  String _heroImage(int seed) {
+  String _heroImage(String seed) {
     const images = <String>[
       'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=60',
       'https://images.unsplash.com/photo-1633158829875-e5316a358c6f?auto=format&fit=crop&w=1200&q=60',
@@ -215,7 +227,7 @@ class _HalamanDetailMateriState extends State<HalamanDetailMateri> {
       'https://images.unsplash.com/photo-1621761191319-c6fb62004040?auto=format&fit=crop&w=1200&q=60',
       'https://images.unsplash.com/photo-1621504450181-5d356f61d307?auto=format&fit=crop&w=1200&q=60',
     ];
-    return images[seed % images.length];
+    return images[seed.hashCode.abs() % images.length];
   }
 
   (String, String)? _arabicDalil(int modul) {
@@ -328,7 +340,8 @@ class _PointTile extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Icon(Symbols.auto_awesome, size: 16, color: Color(0xFF059669)),
+            child:
+                Icon(Symbols.auto_awesome, size: 16, color: Color(0xFF059669)),
           ),
           const SizedBox(width: 8),
           Expanded(

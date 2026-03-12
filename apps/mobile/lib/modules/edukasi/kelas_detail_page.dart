@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
@@ -24,7 +25,7 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
   String? _error;
   KelasDetailEdukasi? _detail;
   KelasProgressEdukasi? _progress;
-  Set<int> _completedMateriIds = <int>{};
+  Set<String> _completedMateriIds = <String>{};
 
   @override
   void initState() {
@@ -41,9 +42,14 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
     try {
       final KelasDetailEdukasi detail =
           await _api.fetchKelasDetail(widget.kelas.id);
-      KelasProgressEdukasi? progress;
+      KelasProgressEdukasi? progress = _progress;
       if (AuthService.instance.sudahLogin) {
-        progress = await _api.fetchKelasProgress(widget.kelas.id);
+        try {
+          progress = await _api.fetchKelasProgress(widget.kelas.id);
+        } catch (_) {
+          // Biarkan detail kelas tetap tampil walau endpoint progress gagal.
+          progress = null;
+        }
       }
       if (!mounted) {
         return;
@@ -52,14 +58,14 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
         _detail = detail;
         _progress = progress;
         _completedMateriIds =
-            progress == null ? <int>{} : progress.completedMateriIds.toSet();
+            progress == null ? <String>{} : progress.completedMateriIds.toSet();
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _error = 'Gagal memuat detail kelas.';
+        _error = 'edu_load_detail_error'.tr;
       });
     } finally {
       if (mounted) {
@@ -72,7 +78,7 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
 
   Future<void> _completeMateri(MateriEdukasi materi) async {
     if (!AuthService.instance.sudahLogin) {
-      _showSnack('Login dulu untuk menyimpan progress materi.');
+      _showSnack('edu_login_to_save_progress'.tr);
       return;
     }
     setState(() {
@@ -81,9 +87,9 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
     try {
       await _api.completeMateri(materi.id);
       await _loadData();
-      _showSnack('Materi ditandai selesai.');
+      _showSnack('edu_mark_complete_success'.tr);
     } catch (_) {
-      _showSnack('Gagal menyimpan progress materi.');
+      _showSnack('edu_mark_complete_failed'.tr);
     } finally {
       if (mounted) {
         setState(() {
@@ -130,6 +136,7 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
   @override
   Widget build(BuildContext context) {
     final KelasDetailEdukasi? detail = _detail;
+    final bool canOpenQuiz = detail != null && _isMateriComplete();
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -137,7 +144,7 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
         foregroundColor: const Color(0xFF0F172A),
         elevation: 0,
         title: Text(
-          'Detail Kelas',
+          'edu_class_detail_title'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
             fontWeight: FontWeight.w800,
@@ -157,9 +164,9 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
             else if (_error != null)
               _ErrorCard(message: _error!, onRetry: _loadData)
             else if (detail == null)
-              const _EmptyCard(text: 'Detail kelas tidak tersedia.')
+              _EmptyCard(text: 'edu_no_class_detail'.tr)
             else ...<Widget>[
-              _sectionTitle('Modul & Materi'),
+              _sectionTitle('edu_materials_and_modules'.tr),
               const SizedBox(height: 10),
               ...detail.modul.map(
                 (ModulEdukasi modul) => _ModulCard(
@@ -179,9 +186,8 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
         child: SizedBox(
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: detail == null
-                ? null
-                : () async {
+            onPressed: canOpenQuiz
+                ? () async {
                     await Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => HalamanKuis(
@@ -191,11 +197,14 @@ class _HalamanDetailKelasState extends State<HalamanDetailKelas> {
                       ),
                     );
                     await _loadData();
-                  },
+                  }
+                : null,
             icon:
                 Icon(_isMateriComplete() ? Symbols.quiz : Symbols.lock_outline),
             label: Text(
-              _isMateriComplete() ? 'Lanjut Kuis' : 'Selesaikan Materi Dulu',
+              _isMateriComplete()
+                  ? 'edu_continue_quiz'.tr
+                  : 'edu_finish_materials_first'.tr,
               style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
             ),
             style: ElevatedButton.styleFrom(
@@ -269,7 +278,7 @@ class _KelasHeader extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(
-                  'Progress Materi',
+                  'edu_material_progress'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -314,7 +323,7 @@ class _ModulCard extends StatelessWidget {
   });
 
   final ModulEdukasi modul;
-  final Set<int> completedMateriIds;
+  final Set<String> completedMateriIds;
   final bool isActionLoading;
   final Future<void> Function(MateriEdukasi) onCompleteMateri;
   final Future<void> Function(MateriEdukasi) onOpenMateri;
@@ -322,7 +331,8 @@ class _ModulCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final int totalMateriModul = modul.materi.length;
-    final int selesaiModul = modul.materi.where((m) => completedMateriIds.contains(m.id)).length;
+    final int selesaiModul =
+        modul.materi.where((m) => completedMateriIds.contains(m.id)).length;
     final String cleanTitle = _cleanModulTitle(modul.judul, modul.urutan);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -344,7 +354,9 @@ class _ModulCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  'Modul ${modul.urutan}',
+                  'edu_module_label'.trParams(
+                    <String, String>{'index': '${modul.urutan}'},
+                  ),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -354,7 +366,12 @@ class _ModulCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '$selesaiModul/$totalMateriModul selesai',
+                'edu_module_progress'.trParams(
+                  <String, String>{
+                    'done': '$selesaiModul',
+                    'total': '$totalMateriModul',
+                  },
+                ),
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -384,7 +401,7 @@ class _ModulCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           if (modul.materi.isEmpty)
-            const _EmptyCard(text: 'Belum ada materi pada modul ini.')
+            _EmptyCard(text: 'edu_empty_module_material'.tr)
           else
             ...modul.materi.map(
               (MateriEdukasi item) {
@@ -404,7 +421,8 @@ class _ModulCard extends StatelessWidget {
   }
 
   String _cleanModulTitle(String rawTitle, int urutan) {
-    final pattern = RegExp('^\\s*modul\\s*$urutan\\s*[:\\-]?\\s*', caseSensitive: false);
+    final pattern =
+        RegExp('^\\s*modul\\s*$urutan\\s*[:\\-]?\\s*', caseSensitive: false);
     return rawTitle.replaceFirst(pattern, '').trim();
   }
 }
@@ -441,7 +459,9 @@ class _MateriCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Materi ${item.urutan}',
+              'edu_material_label'.trParams(
+                <String, String>{'index': '${item.urutan}'},
+              ),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -477,7 +497,7 @@ class _MateriCard extends StatelessWidget {
                     onPressed: onOpen,
                     icon: const Icon(Symbols.visibility, size: 16),
                     label: Text(
-                      'Baca Detail',
+                      'edu_read_detail'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -496,9 +516,13 @@ class _MateriCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: (completed || isActionLoading) ? null : onComplete,
-                    icon: Icon(completed ? Symbols.check_circle : Symbols.task_alt),
-                    label: Text(completed ? 'Selesai' : 'Tandai Selesai'),
+                    onPressed:
+                        (completed || isActionLoading) ? null : onComplete,
+                    icon: Icon(
+                        completed ? Symbols.check_circle : Symbols.task_alt),
+                    label: Text(
+                      completed ? 'edu_done'.tr : 'edu_mark_done'.tr,
+                    ),
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(38),
                       backgroundColor: const Color(0xFF10B981),
@@ -550,7 +574,7 @@ class _ErrorCard extends StatelessWidget {
           const SizedBox(height: 10),
           OutlinedButton(
             onPressed: onRetry,
-            child: const Text('Coba lagi'),
+            child: Text('try_again'.tr),
           ),
         ],
       ),

@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
+import '../../app/services/auth_service.dart';
 import 'diskusi_api.dart';
 
 class HalamanDiskusi extends StatefulWidget {
@@ -26,6 +28,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
   int _page = 1;
   int _totalPages = 1;
   String _sort = 'terbaru';
+  String _kanal = 'umum';
 
   @override
   void initState() {
@@ -49,6 +52,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
   }
 
   Future<void> _fetch({required bool reset}) async {
+    if (_kanal == 'vip') return;
     if (_loading) return;
     setState(() => _loading = true);
     try {
@@ -76,6 +80,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
   }
 
   Future<void> _fetchMore() async {
+    if (_kanal == 'vip') return;
     if (_loadingMore || _loading || _page >= _totalPages) return;
     setState(() => _loadingMore = true);
     try {
@@ -98,6 +103,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
   }
 
   void _onSearchChanged(String value) {
+    if (_kanal == 'vip') return;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
       _fetch(reset: true);
@@ -105,6 +111,17 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
   }
 
   Future<void> _openCreateSheet() async {
+    if (_kanal == 'vip' && !_isVipMember) {
+      _showVipUpsell();
+      return;
+    }
+    if (_kanal == 'vip' && _isVipMember) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('diskusi_vip_post_unavailable'.tr)),
+      );
+      return;
+    }
     final created = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -115,6 +132,160 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
     if (created == true) {
       await _fetch(reset: true);
     }
+  }
+
+  bool get _isVipMember {
+    final role = AuthService.instance.role ?? '';
+    return role == 'vip' || role == 'admin';
+  }
+
+  void _showVipUpsell() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 48,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: <Widget>[
+                const Icon(Symbols.verified, color: Color(0xFFF59E0B), size: 32),
+                const SizedBox(width: 12),
+                Text(
+                  'diskusi_vip_exclusive'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'diskusi_vip_upsell_desc'.tr,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: const Color(0xFF475569),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        'diskusi_monthly_sub'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF92400E),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Rp 150.000',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDE68A),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'diskusi_best_value'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('diskusi_open_pg'.tr),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF59E0B),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  'diskusi_pay_now'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                  'diskusi_maybe_later'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -150,7 +321,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
                             const SizedBox(width: 40, height: 40),
                           const SizedBox(width: 10),
                           Text(
-                            'Diskusi Crypto',
+                            'diskusi_title'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -164,7 +335,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
                   ),
                 ),
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(98),
+                  preferredSize: const Size.fromHeight(146),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: Column(
@@ -173,7 +344,7 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
                           controller: _searchC,
                           onChanged: _onSearchChanged,
                           decoration: InputDecoration(
-                            hintText: 'Cari topik diskusi crypto syariah...',
+                            hintText: 'diskusi_search_hint'.tr,
                             prefixIcon: const Icon(Symbols.search, size: 20),
                             filled: true,
                             fillColor: Colors.white,
@@ -192,9 +363,21 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
                         _SwitchFilter(
                           selected: _sort,
                           onChanged: (value) {
+                            if (_kanal == 'vip') return;
                             if (_sort == value) return;
                             setState(() => _sort = value);
                             _fetch(reset: true);
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                        _SwitchKanal(
+                          selected: _kanal,
+                          onChanged: (String value) {
+                            if (_kanal == value) return;
+                            setState(() => _kanal = value);
+                            if (value == 'umum') {
+                              _fetch(reset: true);
+                            }
                           },
                         ),
                       ],
@@ -205,49 +388,54 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 120),
-                  child: RefreshIndicator(
-                    onRefresh: () => _fetch(reset: true),
-                    child: _items.isEmpty && _loading
-                        ? const SizedBox(
-                            height: 320,
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : _items.isEmpty
-                            ? SizedBox(
-                                height: 320,
-                                child: Center(
-                                  child: Text(
-                                    'Belum ada thread diskusi',
-                                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                children: [
-                                  ..._items.map(
-                                    (item) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 14),
-                                      child: _ThreadCard(
-                                        item: item,
-                                        onTap: () async {
-                                          await Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) => _DetailThreadPage(threadId: item.id),
-                                            ),
-                                          );
-                                          await _fetch(reset: true);
-                                        },
+                  child: _kanal == 'vip'
+                      ? _VipRoomBody(
+                          isVipMember: _isVipMember,
+                          onUpgradeTap: _showVipUpsell,
+                        )
+                      : RefreshIndicator(
+                          onRefresh: () => _fetch(reset: true),
+                          child: _items.isEmpty && _loading
+                              ? const SizedBox(
+                                  height: 320,
+                                  child: Center(child: CircularProgressIndicator()),
+                                )
+                              : _items.isEmpty
+                                  ? SizedBox(
+                                      height: 320,
+                                      child: Center(
+                                        child: Text(
+                                          'diskusi_no_threads'.tr,
+                                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                                        ),
                                       ),
+                                    )
+                                  : Column(
+                                      children: [
+                                        ..._items.map(
+                                          (item) => Padding(
+                                            padding: const EdgeInsets.only(bottom: 14),
+                                            child: _ThreadCard(
+                                              item: item,
+                                              onTap: () async {
+                                                await Navigator.of(context).push(
+                                                  MaterialPageRoute<void>(
+                                                    builder: (_) => _DetailThreadPage(threadId: item.id),
+                                                  ),
+                                                );
+                                                await _fetch(reset: true);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        if (_loadingMore)
+                                          const Padding(
+                                            padding: EdgeInsets.all(16),
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                      ],
                                     ),
-                                  ),
-                                  if (_loadingMore)
-                                    const Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                ],
-                              ),
-                  ),
+                        ),
                 ),
               ),
             ],
@@ -255,31 +443,115 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
           Positioned(
             right: 16,
             bottom: 72,
-            child: GestureDetector(
-              onTap: _openCreateSheet,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF13ECB9),
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x4D13ECB9),
-                      blurRadius: 16,
-                      offset: Offset(0, 8),
+            child: IgnorePointer(
+              ignoring: _kanal == 'vip' && !_isVipMember,
+              child: Opacity(
+                opacity: _kanal == 'vip' && !_isVipMember ? 0.45 : 1,
+                child: GestureDetector(
+                  onTap: _openCreateSheet,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF13ECB9),
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x4D13ECB9),
+                          blurRadius: 16,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        const Icon(Symbols.add_comment, size: 20, color: Color(0xFF0D3D33)),
+                        const SizedBox(width: 8),
+                        Text(
+                          _kanal == 'vip' ? 'diskusi_create_vip'.tr : 'diskusi_create_general'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0D3D33),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchKanal extends StatelessWidget {
+  const _SwitchKanal({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool umum = selected == 'umum';
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => onChanged('umum'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: umum ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    'diskusi_general'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: umum ? const Color(0xFF0D3D33) : const Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => onChanged('vip'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: umum ? Colors.transparent : Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
-                  children: [
-                    const Icon(Symbols.add_comment, size: 20, color: Color(0xFF0D3D33)),
-                    const SizedBox(width: 8),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const Icon(Symbols.lock, size: 14, color: Color(0xFF0D3D33)),
+                    const SizedBox(width: 4),
                     Text(
-                      'Buat Diskusi',
+                      'diskusi_vip'.tr,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0D3D33),
+                        color: umum ? const Color(0xFF9CA3AF) : const Color(0xFF0D3D33),
                       ),
                     ),
                   ],
@@ -292,6 +564,178 @@ class _HalamanDiskusiState extends State<HalamanDiskusi> {
     );
   }
 }
+
+class _VipRoomBody extends StatelessWidget {
+  const _VipRoomBody({
+    required this.isVipMember,
+    required this.onUpgradeTap,
+  });
+
+  final bool isVipMember;
+  final VoidCallback onUpgradeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isVipMember) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'diskusi_vip_paid'.tr,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF92400E),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'diskusi_vip_paid_desc'.tr,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFFB45309),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const _UstadzWatchList(),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: onUpgradeTap,
+              child: Text('diskusi_upgrade_vip'.tr),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFECFDF5),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD1FAE5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'diskusi_vip_active'.tr,
+                style: TextStyle(
+                  color: Color(0xFF065F46),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'diskusi_vip_active_desc'.tr,
+                style: TextStyle(
+                  color: Color(0xFF047857),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        const _UstadzWatchList(),
+        const SizedBox(height: 12),
+        ..._vipThreads.map(
+          (DiskusiItem item) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ThreadCard(
+              item: item,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('diskusi_vip_thread_backend'.tr)),
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UstadzWatchList extends StatelessWidget {
+  const _UstadzWatchList();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: <Widget>[
+        _UstadzChip(name: 'Ustad Devin Halim Wijaya'),
+        _UstadzChip(name: 'Ustad Fida Munadzir'),
+        _UstadzChip(name: 'Ustad Ade Setiawan'),
+      ],
+    );
+  }
+}
+
+class _UstadzChip extends StatelessWidget {
+  const _UstadzChip({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFA7F3D0)),
+      ),
+      child: Text(
+        name,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF065F46),
+        ),
+      ),
+    );
+  }
+}
+
+final List<DiskusiItem> _vipThreads = <DiskusiItem>[
+  DiskusiItem(
+    id: '9001',
+    userId: '100',
+    parentId: null,
+    judul: 'Strategi Menjaga Disiplin Trading Syariah',
+    isi: 'Bagaimana cara jaga emosi saat market volatile tanpa melanggar prinsip syariah?',
+    createdAt: DateTime.now(),
+    namaUser: 'Member VIP',
+    replyCount: 18,
+  ),
+  DiskusiItem(
+    id: '9002',
+    userId: '101',
+    parentId: null,
+    judul: 'Q&A Live Pekanan bersama Ustadz Pembimbing',
+    isi: 'Thread ini khusus kumpulan pertanyaan untuk sesi live Jumat malam.',
+    createdAt: DateTime.now(),
+    namaUser: 'Moderator VIP',
+    replyCount: 42,
+  ),
+];
 
 class _ThreadCard extends StatelessWidget {
   const _ThreadCard({required this.item, required this.onTap});
@@ -655,7 +1099,7 @@ class _CreateThreadSheetState extends State<_CreateThreadSheet> {
               child: ListView(
                 controller: scrollController,
                 children: [
-                  _FieldLabel(label: 'Judul Diskusi'),
+                  const _FieldLabel(label: 'Judul Diskusi'),
                   const SizedBox(height: 6),
                   _PrettyInputField(
                     controller: _titleC,
@@ -664,7 +1108,7 @@ class _CreateThreadSheetState extends State<_CreateThreadSheet> {
                     maxLines: 1,
                   ),
                   const SizedBox(height: 16),
-                  _FieldLabel(label: 'Isi Diskusi'),
+                  const _FieldLabel(label: 'Isi Diskusi'),
                   const SizedBox(height: 6),
                   _PrettyInputField(
                     controller: _bodyC,
@@ -673,7 +1117,7 @@ class _CreateThreadSheetState extends State<_CreateThreadSheet> {
                     maxLines: 6,
                   ),
                   const SizedBox(height: 16),
-                  _FieldLabel(label: 'Lampiran (opsional)'),
+                  const _FieldLabel(label: 'Lampiran (opsional)'),
                   const SizedBox(height: 6),
                   _AttachmentInputCard(controller: _attachmentC),
                   const SizedBox(height: 16),
@@ -836,7 +1280,7 @@ class _DisclaimerCard extends StatelessWidget {
 class _DetailThreadPage extends StatefulWidget {
   const _DetailThreadPage({required this.threadId});
 
-  final int threadId;
+  final String threadId;
 
   @override
   State<_DetailThreadPage> createState() => _DetailThreadPageState();

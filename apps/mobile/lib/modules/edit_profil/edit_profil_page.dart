@@ -113,28 +113,7 @@ class _HalamanEditProfilState extends State<HalamanEditProfil> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 26),
                     child: Column(
                       children: [
-                        const Row(
-                          children: [
-                            Expanded(
-                              child: _StatCard(
-                                icon: Symbols.local_fire_department,
-                                iconColor: Color(0xFFF97316),
-                                value: '12',
-                                label: 'Hari Streak',
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _StatCard(
-                                icon: Symbols.bolt,
-                                iconColor: Color(0xFFEAB308),
-                                value: '4500',
-                                label: 'Total XP',
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
+
                         const _SectionTitle('Edit Profil'),
                         const SizedBox(height: 10),
                         _Card(
@@ -504,62 +483,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 5)),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: iconColor),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: GoogleFonts.inter(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0D1B18),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF6B7280),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _CircleIconButton extends StatelessWidget {
   const _CircleIconButton({required this.icon, this.onTap});

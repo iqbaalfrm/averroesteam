@@ -14,9 +14,9 @@ class DiskusiItem {
     required this.replyCount,
   });
 
-  final int id;
-  final int userId;
-  final int? parentId;
+  final String id;
+  final String userId;
+  final String? parentId;
   final String judul;
   final String isi;
   final DateTime? createdAt;
@@ -26,9 +26,9 @@ class DiskusiItem {
   factory DiskusiItem.fromJson(Map<String, dynamic> json) {
     final user = json['user'];
     return DiskusiItem(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      userId: (json['user_id'] as num?)?.toInt() ?? 0,
-      parentId: (json['parent_id'] as num?)?.toInt(),
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      parentId: json['parent_id']?.toString(),
       judul: (json['judul'] ?? 'Diskusi').toString(),
       isi: (json['isi'] ?? '').toString(),
       createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()),
@@ -120,7 +120,7 @@ class DiskusiApi {
     );
   }
 
-  Future<DiskusiDetail> fetchThreadDetail(int threadId) async {
+  Future<DiskusiDetail> fetchThreadDetail(String threadId) async {
     final rs = await _getWithFallback('/diskusi/$threadId');
     final root = rs.data;
     final data = root is Map ? root['data'] : null;
@@ -157,7 +157,7 @@ class DiskusiApi {
   }
 
   Future<void> replyThread({
-    required int threadId,
+    required String threadId,
     required String isi,
   }) async {
     await _postWithFallback(

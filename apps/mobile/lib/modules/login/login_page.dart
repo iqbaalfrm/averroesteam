@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
+import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
 class HalamanLogin extends StatefulWidget {
@@ -84,15 +85,16 @@ class _HalamanLoginState extends State<HalamanLogin> {
     if (_isLoading) {
       return;
     }
-    setState(() => _isLoading = true);
+        setState(() => _isLoading = true);
     try {
       await action();
     } on DioException catch (error) {
       final dynamic data = error.response?.data;
-      final String message = _extractMessage(data, fallback: 'Terjadi kesalahan jaringan');
+      final String message =
+          _extractMessage(data, fallback: 'network_error'.tr);
       _showMessage(message, isError: true);
     } catch (_) {
-      _showMessage('Terjadi kesalahan', isError: true);
+      _showMessage('general_error'.tr, isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -112,14 +114,15 @@ class _HalamanLoginState extends State<HalamanLogin> {
             innerData['user'] as Map<String, dynamic>?;
 
         if (token != null && token.isNotEmpty) {
-          await AuthService.instance.simpanAuth(token, user ?? <String, dynamic>{});
-          _showMessage(_extractMessage(data, fallback: 'Berhasil masuk'));
+          await AuthService.instance
+              .simpanAuth(token, user ?? <String, dynamic>{});
+          _showMessage(_extractMessage(data, fallback: 'login_success'.tr));
           Get.offAllNamed(RuteAplikasi.beranda);
           return;
         }
       }
     }
-    _showMessage('Terjadi kesalahan', isError: true);
+    _showMessage('general_error'.tr, isError: true);
   }
 
   bool _isSuccess(Map<String, dynamic> data) {
@@ -267,22 +270,16 @@ class _HeaderSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: AppColors.emeraldSoft,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(
-            Symbols.account_balance_wallet,
-            color: AppColors.emerald,
-            size: 36,
-          ),
+        const AppLogoBadge(
+          size: 108,
+          radius: 30,
+          padding: 10,
+          backgroundColor: Color(0xFFEFF8F6),
+          borderColor: Color(0xFFBFE8DF),
         ),
         const SizedBox(height: 16),
         Text(
-          'Masuk ke Akun Anda',
+          'login_title'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 30,
             fontWeight: FontWeight.w700,
@@ -292,7 +289,7 @@ class _HeaderSection extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Kelola aset syariah Anda dengan aman dan transparan.',
+          'login_subtitle'.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -317,21 +314,22 @@ class _EmailField extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'Email',
+            'email'.tr,
             style: AuthUiKit.labelStyle(),
           ),
         ),
         TextFormField(
           controller: controller,
           keyboardType: TextInputType.emailAddress,
-          decoration: AuthUiKit.inputDecoration(hintText: 'Masukkan email Anda'),
+          decoration:
+              AuthUiKit.inputDecoration(hintText: 'enter_email'.tr),
           validator: (String? value) {
             final String input = value?.trim() ?? '';
             if (input.isEmpty) {
-              return 'Email wajib diisi';
+              return 'email_required'.tr;
             }
             if (!input.contains('@') || !input.contains('.')) {
-              return 'Format email tidak valid';
+              return 'invalid_email'.tr;
             }
             return null;
           },
@@ -364,14 +362,14 @@ class _PasswordField extends StatelessWidget {
           child: Row(
             children: <Widget>[
               Text(
-                'Password',
+                'password'.tr,
                 style: AuthUiKit.labelStyle(),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: onLupaPassword,
                 child: Text(
-                  'Lupa Password?',
+                  'forgot_password'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -386,7 +384,7 @@ class _PasswordField extends StatelessWidget {
           controller: controller,
           obscureText: obscure,
           decoration: AuthUiKit.inputDecoration(
-            hintText: 'Masukkan password',
+            hintText: 'enter_password'.tr,
             suffixIcon: IconButton(
               onPressed: onToggle,
               icon: Icon(
@@ -398,10 +396,10 @@ class _PasswordField extends StatelessWidget {
           validator: (String? value) {
             final String input = value ?? '';
             if (input.trim().isEmpty) {
-              return 'Password wajib diisi';
+              return 'password_required'.tr;
             }
             if (input.length < 6) {
-              return 'Password minimal 6 karakter';
+              return 'password_min'.tr;
             }
             return null;
           },
@@ -428,8 +426,10 @@ class _PrimaryButton extends StatelessWidget {
           foregroundColor: AppColors.slate,
           elevation: 3,
           shadowColor: const Color(0x330F766E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, fontSize: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700, fontSize: 16),
         ),
         onPressed: isLoading ? null : onPressed,
         child: isLoading
@@ -441,7 +441,7 @@ class _PrimaryButton extends StatelessWidget {
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.slate),
                 ),
               )
-            : const Text('Masuk'),
+            : Text('login'.tr),
       ),
     );
   }
@@ -456,7 +456,7 @@ class _DividerSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            'Atau masuk dengan',
+            'or_login_with'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -490,7 +490,7 @@ class _GoogleButton extends StatelessWidget {
             const AuthBrandTile(size: 20, radius: 6),
             const SizedBox(width: 12),
             Text(
-              'Lanjutkan dengan Google',
+              'continue_with_google'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -522,7 +522,7 @@ class _BottomSection extends StatelessWidget {
         TextButton(
           onPressed: isLoading ? null : onGuestTap,
           child: Text(
-            'Masuk sebagai Tamu',
+            'login_as_guest'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -537,7 +537,7 @@ class _BottomSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Text(
-                'Belum punya akun? ',
+                '${'no_account'.tr} ',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -545,7 +545,7 @@ class _BottomSection extends StatelessWidget {
                 ),
               ),
               Text(
-                'Daftar Sekarang',
+                'register_now'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,

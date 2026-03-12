@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:averroes_core/averroes_core.dart';
 
-import '../chatbot/chatbot_page.dart';
+import '../../app/routes/app_routes.dart';
+import '../../app/widgets/guest_guard.dart';
 import '../edukasi/edukasi_page.dart';
 import '../home/beranda_page.dart';
 import '../profile/profile_page.dart';
 import '../diskusi/diskusi_page.dart';
+import '../reels/reels_page.dart';
 import 'shell_controller.dart';
 
 class HalamanShell extends StatelessWidget {
@@ -24,7 +25,7 @@ class HalamanShell extends StatelessWidget {
           children: const <Widget>[
             HalamanBeranda(),
             HalamanEdukasi(),
-            HalamanChatbot(),
+            HalamanReels(),
             HalamanDiskusi(),
             HalamanProfil(),
           ],
@@ -32,32 +33,35 @@ class HalamanShell extends StatelessWidget {
         bottomNavigationBar: NavigationBar(
           height: 70,
           selectedIndex: controller.tabIndex.value,
-          onDestinationSelected: controller.pindahTab,
-          destinations: const <NavigationDestination>[
+          onDestinationSelected: (int index) {
+            if (index == 1 && cekAksesGuest(context, RuteAplikasi.edukasi)) {
+              return;
+            }
+            if (index == 3 && cekAksesGuest(context, RuteAplikasi.diskusi)) {
+              return;
+            }
+            controller.pindahTab(index);
+          },
+          destinations: <NavigationDestination>[
             NavigationDestination(
-              icon: Icon(Symbols.home_rounded),
-              selectedIcon: Icon(Symbols.home_rounded, color: AppColors.emerald),
-              label: 'Beranda',
+              icon: const Icon(Symbols.home_rounded),
+              label: 'tab_home'.tr,
             ),
             NavigationDestination(
-              icon: Icon(Symbols.menu_book_rounded),
-              selectedIcon: Icon(Symbols.menu_book_rounded, color: AppColors.emerald),
-              label: 'Edukasi',
+              icon: const Icon(Symbols.menu_book_rounded),
+              label: 'tab_education'.tr,
             ),
             NavigationDestination(
-              icon: Icon(Symbols.smart_toy_rounded),
-              selectedIcon: Icon(Symbols.smart_toy_rounded, color: AppColors.emerald),
-              label: 'Chatbot',
+              icon: const Icon(Symbols.play_circle_rounded),
+              label: 'tab_reels'.tr,
             ),
             NavigationDestination(
-              icon: Icon(Symbols.forum_rounded),
-              selectedIcon: Icon(Symbols.forum_rounded, color: AppColors.emerald),
-              label: 'Diskusi',
+              icon: const Icon(Symbols.forum_rounded),
+              label: 'tab_discussion'.tr,
             ),
             NavigationDestination(
-              icon: Icon(Symbols.person_rounded),
-              selectedIcon: Icon(Symbols.person_rounded, color: AppColors.emerald),
-              label: 'Profil',
+              icon: const Icon(Symbols.person_rounded),
+              label: 'tab_profile'.tr,
             ),
           ],
         ),

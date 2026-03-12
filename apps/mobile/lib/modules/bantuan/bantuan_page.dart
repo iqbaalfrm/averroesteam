@@ -30,7 +30,7 @@ class HalamanBantuan extends StatelessWidget {
                     onTap: () => Navigator.of(context).maybePop(),
                   ),
                   Text(
-                    'Pusat Bantuan',
+                    'help_center'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -55,7 +55,7 @@ class HalamanBantuan extends StatelessWidget {
                   _MenuBantuan(),
                   const SizedBox(height: 24),
                   Text(
-                    'Hubungi Kami',
+                    'contact_us'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -68,7 +68,7 @@ class HalamanBantuan extends StatelessWidget {
                   Center(
                     child: Text.rich(
                       TextSpan(
-                        text: 'Ingin berbagi dengan sesama pejuang?\n',
+                        text: 'want_to_share'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -76,7 +76,7 @@ class HalamanBantuan extends StatelessWidget {
                         ),
                         children: <TextSpan>[
                           TextSpan(
-                            text: 'Gabung Komunitas Averroes',
+                            text: 'join_community'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -149,7 +149,7 @@ class _HeroBantuan extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Halo, Apa yang bisa\nkami bantu?',
+                'how_can_we_help'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -158,7 +158,7 @@ class _HeroBantuan extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Temukan jawaban cepat untuk pertanyaanmu.',
+                'find_quick_answers'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -198,7 +198,7 @@ class _SearchBantuan extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            'Cari bantuan...',
+            'search_help'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -217,22 +217,22 @@ class _MenuBantuan extends StatelessWidget {
     final List<_MenuItem> items = <_MenuItem>[
       _MenuItem(
         icon: Symbols.quiz,
-        title: 'Pertanyaan Umum (FAQ)',
-        subtitle: 'Jawaban untuk kendala populer',
+        title: 'faq'.tr,
+        subtitle: 'answers_popular_issues'.tr,
         color: const Color(0xFFECFDF5),
         iconColor: const Color(0xFF0EB58E),
       ),
       _MenuItem(
         icon: Symbols.menu_book,
-        title: 'Panduan Penggunaan',
-        subtitle: 'Cara menggunakan fitur aplikasi',
+        title: 'user_guide'.tr,
+        subtitle: 'how_to_use_features'.tr,
         color: const Color(0xFFEFF6FF),
         iconColor: const Color(0xFF2563EB),
       ),
       _MenuItem(
         icon: Symbols.gavel,
-        title: 'Kebijakan Privasi',
-        subtitle: 'Bagaimana kami mengelola data Anda',
+        title: 'privacy_policy'.tr,
+        subtitle: 'how_we_manage_data'.tr,
         color: const Color(0xFFF5F3FF),
         iconColor: const Color(0xFF7C3AED),
         onTap: () => Get.toNamed(RuteAplikasi.kebijakanPrivasi),
@@ -333,11 +333,11 @@ class _KontakGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const <Widget>[
+      children: <Widget>[
         Expanded(
           child: _KontakItem(
-            title: 'Chat Admin',
-            subtitle: 'Respon Cepat',
+            title: 'chat_admin'.tr,
+            subtitle: 'fast_response'.tr,
             icon: Symbols.forum,
             background: Color(0xFF13ECB9),
             iconColor: Color(0xFF0D1B18),
@@ -346,8 +346,8 @@ class _KontakGrid extends StatelessWidget {
         SizedBox(width: 12),
         Expanded(
           child: _KontakItem(
-            title: 'Kirim Email',
-            subtitle: 'Bantuan Detail',
+            title: 'send_email'.tr,
+            subtitle: 'detailed_help'.tr,
             icon: Symbols.alternate_email,
             background: Color(0xFFFFFBEB),
             iconColor: Color(0xFFCA8A04),

@@ -32,7 +32,7 @@ class EdukasiApi {
         .toList();
   }
 
-  Future<KelasDetailEdukasi> fetchKelasDetail(int kelasId) async {
+  Future<KelasDetailEdukasi> fetchKelasDetail(String kelasId) async {
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas/$kelasId',
     );
@@ -40,7 +40,7 @@ class EdukasiApi {
     return KelasDetailEdukasi.fromJson(data);
   }
 
-  Future<KelasProgressEdukasi> fetchKelasProgress(int kelasId) async {
+  Future<KelasProgressEdukasi> fetchKelasProgress(String kelasId) async {
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas/$kelasId/progress',
       options: _authOptions(),
@@ -58,7 +58,7 @@ class EdukasiApi {
     return LastLearningEdukasi.fromJson(data);
   }
 
-  Future<void> completeMateri(int materiId) async {
+  Future<void> completeMateri(String materiId) async {
     await _dio.post<dynamic>(
       '${AppConfig.apiBaseUrl}/api/materi/complete',
       data: <String, dynamic>{'materi_id': materiId},
@@ -67,7 +67,7 @@ class EdukasiApi {
   }
 
   Future<QuizSubmitResult> submitQuiz({
-    required int quizId,
+    required String quizId,
     required String jawaban,
   }) async {
     final Response<dynamic> response = await _dio.post<dynamic>(
@@ -78,7 +78,7 @@ class EdukasiApi {
     return QuizSubmitResult.fromJson(_extractMapData(response.data));
   }
 
-  Future<SertifikatResult> generateSertifikat(int kelasId) async {
+  Future<SertifikatResult> generateSertifikat(String kelasId) async {
     final Response<dynamic> response = await _dio.post<dynamic>(
       '${AppConfig.apiBaseUrl}/api/sertifikat/generate',
       data: <String, dynamic>{'kelas_id': kelasId},
@@ -111,24 +111,63 @@ class EdukasiApi {
   }
 }
 
+int _asInt(dynamic value, {int fallback = 0}) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim()) ?? fallback;
+  return fallback;
+}
+
+bool _asBool(dynamic value, {bool fallback = false}) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final v = value.trim().toLowerCase();
+    if (v == 'true' || v == '1' || v == 'yes') return true;
+    if (v == 'false' || v == '0' || v == 'no') return false;
+  }
+  return fallback;
+}
+
+String _asString(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+  final s = value.toString().trim();
+  return s.isEmpty ? fallback : s;
+}
+
 class KelasEdukasi {
   KelasEdukasi({
     required this.id,
     required this.judul,
     required this.deskripsi,
+    this.gambarUrl,
   });
 
-  final int id;
+  final String id;
   final String judul;
   final String deskripsi;
+  final String? gambarUrl;
 
   factory KelasEdukasi.fromJson(Map<String, dynamic> json) {
     return KelasEdukasi(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
       judul: (json['judul'] as String?)?.trim() ?? '-',
       deskripsi: (json['deskripsi'] as String?)?.trim() ?? '-',
+      gambarUrl: _asNullableString(
+        json['gambar_url'] ??
+            json['thumbnail'] ??
+            json['image_url'] ??
+            json['cover_url'] ??
+            json['cover'] ??
+            json['image'],
+      ),
     );
   }
+}
+
+String? _asNullableString(dynamic value) {
+  if (value == null) return null;
+  final s = value.toString().trim();
+  return s.isEmpty ? null : s;
 }
 
 class KelasDetailEdukasi {
@@ -140,7 +179,7 @@ class KelasDetailEdukasi {
     required this.kuis,
   });
 
-  final int id;
+  final String id;
   final String judul;
   final String deskripsi;
   final List<ModulEdukasi> modul;
@@ -152,7 +191,7 @@ class KelasDetailEdukasi {
     final List<dynamic> kuisRaw =
         (json['quiz'] as List<dynamic>?) ?? <dynamic>[];
     return KelasDetailEdukasi(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
       judul: (json['judul'] as String?)?.trim() ?? '-',
       deskripsi: (json['deskripsi'] as String?)?.trim() ?? '-',
       modul: modulRaw
@@ -179,8 +218,8 @@ class ModulEdukasi {
     required this.materi,
   });
 
-  final int id;
-  final int kelasId;
+  final String id;
+  final String kelasId;
   final String judul;
   final String deskripsi;
   final int urutan;
@@ -190,11 +229,11 @@ class ModulEdukasi {
     final List<dynamic> materiRaw =
         (json['materi'] as List<dynamic>?) ?? <dynamic>[];
     return ModulEdukasi(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      kelasId: (json['kelas_id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
+      kelasId: _asString(json['kelas_id']),
       judul: (json['judul'] as String?)?.trim() ?? '-',
       deskripsi: (json['deskripsi'] as String?)?.trim() ?? '-',
-      urutan: (json['urutan'] as num?)?.toInt() ?? 0,
+      urutan: _asInt(json['urutan']),
       materi: materiRaw
           .whereType<Map<dynamic, dynamic>>()
           .map((Map<dynamic, dynamic> row) =>
@@ -213,19 +252,19 @@ class MateriEdukasi {
     required this.urutan,
   });
 
-  final int id;
-  final int modulId;
+  final String id;
+  final String modulId;
   final String judul;
   final String konten;
   final int urutan;
 
   factory MateriEdukasi.fromJson(Map<String, dynamic> json) {
     return MateriEdukasi(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      modulId: (json['modul_id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
+      modulId: _asString(json['modul_id']),
       judul: (json['judul'] as String?)?.trim() ?? '-',
       konten: (json['konten'] as String?)?.trim() ?? '-',
-      urutan: (json['urutan'] as num?)?.toInt() ?? 0,
+      urutan: _asInt(json['urutan']),
     );
   }
 }
@@ -238,8 +277,8 @@ class KuisEdukasi {
     required this.pilihan,
   });
 
-  final int id;
-  final int kelasId;
+  final String id;
+  final String kelasId;
   final String pertanyaan;
   final Map<String, String> pilihan;
 
@@ -252,8 +291,8 @@ class KuisEdukasi {
       }
     }
     return KuisEdukasi(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      kelasId: (json['kelas_id'] as num?)?.toInt() ?? 0,
+      id: _asString(json['id']),
+      kelasId: _asString(json['kelas_id']),
       pertanyaan: (json['pertanyaan'] as String?)?.trim() ?? '-',
       pilihan: pilihanMap,
     );
@@ -277,7 +316,7 @@ class KelasProgressEdukasi {
 
   final int totalMateri;
   final int completedMateri;
-  final List<int> completedMateriIds;
+  final List<String> completedMateriIds;
   final int progressMateriPercent;
   final int totalQuiz;
   final int answeredQuiz;
@@ -289,23 +328,23 @@ class KelasProgressEdukasi {
 
   factory KelasProgressEdukasi.fromJson(Map<String, dynamic> json) {
     return KelasProgressEdukasi(
-      totalMateri: (json['total_materi'] as num?)?.toInt() ?? 0,
-      completedMateri: (json['completed_materi'] as num?)?.toInt() ?? 0,
+      totalMateri: _asInt(json['total_materi']),
+      completedMateri: _asInt(json['completed_materi']),
       completedMateriIds:
           ((json['completed_materi_ids'] as List<dynamic>?) ?? <dynamic>[])
-              .whereType<num>()
-              .map((num n) => n.toInt())
+              .map((dynamic raw) => _asString(raw))
+              .where((String id) => id.isNotEmpty)
               .toList(),
       progressMateriPercent:
-          (json['progress_materi_percent'] as num?)?.toInt() ?? 0,
-      totalQuiz: (json['total_quiz'] as num?)?.toInt() ?? 0,
-      answeredQuiz: (json['answered_quiz'] as num?)?.toInt() ?? 0,
-      correctQuiz: (json['correct_quiz'] as num?)?.toInt() ?? 0,
-      scorePercent: (json['score_percent'] as num?)?.toInt() ?? 0,
-      isMateriComplete: (json['is_materi_complete'] as bool?) ?? false,
-      isQuizComplete: (json['is_quiz_complete'] as bool?) ?? false,
+          _asInt(json['progress_materi_percent']),
+      totalQuiz: _asInt(json['total_quiz']),
+      answeredQuiz: _asInt(json['answered_quiz']),
+      correctQuiz: _asInt(json['correct_quiz']),
+      scorePercent: _asInt(json['score_percent']),
+      isMateriComplete: _asBool(json['is_materi_complete']),
+      isQuizComplete: _asBool(json['is_quiz_complete']),
       isEligibleCertificate:
-          (json['is_eligible_certificate'] as bool?) ?? false,
+          _asBool(json['is_eligible_certificate']),
     );
   }
 }
@@ -318,17 +357,17 @@ class QuizSubmitResult {
     required this.benar,
   });
 
-  final int quizId;
+  final String quizId;
   final String jawabanPengguna;
   final String jawabanBenar;
   final bool benar;
 
   factory QuizSubmitResult.fromJson(Map<String, dynamic> json) {
     return QuizSubmitResult(
-      quizId: (json['quiz_id'] as num?)?.toInt() ?? 0,
+      quizId: _asString(json['quiz_id']),
       jawabanPengguna: (json['jawaban_pengguna'] as String?) ?? '',
       jawabanBenar: (json['jawaban_benar'] as String?) ?? '',
-      benar: (json['benar'] as bool?) ?? false,
+      benar: _asBool(json['benar']),
     );
   }
 }
@@ -345,25 +384,25 @@ class LastLearningEdukasi {
     this.lastMateriJudul,
   });
 
-  final int kelasId;
+  final String kelasId;
   final String kelasJudul;
   final int completedMateri;
   final int totalMateri;
   final int progressMateriPercent;
   final int nextMateriIndex;
-  final int? lastMateriId;
+  final String? lastMateriId;
   final String? lastMateriJudul;
 
   factory LastLearningEdukasi.fromJson(Map<String, dynamic> json) {
     return LastLearningEdukasi(
-      kelasId: (json['kelas_id'] as num?)?.toInt() ?? 0,
+      kelasId: _asString(json['kelas_id']),
       kelasJudul: (json['kelas_judul'] as String?)?.trim() ?? 'Kelas',
-      completedMateri: (json['completed_materi'] as num?)?.toInt() ?? 0,
-      totalMateri: (json['total_materi'] as num?)?.toInt() ?? 0,
+      completedMateri: _asInt(json['completed_materi']),
+      totalMateri: _asInt(json['total_materi']),
       progressMateriPercent:
-          (json['progress_materi_percent'] as num?)?.toInt() ?? 0,
-      nextMateriIndex: (json['next_materi_index'] as num?)?.toInt() ?? 1,
-      lastMateriId: (json['last_materi_id'] as num?)?.toInt(),
+          _asInt(json['progress_materi_percent']),
+      nextMateriIndex: _asInt(json['next_materi_index'], fallback: 1),
+      lastMateriId: _asString(json['last_materi_id'], fallback: ''),
       lastMateriJudul: (json['last_materi_judul'] as String?)?.trim(),
     );
   }
@@ -371,23 +410,32 @@ class LastLearningEdukasi {
 
 class SertifikatResult {
   SertifikatResult({
+    required this.kelasId,
     required this.kelas,
     required this.namaSertifikat,
     required this.nomor,
     required this.scorePercent,
+    this.generatedAt,
+    this.downloadUrl,
   });
 
+  final String kelasId;
   final String kelas;
   final String namaSertifikat;
   final String nomor;
   final int scorePercent;
+  final String? generatedAt;
+  final String? downloadUrl;
 
   factory SertifikatResult.fromJson(Map<String, dynamic> json) {
     return SertifikatResult(
+      kelasId: _asString(json['kelas_id']),
       kelas: (json['kelas'] as String?) ?? '-',
       namaSertifikat: (json['nama_sertifikat'] as String?) ?? '-',
       nomor: (json['nomor'] as String?) ?? '-',
-      scorePercent: (json['score_percent'] as num?)?.toInt() ?? 0,
+      scorePercent: _asInt(json['score_percent']),
+      generatedAt: _asNullableString(json['generated_at']),
+      downloadUrl: _asNullableString(json['download_url']),
     );
   }
 }

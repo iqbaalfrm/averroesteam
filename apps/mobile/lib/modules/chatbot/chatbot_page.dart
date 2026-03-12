@@ -195,7 +195,7 @@ class _HeaderChatbot extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Averroes AI Assistant',
+                    'Reels Islami',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -215,7 +215,7 @@ class _HeaderChatbot extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Crypto Scope',
+                        'Segera Hadir',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

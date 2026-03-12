@@ -44,7 +44,8 @@ class AuthService {
     if (u == null) {
       return null;
     }
-    return u['Role'] as String? ?? u['role'] as String?;
+    final raw = u['Role'] as String? ?? u['role'] as String?;
+    return raw?.trim().toLowerCase();
   }
 
   /// Ambil nama user.
@@ -62,7 +63,17 @@ class AuthService {
   bool get sudahLogin => token != null && token!.isNotEmpty;
 
   /// Cek apakah user adalah tamu (guest).
-  bool get adalahTamu => role == 'guest';
+  bool get adalahTamu {
+    if (role == 'guest') {
+      return true;
+    }
+    // Fallback untuk sesi tamu lama yang dulu tersimpan sebagai role "user".
+    final Map<String, dynamic>? u = user;
+    final String nama =
+        ((u?['Nama'] as String?) ?? (u?['nama'] as String?) ?? '').trim().toLowerCase();
+    final String email = ((u?['email'] as String?) ?? '').trim();
+    return nama == 'pengguna tamu' && email.isEmpty;
+  }
 
   /// Cek apakah user adalah user terdaftar (bukan guest, bukan null).
   bool get adalahUserTerdaftar =>

@@ -51,7 +51,7 @@ class PustakaApi {
     );
   }
 
-  Future<PustakaBuku> fetchBukuDetail(int id) async {
+  Future<PustakaBuku> fetchBukuDetail(String id) async {
     final Response<dynamic> r = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/buku/$id',
     );
@@ -60,7 +60,7 @@ class PustakaApi {
   }
 
   Future<PustakaAccessUrl> requestAccessUrl({
-    required int bukuId,
+    required String bukuId,
     String action = 'read',
   }) async {
     final Response<dynamic> r = await _dio.post<dynamic>(
@@ -117,13 +117,13 @@ class PustakaKategori {
     required this.isActive,
   });
 
-  final int id;
+  final String id;
   final String nama;
   final String slug;
   final bool isActive;
 
   factory PustakaKategori.fromJson(Map<String, dynamic> json) => PustakaKategori(
-        id: (json['id'] as num?)?.toInt() ?? 0,
+        id: (json['id'] ?? '').toString(),
         nama: (json['nama'] as String?)?.trim() ?? '-',
         slug: (json['slug'] as String?)?.trim() ?? '',
         isActive: (json['is_active'] as bool?) ?? true,
@@ -146,7 +146,7 @@ class PustakaBuku {
     required this.hasFile,
   });
 
-  final int id;
+  final String id;
   final String judul;
   final String penulis;
   final String deskripsi;
@@ -167,7 +167,7 @@ class PustakaBuku {
     final String? kategoriSlug =
         kategori is Map ? (kategori['slug'] as String?)?.trim() : null;
     return PustakaBuku(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: (json['id'] ?? '').toString(),
       judul: (json['judul'] as String?)?.trim() ?? '-',
       penulis: (json['penulis'] as String?)?.trim() ?? '-',
       deskripsi: (json['deskripsi'] as String?)?.trim() ?? '',
@@ -178,7 +178,9 @@ class PustakaBuku {
       ukuranFileBytes: (json['ukuran_file_bytes'] as num?)?.toInt(),
       coverUrl: (json['cover_url'] as String?)?.trim(),
       driveFileId: (json['drive_file_id'] as String?)?.trim(),
-      hasFile: (json['has_file'] as bool?) ?? false,
+      hasFile:
+          (json['can_download'] as bool?) ??
+          ((json['has_file'] as bool?) ?? ((json['drive_file_id'] ?? '').toString().isNotEmpty)),
     );
   }
 }

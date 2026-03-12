@@ -54,25 +54,24 @@ class _SectionHeader extends StatelessWidget {
                 children: <Widget>[
                   if (leadingIcon != null) ...<Widget>[
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: AppColors.emeraldSoft,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFD1FAE5)),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         leadingIcon,
-                        size: 16,
+                        size: 18,
                         color: AppColors.emerald,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                   ],
                   Flexible(
                     child: Text(
                       title,
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AppColors.slate,
                       ),
@@ -89,8 +88,8 @@ class _SectionHeader extends StatelessWidget {
           Text(
             subtitle!,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
               color: AppColors.muted,
             ),
           ),
@@ -119,28 +118,32 @@ class _StateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor),
-      ),
+    return CustomCard(
+      backgroundColor: backgroundColor,
+      border: BorderSide(color: borderColor),
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 28, color: foregroundColor),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: foregroundColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 28, color: foregroundColor),
+          ),
+          const SizedBox(height: 16),
           Text(
             message,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: foregroundColor,
             ),
             textAlign: TextAlign.center,
           ),
           if (action != null) ...<Widget>[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             action!,
           ],
         ],
@@ -213,10 +216,10 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
   final double topPadding;
 
   @override
-  double get minExtent => topPadding + 64;
+  double get minExtent => topPadding + 70;
 
   @override
-  double get maxExtent => topPadding + 64;
+  double get maxExtent => topPadding + 70;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
@@ -226,139 +229,133 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.7),
-            border: Border(
+            color: AppColors.background.withValues(alpha: 0.85),
+            border: const Border(
               bottom: BorderSide(
-                color: _BerandaUi.softLine.withValues(alpha: 0.9),
+                color: AppColors.line,
               ),
             ),
           ),
           child: SafeArea(
             bottom: false,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: <Color>[
-                            AppColors.emerald,
-                            Color(0xFF14B8A6),
-                          ],
-                        ),
-                        boxShadow: const <BoxShadow>[
-                          BoxShadow(
-                            color: Color(0x16000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 4),
-                      ),
-                      child: const Icon(
-                        Symbols.person,
-                        size: 24,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Expanded(
+                    child: Row(
                       children: <Widget>[
-                        Text(
-                          'Assalamu\u2019alaikum,',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                            color: const Color(0xFF059669).withValues(alpha: 0.7),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: <Widget>[
-                            Text(
-                              AuthService.instance.namaUser,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                            if (AuthService.instance.adalahTamu) ...<Widget>[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFEF3C7),
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(color: const Color(0xFFFDE68A)),
-                                ),
-                                child: Text(
-                                  'Mode Tamu',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.6,
-                                    color: const Color(0xFFB45309),
-                                  ),
-                                ),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.emerald,
+                            boxShadow: const <BoxShadow>[
+                              BoxShadow(
+                                color: Color(0x16000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
                               ),
                             ],
-                          ],
+                            border: Border.all(color: AppColors.emeraldSoft, width: 2),
+                          ),
+                          child: const Icon(
+                            Symbols.person,
+                            size: 24,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Text(
+                                'assalamualaikum'.tr.tr,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: Text(
+                                      AuthService.instance.namaUser,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ),
+                                  if (AuthService.instance.adalahTamu) ...<Widget>[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.amberSoft,
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+                                      ),
+                                      child: Text(
+                                        'guest_mode'.tr,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                          color: AppColors.amber,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                Stack(
-                  children: <Widget>[
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _BerandaUi.softLine),
-                        boxShadow: const <BoxShadow>[
-                          BoxShadow(
-                            color: Color(0x0A000000),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Symbols.notifications_active,
-                        color: Color(0xFF475569),
-                        size: 22,
-                      ),
-                    ),
-                    Positioned(
-                      right: 6,
-                      top: 8,
-                      child: Container(
-                        width: 8,
-                        height: 8,
+                  ),
+                  const SizedBox(width: 8),
+                  Stack(
+                    children: <Widget>[
+                      Container(
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF97316),
+                          color: AppColors.surface,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                          border: Border.all(color: AppColors.line),
+                        ),
+                        child: const Icon(
+                          Symbols.notifications_active,
+                          color: AppColors.slate,
+                          size: 20,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      Positioned(
+                        right: 6,
+                        top: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.surface, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
           ),
         ),
       ),
@@ -377,6 +374,7 @@ class _KartuJadwalShalat extends StatefulWidget {
 class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
   _PrayerCityData _jakarta = const _PrayerCityData(city: 'Jakarta', prayer: 'Subuh', time: '--:--');
   _PrayerCityData _makkah = const _PrayerCityData(city: 'Makkah', prayer: 'Subuh', time: '--:--');
+  String _hijriDate = '';
   bool _loading = false;
   bool _loadFailed = false;
 
@@ -411,6 +409,7 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
         utcOffsetHours: 7,
         raw: rs[0].data,
       );
+      _hijriDate = _extractHijriDate(rs[0].data);
       _makkah = _PrayerCityData.fromAladhan(
         city: 'Makkah',
         utcOffsetHours: 3,
@@ -439,20 +438,12 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final badgeDate = _formatDateId(now);
-    return Container(
+    return CustomCard(
+      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
+      border: const BorderSide(color: AppColors.line),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _BerandaUi.softLine),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 14,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
+      borderRadius: 20,
+      hasShadow: true,
       child: Stack(
         children: <Widget>[
           Positioned(
@@ -462,7 +453,7 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
               opacity: 0.1,
               child: Transform.rotate(
                 angle: 0.2,
-                child: Icon(
+                child: const Icon(
                   Symbols.mosque,
                   size: 120,
                   color: AppColors.emerald,
@@ -478,45 +469,61 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.emeraldSoft,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFD1FAE5)),
-                        ),
-                        child: const Icon(
-                          Symbols.schedule,
-                          size: 18,
-                          color: AppColors.emerald,
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.emeraldSoft,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Jadwal Shalat',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.3,
-                          color: AppColors.slate,
-                        ),
+                      child: const Icon(
+                        Symbols.schedule,
+                        size: 20,
+                        color: AppColors.emerald,
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'prayer_schedule'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: AppColors.slate,
+                      ),
+                    ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.emeraldSoft.withValues(alpha: 0.85),
+                      color: AppColors.background,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFDCFCE7)),
+                      border: Border.all(color: AppColors.line),
                     ),
-                    child: Text(
-                      _loading ? 'Memuat...' : badgeDate,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.emeraldDark,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          _loading ? 'loading'.tr : badgeDate,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                        if (_hijriDate.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 2),
+                          Text(
+                            _hijriDate,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.emerald,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
@@ -524,7 +531,7 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
               const SizedBox(height: 16),
               if (_loadFailed) ...<Widget>[
                 Text(
-                  'Gagal memuat jadwal terbaru',
+                  'failed_load_schedule'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -576,15 +583,15 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
                   ),
                   Container(
                     width: 1,
-                    height: 40,
+                    height: 48,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: <Color>[
                           Colors.transparent,
-                          Color(0xFFE2E8F0),
+                          AppColors.line,
                           Colors.transparent,
                         ],
                       ),
@@ -640,24 +647,38 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
   }
 
   String _formatDateId(DateTime d) {
-    const hari = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-    const bulan = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des'
+    final hari = ['mon'.tr, 'tue'.tr, 'wed'.tr, 'thu'.tr, 'fri'.tr, 'sat'.tr, 'sun'.tr];
+    final bulan = [
+      'jan'.tr,
+      'feb'.tr,
+      'mar'.tr,
+      'apr'.tr,
+      'may'.tr,
+      'jun'.tr,
+      'jul'.tr,
+      'aug'.tr,
+      'sep'.tr,
+      'oct'.tr,
+      'nov'.tr,
+      'dec'.tr
     ];
     final h = hari[(d.weekday - 1).clamp(0, 6)];
     final b = bulan[(d.month - 1).clamp(0, 11)];
     return '$h, ${d.day} $b';
+  }
+
+  String _extractHijriDate(dynamic raw) {
+    final data = raw is Map ? raw['data'] : null;
+    final date = data is Map ? data['date'] : null;
+    final hijri = date is Map ? date['hijri'] : null;
+    if (hijri is! Map) return '';
+
+    final day = (hijri['day'] ?? '').toString().trim();
+    final year = (hijri['year'] ?? '').toString().trim();
+    final monthRaw = hijri['month'];
+    final monthName = monthRaw is Map ? (monthRaw['en'] ?? '').toString().trim() : '';
+    if (day.isEmpty || year.isEmpty || monthName.isEmpty) return '';
+    return '$day $monthName $year H';
   }
 }
 
@@ -749,58 +770,63 @@ class _GridFitur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isTamu = AuthService.instance.adalahTamu;
+    const List<Color> paletSenada = <Color>[
+      Color(0xFFEAFBF6),
+      Color(0xFFE3F8F2),
+      Color(0xFFDCF4EE),
+      Color(0xFFD5F1EA),
+    ];
 
     final List<_ItemFitur> fitur = <_ItemFitur>[
       _ItemFitur(
-        judul: 'Screener',
+        judul: 'screener'.tr,
         ikon: Symbols.rule_folder,
-        warna: const Color(0xFFE8F5F0),
+        warna: paletSenada[0],
         tujuan: RuteAplikasi.penyaring,
       ),
       _ItemFitur(
-        judul: 'Pasar',
+        judul: 'market'.tr,
         ikon: Symbols.candlestick_chart,
-        warna: const Color(0xFFEFF6FF),
+        warna: paletSenada[1],
         tujuan: RuteAplikasi.pasar,
       ),
       _ItemFitur(
-        judul: 'Pustaka',
+        judul: 'library'.tr,
         ikon: Symbols.menu_book,
-        warna: const Color(0xFFFFF7ED),
+        warna: paletSenada[2],
         tujuan: RuteAplikasi.pustaka,
       ),
       _ItemFitur(
-        judul: 'Portofolio',
-        ikon: Symbols.account_balance_wallet,
-        warna: const Color(0xFFEDE9FE),
-        tujuan: RuteAplikasi.portofolio,
-        terbatasGuest: true,
+        judul: 'chatbot'.tr,
+        ikon: Symbols.smart_toy,
+        warna: paletSenada[3],
+        tujuan: RuteAplikasi.chatbot,
       ),
       _ItemFitur(
-        judul: 'Zakat',
+        judul: 'zakat'.tr,
         ikon: Symbols.calculate,
-        warna: const Color(0xFFFFE4E6),
+        warna: paletSenada[1],
         tujuan: RuteAplikasi.zakat,
         terbatasGuest: true,
       ),
       _ItemFitur(
-        judul: 'Psikolog',
+        judul: 'psychologist'.tr,
         ikon: Symbols.psychology,
-        warna: const Color(0xFFE0F2FE),
+        warna: paletSenada[0],
         tujuan: RuteAplikasi.psikolog,
         terbatasGuest: true,
       ),
       _ItemFitur(
-        judul: 'Konsultasi',
+        judul: 'consultation'.tr,
         ikon: Symbols.support_agent,
-        warna: const Color(0xFFFFEDD5),
+        warna: paletSenada[2],
         tujuan: RuteAplikasi.konsultasi,
         terbatasGuest: true,
       ),
       _ItemFitur(
-        judul: 'Zikir',
+        judul: 'dhikr'.tr,
         ikon: Symbols.auto_stories,
-        warna: const Color(0xFFE2E8F0),
+        warna: paletSenada[3],
         tujuan: RuteAplikasi.zikir,
       ),
     ];
@@ -808,9 +834,8 @@ class _GridFitur extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        const _SectionHeader(
-          title: 'Fitur Utama',
-          subtitle: 'Akses cepat fitur utama Averroes',
+        _SectionHeader(
+          title: 'main_features'.tr,
           leadingIcon: Symbols.apps,
         ),
         const SizedBox(height: 12),
@@ -829,110 +854,87 @@ class _GridFitur extends StatelessWidget {
             final _ItemFitur item = fitur[index];
             final bool terkunci = isTamu && item.terbatasGuest;
 
-            return InkWell(
+            return CustomCard(
               onTap: () {
                 if (cekAksesGuest(context, item.tujuan)) {
                   return;
                 }
                 Get.toNamed(item.tujuan);
               },
-              borderRadius: BorderRadius.circular(18),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: terkunci ? const Color(0xFFFBFCFE) : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: _BerandaUi.softLine),
-                  boxShadow: terkunci
-                      ? null
-                      : const <BoxShadow>[
-                          BoxShadow(
-                            color: Color(0x08000000),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                ),
-                child: Stack(
-                  children: <Widget>[
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: <Widget>[
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: terkunci
-                                  ? const Color(0xFFF1F5F9)
-                                  : item.warna,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: terkunci
-                                    ? _BerandaUi.softLine
-                                    : const Color(0xFFFFFFFF),
-                                width: 1.2,
-                              ),
-                              boxShadow: terkunci
-                                  ? null
-                                  : const <BoxShadow>[
-                                      BoxShadow(
-                                        color: Color(0x12000000),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 3),
-                                      ),
-                                    ],
-                            ),
-                            child: Icon(
-                              item.ikon,
-                              size: 19,
-                              color: terkunci
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF1E293B),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            item.judul,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: terkunci
-                                  ? const Color(0xFF94A3B8)
-                                  : const Color(0xFF64748B),
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (terkunci)
-                      Positioned(
-                        right: -2,
-                        top: -2,
-                        child: Container(
-                          width: 20,
-                          height: 20,
+              padding: const EdgeInsets.all(12),
+              backgroundColor: terkunci ? AppColors.cloud : AppColors.surface,
+              borderRadius: 16,
+              hasShadow: !terkunci,
+              child: Stack(
+                children: <Widget>[
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Container(
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(6),
+                            color: terkunci
+                                ? AppColors.line.withValues(alpha: 0.5)
+                                : item.warna,
+                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: const Color(0xFFFDE68A),
-                              width: 1,
+                              color: terkunci
+                                  ? AppColors.line
+                                  : Colors.white,
+                              width: 1.5,
                             ),
                           ),
-                          child: const Icon(
-                            Symbols.lock,
-                            size: 11,
-                            color: Color(0xFFF59E0B),
+                          child: Icon(
+                            item.ikon,
+                            size: 20,
+                            color: terkunci
+                                ? AppColors.muted
+                                : AppColors.slate,
                           ),
                         ),
+                        const SizedBox(height: 10),
+                        Text(
+                          item.judul,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: terkunci
+                                ? AppColors.muted
+                                : AppColors.inkSoft,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (terkunci)
+                    Positioned(
+                      right: -2,
+                      top: -2,
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: AppColors.emeraldSoft,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: AppColors.emerald.withValues(alpha: 0.25),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Icon(
+                          Symbols.lock,
+                          size: 11,
+                          color: AppColors.emerald,
+                        ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
             );
           },
@@ -988,62 +990,50 @@ class _KartuLanjutkanBelajarState extends State<_KartuLanjutkanBelajar> {
   @override
   Widget build(BuildContext context) {
     final subtitle = _loading
-        ? 'Memuat kelas terakhir...'
+        ? 'loading_last_class'.tr
         : _last == null
-            ? 'Belum ada progress materi'
-            : 'Kelas: ${_last!.kelasJudul} (Materi ${_last!.nextMateriIndex}/${_last!.totalMateri})';
-    return InkWell(
+            ? 'no_material_progress'.tr
+            : 'class_label'.tr + '${_last!.kelasJudul} ' + 'material_label'.tr + '${_last!.nextMateriIndex}/${_last!.totalMateri})';
+    return CustomCard(
       onTap: _openEdukasi,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              Color(0xFFECFDF5),
-              Color(0xFFFFFFFF),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: <Widget>[
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: const Color(0xFF059669),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Symbols.menu_book,
-                color: Colors.white,
-                size: 22,
-              ),
+      padding: const EdgeInsets.all(20),
+      backgroundColor: AppColors.emeraldSoft,
+      border: BorderSide(color: AppColors.emerald.withValues(alpha: 0.15)),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.emerald,
+              borderRadius: BorderRadius.circular(14),
             ),
+            child: const Icon(
+              Symbols.menu_book,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Lanjutkan Belajar',
+                    'continue_learning'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0F172A),
+                      color: AppColors.slate,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF64748B),
+                      color: AppColors.muted,
                     ),
                   ),
                 ],
@@ -1051,12 +1041,11 @@ class _KartuLanjutkanBelajarState extends State<_KartuLanjutkanBelajar> {
             ),
             const Icon(
               Symbols.chevron_right,
-              color: Color(0xFF64748B),
+              color: AppColors.muted,
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -1130,29 +1119,30 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
           setState(() {
             _errorMessage = data['pesan']?.toString() ??
                 data['message']?.toString() ??
-                'Gagal memuat berita';
+                'failed_load_news'.tr;
             _isLoading = false;
           });
         }
       } else {
         setState(() {
-          _errorMessage = 'Gagal memuat berita';
+          _errorMessage = 'failed_load_news'.tr;
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Tidak dapat terhubung ke server';
+        _errorMessage = 'cannot_connect_server'.tr;
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _bukaBerita(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  Future<void> _bukaDetailBerita(Map<String, dynamic> item) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _HalamanDetailBerita(item: item),
+      ),
+    );
   }
 
   @override
@@ -1161,8 +1151,8 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _SectionHeader(
-          title: 'Berita Aset Kripto',
-          subtitle: 'Sumber: cryptowave.co.id',
+          title: 'crypto_asset_news'.tr,
+          subtitle: 'source_cryptowave'.tr,
           leadingIcon: Symbols.newspaper,
           trailing: !_isLoading
               ? GestureDetector(
@@ -1185,7 +1175,7 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Perbarui',
+                          'refresh'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -1230,7 +1220,7 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
                     const Icon(Symbols.newspaper, size: 16, color: Color(0xFF059669)),
                     const SizedBox(width: 8),
                     Text(
-                      'Lihat Berita',
+                      'see_news'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
@@ -1305,7 +1295,7 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
   Widget _buildError() {
     return _StateCard(
       icon: Symbols.cloud_off,
-      message: _errorMessage ?? 'Terjadi kesalahan saat memuat berita',
+      message: _errorMessage ?? 'error_loading_news'.tr,
       backgroundColor: const Color(0xFFFEF2F2),
       borderColor: const Color(0xFFFECACA),
       foregroundColor: const Color(0xFFB91C1C),
@@ -1318,7 +1308,7 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            'Coba Lagi',
+            'try_again'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 11,
               fontWeight: FontWeight.w700,
@@ -1331,9 +1321,9 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
   }
 
   Widget _buildEmpty() {
-    return const _StateCard(
+    return _StateCard(
       icon: Symbols.article,
-      message: 'Belum ada berita terbaru untuk ditampilkan',
+      message: 'no_latest_news'.tr,
       backgroundColor: Colors.white,
       borderColor: _BerandaUi.softLine,
       foregroundColor: AppColors.muted,
@@ -1345,165 +1335,147 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
     final String ringkasan = (item['ringkasan'] as String?) ?? '';
     final String penulis = (item['penulis'] as String?) ?? '';
     final String tanggal = (item['tanggal_asli'] as String?) ?? '';
-    final String sumberUrl = (item['sumber_url'] as String?) ?? '';
     final String gambarUrl = ((item['gambar_url'] ??
                 item['thumbnail'] ??
                 item['image_url'] ??
                 item['urlToImage']) as String?) ??
         '';
 
-    return GestureDetector(
-      onTap: () => _bukaBerita(sumberUrl),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _BerandaUi.softLine),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color(0x05000000),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Thumbnail
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: gambarUrl.isNotEmpty
-                  ? Image.network(
-                      gambarUrl,
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (BuildContext context, Object error,
-                          StackTrace? stackTrace) {
-                        return Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFECFDF5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Symbols.newspaper,
-                            size: 28,
-                            color: Color(0xFF059669),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Symbols.newspaper,
-                        size: 28,
-                        color: Color(0xFF059669),
-                      ),
+    return CustomCard(
+      onTap: () => _bukaDetailBerita(item),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      hasShadow: false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // Thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: gambarUrl.isNotEmpty
+                ? Image.network(
+                    gambarUrl,
+                    width: 72,
+                    height: 72,
+                    fit: BoxFit.cover,
+                    errorBuilder:
+                        (BuildContext context, Object error, StackTrace? stackTrace) {
+                      return Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Symbols.newspaper,
+                          size: 28,
+                          color: Color(0xFF059669),
+                        ),
+                      );
+                    },
+                  )
+                : Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECFDF5),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-            ),
-            const SizedBox(width: 12),
-            // Konten
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
+                    child: const Icon(
+                      Symbols.newspaper,
+                      size: 28,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          // Konten
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  judul,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (ringkasan.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    judul,
+                    ringkasan,
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
-                      height: 1.4,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF64748B),
+                      height: 1.3,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (ringkasan.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      ringkasan,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Row(
-                    children: <Widget>[
-                      if (penulis.isNotEmpty) ...[
-                        Icon(
-                          Symbols.person,
-                          size: 12,
-                          color: const Color(0xFF94A3B8),
-                        ),
-                        const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            penulis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                      if (penulis.isNotEmpty && tanggal.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: Container(
-                            width: 3,
-                            height: 3,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFCBD5E1),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      if (tanggal.isNotEmpty)
-                        Flexible(
-                          child: Text(
-                            tanggal,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF94A3B8),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                    ],
-                  ),
                 ],
-              ),
+                const SizedBox(height: 6),
+                Row(
+                  children: <Widget>[
+                    if (penulis.isNotEmpty) ...[
+                      const Icon(
+                        Symbols.person,
+                        size: 12,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          penulis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                    if (penulis.isNotEmpty && tanggal.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Container(
+                          width: 3,
+                          height: 3,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFCBD5E1),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    if (tanggal.isNotEmpty)
+                      Flexible(
+                        child: Text(
+                          tanggal,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            const Icon(
-              Symbols.open_in_new,
-              size: 16,
-              color: Color(0xFFCBD5E1),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Symbols.chevron_right, size: 18, color: Color(0xFFCBD5E1)),
+        ],
       ),
     );
   }
@@ -1548,17 +1520,18 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
       });
     } catch (_) {
       setState(() {
-        _error = 'Gagal memuat berita';
+        _error = 'failed_load_news'.tr;
         _loading = false;
       });
     }
   }
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  Future<void> _openDetail(Map<String, dynamic> item) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _HalamanDetailBerita(item: item),
+      ),
+    );
   }
 
   @override
@@ -1567,7 +1540,7 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: Text(
-          '20 Berita Terbaru',
+          'latest_20_news'.tr,
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
         ),
       ),
@@ -1592,14 +1565,13 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
                     final judul = (item['judul'] as String?) ?? '';
                     final ringkasan = (item['ringkasan'] as String?) ?? '';
                     final tanggal = (item['tanggal_asli'] as String?) ?? '';
-                    final sumberUrl = (item['sumber_url'] as String?) ?? '';
                     final gambarUrl = ((item['gambar_url'] ??
                                 item['thumbnail'] ??
                                 item['image_url'] ??
                                 item['urlToImage']) as String?) ??
                         '';
                     return GestureDetector(
-                      onTap: () => _openUrl(sumberUrl),
+                      onTap: () => _openDetail(item),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(14),
@@ -1676,6 +1648,257 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
         color: const Color(0xFFECFDF5),
         child: const Icon(Symbols.newspaper, color: Color(0xFF059669)),
       );
+}
+
+class _HalamanDetailBerita extends StatefulWidget {
+  const _HalamanDetailBerita({required this.item});
+
+  final Map<String, dynamic> item;
+
+  @override
+  State<_HalamanDetailBerita> createState() => _HalamanDetailBeritaState();
+}
+
+class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
+  late Map<String, dynamic> _item = Map<String, dynamic>.from(widget.item);
+  bool _loadingFull = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFullIfNeeded();
+  }
+
+  Future<void> _fetchFullIfNeeded() async {
+    final String id = (_item['id'] ?? '').toString().trim();
+    final String konten = (_item['konten'] ?? '').toString().trim();
+    if (id.isEmpty) return;
+    if (konten.length >= 700) return;
+
+    setState(() => _loadingFull = true);
+    try {
+      final Dio dio = ApiDio.create(attachAuthToken: false);
+      final Response<dynamic> r = await dio.get<dynamic>(
+        '${AppConfig.apiBaseUrl}/api/berita/$id/full',
+      );
+      final Map<String, dynamic> raw = r.data is String
+          ? jsonDecode(r.data as String) as Map<String, dynamic>
+          : (r.data as Map<String, dynamic>);
+      final dynamic data = raw['data'];
+      if (data is Map) {
+        _item = Map<String, dynamic>.from(data);
+      }
+    } catch (_) {
+      // Keep fallback content from list API.
+    } finally {
+      if (mounted) setState(() => _loadingFull = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String judul = (_item['judul'] as String?)?.trim() ?? 'Berita';
+    final String ringkasan = (_item['ringkasan'] as String?)?.trim() ?? '';
+    final String konten = (_item['konten'] as String?)?.trim() ?? '';
+    final String tanggal = ((_item['tanggal_asli'] as String?)?.trim().isNotEmpty ?? false)
+        ? (_item['tanggal_asli'] as String).trim()
+        : ((_item['published_at'] as String?)?.trim() ?? '');
+    final String sumberUrl = (_item['sumber_url'] as String?)?.trim() ?? '';
+    final String gambarUrl = ((_item['gambar_url'] ??
+                _item['thumbnail'] ??
+                _item['image_url'] ??
+                _item['urlToImage']) as String?)?.trim() ??
+        '';
+    final String isi = _cleanArticleText(konten.isNotEmpty ? konten : ringkasan);
+    final List<Map<String, String>> blocks = _parseArticleBlocks(_item['konten_blocks']);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: Text(
+          'news_detail'.tr,
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: <Widget>[
+          if (gambarUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                gambarUrl,
+                height: 190,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _detailThumbFallback(),
+              ),
+            )
+          else
+            _detailThumbFallback(),
+          const SizedBox(height: 14),
+          Text(
+            judul,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+              height: 1.25,
+            ),
+          ),
+          if (tanggal.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              tanggal,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+          ],
+          if (_loadingFull) ...[
+            const SizedBox(height: 8),
+            Text(
+              'loading_full_content'.tr,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F766E),
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: blocks.isEmpty
+                ? Text(
+                    isi.isEmpty ? 'no_content_available'.tr : isi,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF334155),
+                      height: 1.55,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: blocks.map((b) {
+                      final String type = b['type'] ?? 'p';
+                      if (type == 'img') {
+                        final String url = b['url'] ?? '';
+                        if (url.isEmpty) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              url,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                          ),
+                        );
+                      }
+                      final String txt = (b['text'] ?? '').trim();
+                      if (txt.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          txt,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF334155),
+                            height: 1.55,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+          if (sumberUrl.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final uri = Uri.tryParse(sumberUrl);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              icon: const Icon(Symbols.open_in_new, size: 18),
+              label: Text(
+                'open_original_source'.tr,
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                side: const BorderSide(color: Color(0xFFCBD5E1)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _detailThumbFallback() {
+    return Container(
+      height: 190,
+      decoration: BoxDecoration(
+        color: const Color(0xFFECFDF5),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.center,
+      child: const Icon(Symbols.newspaper, size: 44, color: Color(0xFF059669)),
+    );
+  }
+
+  String _cleanArticleText(String raw) {
+    final String noTags = raw
+        .replaceAll(RegExp(r'<[^>]*>'), ' ')
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+    final lines = noTags
+        .split('\n')
+        .map((e) => e.replaceAll(RegExp(r'[ \t]+'), ' ').trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    return lines.join('\n\n').trim();
+  }
+
+  List<Map<String, String>> _parseArticleBlocks(dynamic raw) {
+    if (raw is! List) return <Map<String, String>>[];
+    final out = <Map<String, String>>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final String type = (item['type'] ?? '').toString().trim().toLowerCase();
+      if (type == 'img') {
+        final String url = (item['url'] ?? '').toString().trim();
+        if (url.isNotEmpty) {
+          out.add(<String, String>{'type': 'img', 'url': url});
+        }
+      } else if (type == 'p') {
+        final String text = (item['text'] ?? '').toString().trim();
+        if (text.isNotEmpty) {
+          out.add(<String, String>{'type': 'p', 'text': text});
+        }
+      }
+    }
+    return out;
+  }
 }
 
 
@@ -1811,9 +2034,9 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.amberSoft,
+                          color: const Color(0xFFDDF7EE),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.5)),
+                          border: Border.all(color: const Color(0xFFBEEAD8)),
                           boxShadow: const <BoxShadow>[
                             BoxShadow(
                               color: Color(0x14000000),
@@ -1824,7 +2047,7 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                         ),
                         child: const Icon(
                           Symbols.account_balance_wallet,
-                          color: AppColors.amber,
+                          color: AppColors.emerald,
                           size: 24,
                         ),
                       ),
@@ -1833,7 +2056,7 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            'Total Portfolio',
+                            'total_portfolio'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -1883,8 +2106,8 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                 children: <Widget>[
                   Text(
                     _loading
-                        ? 'Memuat portofolio...'
-                        : '$_jumlahAset aset kripto',
+                        ? 'loading_portfolio'.tr
+                        : '$_jumlahAset' + 'crypto_assets'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -1910,7 +2133,7 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                       child: Row(
                         children: <Widget>[
                           Text(
-                            'Lihat Portofolio',
+                            'view_portfolio'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w900,

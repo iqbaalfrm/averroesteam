@@ -16,6 +16,7 @@ class ApiDio {
         receiveTimeout: const Duration(seconds: 20),
         headers: <String, dynamic>{
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
