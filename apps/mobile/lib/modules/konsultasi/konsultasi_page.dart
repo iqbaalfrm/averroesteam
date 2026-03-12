@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/models/ahli_syariah_model.dart';
 import '../../app/services/api_dio.dart';
+import '../../app/services/auth_service.dart';
 
 class HalamanKonsultasi extends StatefulWidget {
   const HalamanKonsultasi({super.key});
@@ -283,13 +284,36 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
   }
 
   Future<void> _prosesBooking(AhliSyariahModel ahli) async {
+    if (!AuthService.instance.sudahLogin) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Silakan login terlebih dahulu untuk memulai konsultasi.',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF1E293B),
+            action: SnackBarAction(
+              label: 'LOGIN',
+              textColor: const Color(0xFF10B981),
+              onPressed: () {
+                // Asumsi ada route atau Navigator ke login_page
+                // Navigator.pushNamed(context, '/login'); 
+                // Untuk sekarang tampilkan pesan saja
+              },
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final Response<dynamic> response = await _dio.post<dynamic>(
         '/api/konsultasi/book',
         data: <String, dynamic>{
           'ahli_id': ahli.id,
-          'user_id': '67d1bb333ce56ad257d0959c', // Placeholder ID User
         },
       );
 

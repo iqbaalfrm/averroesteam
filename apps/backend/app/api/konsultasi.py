@@ -37,12 +37,20 @@ def get_kategori():
         "data": kategori
     })
 
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 @konsultasi_bp.post("/book")
+@jwt_required()
 def book_konsultasi():
     data = request.json
     ahli_id = data.get("ahli_id")
-    user_id = data.get("user_id") # Di dunia nyata, ambil dari JWT (get_jwt_identity)
+    user_id = get_jwt_identity()
     
+    # Ambil data user untuk Midtrans
+    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"status": False, "message": "User tidak ditemukan"}), 404
+
     ahli = mongo.db.ahli_syariah.find_one({"_id": ObjectId(ahli_id)})
     if not ahli:
         return jsonify({"status": False, "message": "Ahli tidak ditemukan"}), 404
@@ -79,8 +87,8 @@ def book_konsultasi():
             "name": f"Konsultasi Syariah - {ahli['nama']}"
         }],
         "customer_details": {
-            "first_name": "User", # Bisa ambil dari profile user jika ada
-            "email": "user@example.com"
+            "first_name": user.get("nama", "User Averroes"),
+            "email": user.get("email", "user@averroes.id")
         }
     }
 
