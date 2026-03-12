@@ -1,7 +1,9 @@
-from flask import Blueprint, request, jsonify
-from app.extensions import mongo
+import midtransclient
+from flask import Blueprint, request, jsonify, current_app
+from app.extensions import mongo, csrf
 from bson import ObjectId
 from datetime import datetime
+import uuid
 
 konsultasi_bp = Blueprint("konsultasi", __name__, url_prefix="/api/konsultasi")
 
@@ -14,7 +16,6 @@ def get_ahli():
     kategori_id = request.args.get("kategori_id")
     query = {}
     if kategori_id and kategori_id != "Semua Ahli":
-        # Cocokkan nama atau ID kategori
         query["$or"] = [
             {"kategori_id": kategori_id},
             {"spesialis": {"$regex": kategori_id, "$options": "i"}}
@@ -38,24 +39,92 @@ def get_kategori():
 
 @konsultasi_bp.post("/book")
 def book_konsultasi():
-    # Placeholder untuk sistem booking & pembayaran
-    # Di masa depan terintegrasi dengan Payment Gateway
     data = request.json
     ahli_id = data.get("ahli_id")
-    user_id = data.get("user_id") # Harusnya dari JWT
+    user_id = data.get("user_id") # Di dunia nyata, ambil dari JWT (get_jwt_identity)
     
-    # Simulasi pembuatan sesi
+    ahli = mongo.db.ahli_syariah.find_one({"_id": ObjectId(ahli_id)})
+    if not ahli:
+        return jsonify({"status": False, "message": "Ahli tidak ditemukan"}), 404
+
+    order_id = f"CONS-{uuid.uuid4().hex[:8].upper()}"
+    harga = ahli.get("harga_per_sesi", 50000)
+
+    # 1. Simpan sesi ke DB dengan status pending
     sesi = {
+        "order_id": order_id,
         "user_id": user_id,
         "ahli_id": ahli_id,
-        "status": "pending_payment",
-        "harga": 50000,
+        "status": "pending",
+        "harga": harga,
         "created_at": datetime.utcnow()
     }
-    res = mongo.db.sessions.insert_one(sesi)
-    
-    return jsonify({
-        "status": True,
-        "message": "Permintaan konsultasi dibuat, silakan selesaikan pembayaran",
-        "session_id": str(res.inserted_id)
-    }), 201
+    mongo.db.sessions.insert_one(sesi)
+
+    # 2. Inisiasi Midtrans Snap
+    snap = midtransclient.Snap(
+        is_production=current_app.config["MIDTRANS_IS_PRODUCTION"],
+        server_key=current_app.config["MIDTRANS_SERVER_KEY"]
+    )
+
+    param = {
+        "transaction_details": {
+            "order_id": order_id,
+            "gross_amount": harga
+        },
+        "item_details": [{
+            "id": str(ahli["_id"]),
+            "price": harga,
+            "quantity": 1,
+            "name": f"Konsultasi Syariah - {ahli['nama']}"
+        }],
+        "customer_details": {
+            "first_name": "User", # Bisa ambil dari profile user jika ada
+            "email": "user@example.com"
+        }
+    }
+
+    try:
+        transaction = snap.create_transaction(param)
+        return jsonify({
+            "status": True,
+            "message": "Sesi konsultasi diinisiasi",
+            "data": {
+                "order_id": order_id,
+                "snap_token": transaction['token'],
+                "redirect_url": transaction['redirect_url']
+            }
+        }), 201
+    except Exception as e:
+        return jsonify({"status": False, "message": str(e)}), 500
+
+@konsultasi_bp.post("/notification")
+@csrf.exempt
+def handle_notification():
+    data = request.json
+    order_id = data.get("order_id")
+    transaction_status = data.get("transaction_status")
+    fraud_status = data.get("fraud_status")
+
+    if not order_id:
+        return jsonify({"status": False, "message": "Invalid notification"}), 400
+
+    new_status = "pending"
+    if transaction_status == 'capture':
+        if fraud_status == 'challenge':
+            new_status = 'challenge'
+        elif fraud_status == 'accept':
+            new_status = 'success'
+    elif transaction_status == 'settlement':
+        new_status = 'success'
+    elif transaction_status == 'cancel' or transaction_status == 'deny' or transaction_status == 'expire':
+        new_status = 'failed'
+    elif transaction_status == 'pending':
+        new_status = 'pending'
+
+    mongo.db.sessions.update_one(
+        {"order_id": order_id},
+        {"$set": {"status": new_status, "updated_at": datetime.utcnow()}}
+    )
+
+    return jsonify({"status": True, "message": "Notification handled"})

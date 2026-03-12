@@ -163,6 +163,28 @@ ENTITY_CONFIG = {
             {"name": "role", "label": "Role", "type": "text"},
         ],
     },
+    "ahli_syariah": {
+        "label": "Ahli Syariah",
+        "collection": "ahli_syariah",
+        "fields": [
+            {"name": "nama", "label": "Nama", "type": "text"},
+            {"name": "spesialis", "label": "Spesialis", "type": "text"},
+            {"name": "harga_per_sesi", "label": "Harga / Sesi (IDR)", "type": "number"},
+            {"name": "no_whatsapp", "label": "No WhatsApp", "type": "text"},
+            {"name": "is_online", "label": "Online", "type": "boolean"},
+            {"name": "is_verified", "label": "Verified", "type": "boolean"},
+        ],
+    },
+    "sessions": {
+        "label": "Transaksi Konsultasi",
+        "collection": "sessions",
+        "fields": [
+            {"name": "user_id", "label": "Pengguna", "type": "select", "collection": "users", "option_label": "nama"},
+            {"name": "ahli_id", "label": "Ahli Syariah", "type": "select", "collection": "ahli_syariah", "option_label": "nama"},
+            {"name": "status", "label": "Status Bayar", "type": "text"},
+            {"name": "harga", "label": "Nominal", "type": "number"},
+        ],
+    },
 }
 
 LMS_ENTITY_KEYS = ("kelas", "modul", "materi", "quiz", "sertifikat")
@@ -175,6 +197,8 @@ SIDEBAR_ITEMS = [
     ("screener", "Screener"),
     ("berita", "Berita"),
     ("diskusi", "Diskusi"),
+    ("ahli_syariah", "Ahli Syariah"),
+    ("sessions", "Transaksi"),
     ("pengguna", "Pengguna"),
 ]
 

@@ -41,6 +41,9 @@ class BaseConfig:
     PASSWORD_RESET_OTP_EXPIRES_SECONDS = int(os.getenv("PASSWORD_RESET_OTP_EXPIRES_SECONDS", "300"))
     PASSWORD_RESET_DEBUG_OTP_IN_RESPONSE = _as_bool(os.getenv("PASSWORD_RESET_DEBUG_OTP_IN_RESPONSE"), default=False)
     PUSTAKA_SIGNED_URL_EXPIRES_SECONDS = int(os.getenv("PUSTAKA_SIGNED_URL_EXPIRES_SECONDS", "600"))
+    MIDTRANS_SERVER_KEY = os.getenv("MIDTRANS_SERVER_KEY", "SB-Mid-server-x-placeholder")
+    MIDTRANS_CLIENT_KEY = os.getenv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-x-placeholder")
+    MIDTRANS_IS_PRODUCTION = _as_bool(os.getenv("MIDTRANS_IS_PRODUCTION"), default=False)
 
     # Flask-Mail Configuration
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")

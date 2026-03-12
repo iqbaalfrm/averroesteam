@@ -159,7 +159,7 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
                           padding: const EdgeInsets.only(bottom: 12),
                           child: _KartuAhli(
                             ahli: ahli,
-                            onTap: () => _hubungiWhatsApp(ahli.noWhatsapp, ahli.nama),
+                            onTap: () => _konfirmasiKonsultasi(ahli),
                           ),
                         )),
                   const SizedBox(height: 20),
@@ -167,6 +167,168 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _konfirmasiKonsultasi(AhliSyariahModel ahli) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Konfirmasi Konsultasi',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: <Widget>[
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(ahli.fotoUrl),
+                    radius: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        ahli.nama,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      Text(
+                        ahli.spesialis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Text(
+                    'Biaya Sesi (Ijarah)',
+                    style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B)),
+                  ),
+                  Text(
+                    'Rp ${ahli.hargaPerSesi ~/ 1000}rb',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF064E3B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _prosesBooking(ahli);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF064E3B),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Bayar Sekarang',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  'Pembayaran aman via Midtrans',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _prosesBooking(AhliSyariahModel ahli) async {
+    setState(() => _isLoading = true);
+    try {
+      final Response<dynamic> response = await _dio.post<dynamic>(
+        '/api/konsultasi/book',
+        data: <String, dynamic>{
+          'ahli_id': ahli.id,
+          'user_id': '67d1bb333ce56ad257d0959c', // Placeholder ID User
+        },
+      );
+
+      if (response.data != null && response.data['status'] == true) {
+        final String redirectUrl = response.data['data']['redirect_url'] as String;
+        final Uri uri = Uri.parse(redirectUrl);
+        
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          
+          // Setelah membuka payment, tampilkan dialog instruksi
+          if (mounted) {
+            _showSuccessInstruction(ahli);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error booking: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showSuccessInstruction(AhliSyariahModel ahli) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text('Menunggu Pembayaran', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+        content: Text(
+          'Silakan selesaikan pembayaran di browser. Setelah sukses, Anda bisa kembali ke sini dan klik Hubungi Ustadz.',
+          style: GoogleFonts.plusJakartaSans(),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _hubungiWhatsApp(ahli.noWhatsapp, ahli.nama);
+            },
+            child: Text('Hubungi Ustadz (WhatsApp)', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF064E3B))),
           ),
         ],
       ),
