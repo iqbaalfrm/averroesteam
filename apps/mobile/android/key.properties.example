@@ -1,0 +1,4 @@
+storeFile=../keystore/averroes.jks
+storePassword=change_me
+keyAlias=averroes
+keyPassword=change_me

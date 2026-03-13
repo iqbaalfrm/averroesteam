@@ -133,7 +133,12 @@ def berita_terbaru():
 @berita_bp.get("")
 def berita_semua():
     page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
+    per_page = request.args.get("per_page", type=int)
+    limit = request.args.get("limit", type=int)
+    if per_page is None and limit is not None:
+        per_page = limit
+    if per_page is None:
+        per_page = 20
     per_page = max(1, min(per_page, 50))
     
     skip = (page - 1) * per_page

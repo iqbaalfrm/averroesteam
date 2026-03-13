@@ -1,6 +1,6 @@
 # Yang Belum Dikerjakan - Proyek Averroes
 
-Tanggal cek: 26 Februari 2026  
+Tanggal cek: 13 Maret 2026  
 Sumber: audit repo saat ini + `docs/production-plan.md` + `docs/production-ui-plan.md` + `docs/backend-feature-execution-plan.md`
 
 ## Catatan Penting (Status Dokumen vs Kode)
@@ -75,9 +75,7 @@ Sumber: audit repo saat ini + `docs/production-plan.md` + `docs/production-ui-pl
 
 ### Penyelarasan Contract / API Minor
 
-- Dukungan `limit` untuk berita masih jadi item tracking di dokumen; kode `GET /api/berita` saat ini memakai `per_page`, sehingga perlu:
-  - update mobile/dokumen agar konsisten, atau
-  - tambah alias `limit` jika memang dibutuhkan.
+- Dukungan `limit` untuk berita: **Selesai di backend** (alias `limit` -> `per_page`), tinggal sinkronisasi dokumen/mobile bila diperlukan.
 - Error message unauthorized/expired token perlu dipastikan mudah ditangani di mobile (masih checklist dokumen).
 
 ### Hardening Auth (Dokumen Belum Ditutup)

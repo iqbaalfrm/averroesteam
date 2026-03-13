@@ -79,6 +79,26 @@ flutter build ios --release
 
 Pastikan signing Android/iOS sudah dikonfigurasi sebelum build final.
 
+## Play Store Readiness (Android)
+
+Checklist teknis minimum sebelum upload `aab`:
+
+- Ubah `applicationId` dan `namespace` ke ID final (bukan `com.example...`) di `android/app/build.gradle.kts`.
+- Siapkan keystore release dan isi `android/key.properties` (lihat contoh: `android/key.properties.example`).
+- Pastikan `API_BASE_URL` production sudah HTTPS (release build mematikan cleartext).
+- Update `version` di `pubspec.yaml` (versionName + versionCode).
+- Pastikan `android:label` sesuai nama app publik.
+- Siapkan URL Privacy Policy untuk Play Console (wajib).
+
+Langkah signing (ringkas):
+
+```bash
+cd apps/mobile/android
+copy key.properties.example key.properties
+```
+
+Lalu isi `storeFile`, `storePassword`, `keyAlias`, `keyPassword` sesuai keystore rilis.
+
 ## Checklist UAT Mobile (Flow Kritis)
 
 Checklist minimum yang harus dicek manual:

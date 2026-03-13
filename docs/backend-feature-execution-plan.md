@@ -90,7 +90,7 @@ Temuan penting:
 - Putuskan behavior `POST /api/auth/google`:
   - stub sementara (return `501` dengan pesan jelas), atau
   - implementasi minimal token verify (jika kredensial tersedia)
-- Tambah dukungan query `limit` di `GET /api/berita` atau update mobile ke `per_page`
+- Tambah dukungan query `limit` di `GET /api/berita` atau update mobile ke `per_page` (Done: alias `limit` -> `per_page`)
 - Tambah endpoint healthcheck eksplisit (mis. `GET /api/health`) untuk smoke test
 - Logging error backend minimum untuk endpoint auth/LMS
 
@@ -230,7 +230,7 @@ Checklist:
   - `quiz`
   - `sertifikat`
   - `screener`
-- [ ] Tambah dukungan `limit` di `GET /api/berita` atau dokumentasikan `per_page`
+- [x] Tambah dukungan `limit` di `GET /api/berita` atau dokumentasikan `per_page` (alias `limit` -> `per_page`)
 - [x] Verifikasi flow JWT:
   - `register/login/guest` -> token
   - token dipakai ke progress/quiz/sertifikat
@@ -380,7 +380,7 @@ Mitigasi:
 | Implement `verifikasi-otp` | P0 | Done | TBD | Endpoint validasi OTP berjalan |
 | Implement `reset-password` | P0 | Done | TBD | Update password hash + OTP mark used |
 | Keputusan `google login` (stub/real) | P1 | Done (Stub 501) | TBD | Hindari endpoint 404 |
-| Dukungan `limit` berita / alignment query | P1 | Planned | TBD | Home feed |
+| Dukungan `limit` berita / alignment query | P1 | Done | TBD | `limit` alias ke `per_page` di backend |
 | Smoke test backend feature set | P0 | In Progress | TBD | Lulus lokal 26 Feb 2026, perlu run di staging |
 
 ## Catatan Eksekusi
