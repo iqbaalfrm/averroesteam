@@ -3,8 +3,10 @@ import 'package:averroes_core/averroes_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Response;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
+import '../../app/config/app_config.dart';
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
@@ -23,6 +25,10 @@ class _HalamanLoginState extends State<HalamanLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final Dio _dio = ApiDio.create(attachAuthToken: false);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: <String>['email', 'profile'],
+    serverClientId: AppConfig.googleWebClientId,
+  );
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -54,11 +60,20 @@ class _HalamanLoginState extends State<HalamanLogin> {
 
   Future<void> _loginGoogle() async {
     await _runRequest(() async {
+      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      if (account == null) {
+        return;
+      }
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken;
+      if (idToken == null || idToken.isEmpty) {
+        _showMessage('general_error'.tr, isError: true);
+        return;
+      }
+
       final Response<dynamic> response = await _dio.post<dynamic>(
         '/api/auth/google',
-        data: <String, dynamic>{
-          'email': _emailController.text.trim(),
-        },
+        data: <String, dynamic>{'id_token': idToken},
       );
 
       await _handleAuthResponse(response);
@@ -251,7 +266,7 @@ class _TopBar extends StatelessWidget {
           ),
           const Spacer(),
           IconButton(
-            onPressed: () {},
+            onPressed: () => Get.toNamed(RuteAplikasi.bantuan),
             icon: const Icon(
               Symbols.help_outline,
               size: 22,

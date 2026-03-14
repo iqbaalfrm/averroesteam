@@ -44,6 +44,8 @@ Gunakan `.env` dan atur minimal:
 - `JWT_SECRET_KEY=<random panjang dan kuat>`
 - `MONGODB_URI=mongodb://...`
 - `DB_NAME=averroes_db`
+- `UPLOAD_FOLDER` (opsional). Jika path relatif (mis. `uploads`), otomatis dipetakan ke `apps/backend/uploads`.
+  Pastikan folder ini writable oleh user service (contoh `www-data`).
 
 Konfigurasi scraping berita crypto:
 - `NEWS_SCRAPER_ENABLED=true`
@@ -63,6 +65,9 @@ Catatan:
 4. Jalankan via Gunicorn (`wsgi:app`), bukan `python run.py`.
 5. Pasang reverse proxy (Nginx/Caddy) + HTTPS.
 6. Pastikan `UPLOAD_FOLDER` menggunakan persistent storage.
+   Jika error `Permission denied: 'uploads'`, buat folder dan set permission:
+   - `sudo mkdir -p /var/www/AverroesTeam/apps/backend/uploads`
+   - `sudo chown -R www-data:www-data /var/www/AverroesTeam/apps/backend/uploads`
 7. Ganti kredensial admin (default `admin123`) saat di env production.
 8. Batasi akses `/admin` (IP allowlist/VPN/SSO jika memungkinkan).
 9. Aktifkan logging dan monitoring error.

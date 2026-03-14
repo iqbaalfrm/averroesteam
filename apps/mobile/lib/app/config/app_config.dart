@@ -21,4 +21,16 @@ class AppConfig {
 
   static String get groqModel =>
       dotenv.env['GROQ_MODEL'] ?? 'llama-3.1-8b-instant';
+
+  /// OAuth web client ID untuk verifikasi id_token di backend.
+  /// Isi lewat .env dengan GOOGLE_WEB_CLIENT_ID.
+  static String? get googleWebClientId {
+    final String fromEnv = dotenv.env['GOOGLE_WEB_CLIENT_ID']?.trim() ?? '';
+    if (fromEnv.isNotEmpty) {
+      return fromEnv;
+    }
+    final String fromConst =
+        const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID').trim();
+    return fromConst.isNotEmpty ? fromConst : null;
+  }
 }

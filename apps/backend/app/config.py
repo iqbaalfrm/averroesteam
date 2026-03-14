@@ -11,6 +11,15 @@ def _as_bool(value: str | None, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _resolve_upload_folder(value: str | None) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return str(BASE_DIR / "uploads")
+    if os.path.isabs(raw):
+        return raw
+    return str((BASE_DIR / raw).resolve())
+
+
 class BaseConfig:
     DEBUG = False
     TESTING = False
@@ -19,7 +28,7 @@ class BaseConfig:
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", str(60 * 60 * 24)))
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(10 * 1024 * 1024)))
     NISHAB_DUMMY = float(os.getenv("NISHAB_DUMMY", "85000000"))
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "uploads"))
+    UPLOAD_FOLDER = _resolve_upload_folder(os.getenv("UPLOAD_FOLDER"))
     MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     DB_NAME = os.getenv("DB_NAME", "averroes_db")
     SESSION_COOKIE_HTTPONLY = True
@@ -44,6 +53,7 @@ class BaseConfig:
     MIDTRANS_SERVER_KEY = os.getenv("MIDTRANS_SERVER_KEY", "SB-Mid-server-x-placeholder")
     MIDTRANS_CLIENT_KEY = os.getenv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-x-placeholder")
     MIDTRANS_IS_PRODUCTION = _as_bool(os.getenv("MIDTRANS_IS_PRODUCTION"), default=False)
+    GOOGLE_OAUTH_CLIENT_IDS = os.getenv("GOOGLE_OAUTH_CLIENT_IDS", "")
 
     # Flask-Mail Configuration
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")

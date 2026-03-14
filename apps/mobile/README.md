@@ -11,6 +11,7 @@ Runbook singkat untuk development, UAT, dan build release mobile.
 ## Setup Environment
 
 App membaca file `.env` (lihat `lib/bootstrap.dart`).
+Jika memakai login Google, isi `GOOGLE_WEB_CLIENT_ID` di `.env` (Web client ID dari Google Cloud).
 
 ### Development (lokal)
 
@@ -89,6 +90,7 @@ Checklist teknis minimum sebelum upload `aab`:
 - Update `version` di `pubspec.yaml` (versionName + versionCode).
 - Pastikan `android:label` sesuai nama app publik.
 - Siapkan URL Privacy Policy untuk Play Console (wajib).
+  - File siap pakai: `docs/privacy-policy.html` (host via GitHub Pages atau hosting statis).
 
 Langkah signing (ringkas):
 
@@ -98,6 +100,16 @@ copy key.properties.example key.properties
 ```
 
 Lalu isi `storeFile`, `storePassword`, `keyAlias`, `keyPassword` sesuai keystore rilis.
+
+Generate keystore (contoh):
+
+```bash
+cd apps/mobile/android
+mkdir keystore
+keytool -genkeypair -v -keystore keystore/averroes.jks -alias averroes -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Catatan: ganti password `change_me` dengan password kuat untuk rilis produksi.
 
 ## Checklist UAT Mobile (Flow Kritis)
 

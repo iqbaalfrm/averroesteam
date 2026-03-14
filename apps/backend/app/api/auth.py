@@ -42,6 +42,42 @@ def is_otp_expired(otp, now):
     return False
 
 
+def _get_google_client_ids():
+    raw = current_app.config.get("GOOGLE_OAUTH_CLIENT_IDS", "")
+    return [value.strip() for value in raw.split(",") if value.strip()]
+
+
+def _verify_google_id_token(token: str):
+    if not token:
+        return None, "id_token wajib diisi"
+    client_ids = _get_google_client_ids()
+    if not client_ids:
+        return None, "Login Google belum dikonfigurasi di backend."
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+    except Exception as exc:
+        current_app.logger.error("Google auth library missing: %s", exc)
+        return None, "Login Google belum siap di backend."
+
+    request_adapter = google_requests.Request()
+    last_error = None
+    for client_id in client_ids:
+        try:
+            payload = google_id_token.verify_oauth2_token(
+                token,
+                request_adapter,
+                audience=client_id,
+            )
+            return payload, None
+        except ValueError as exc:
+            last_error = exc
+            continue
+
+    current_app.logger.warning("Google token verification failed: %s", last_error)
+    return None, "Token Google tidak valid"
+
+
 @auth_bp.post("/register")
 def register():
     payload = request.get_json() or {}
@@ -103,13 +139,72 @@ def guest_login():
 
 
 @auth_bp.post("/google")
-def google_login_stub():
-    # Phase 1 decision: stub endpoint to avoid 404 in mobile while real Google auth is deferred.
-    payload, code = _legacy_error(
-        "Login Google belum aktif di backend saat ini. Gunakan login email/password atau tamu.",
-        501,
+def google_login():
+    payload = request.get_json() or {}
+    token = (payload.get("id_token") or payload.get("token") or "").strip()
+    if not token:
+        return response_error("id_token wajib diisi", 400)
+
+    idinfo, error_message = _verify_google_id_token(token)
+    if error_message:
+        status_code = 501 if "konfigurasi" in error_message.lower() else 401
+        return response_error(error_message, status_code)
+
+    email = (idinfo.get("email") or "").strip().lower()
+    if not email:
+        return response_error("Email Google tidak ditemukan", 400)
+    email_verified = idinfo.get("email_verified", False)
+    if isinstance(email_verified, str):
+        email_verified = email_verified.strip().lower() == "true"
+    if not email_verified:
+        return response_error("Email Google belum terverifikasi", 401)
+
+    now = datetime.utcnow()
+    sub = idinfo.get("sub")
+    name = idinfo.get("name") or idinfo.get("given_name") or "Pengguna"
+    picture = idinfo.get("picture")
+
+    user = mongo.db.users.find_one({"email": email})
+    if user:
+        if user.get("google_sub") and sub and user.get("google_sub") != sub:
+            return response_error("Akun Google tidak cocok dengan email ini", 409)
+        update_data = {"updated_at": now}
+        if sub:
+            update_data["google_sub"] = sub
+        if name and not user.get("nama"):
+            update_data["nama"] = name
+        if picture:
+            update_data["foto_url"] = picture
+        if "auth_provider" not in user:
+            update_data["auth_provider"] = "google"
+        if "email_verified" not in user:
+            update_data["email_verified"] = bool(email_verified)
+        if update_data:
+            mongo.db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
+            user.update(update_data)
+    else:
+        user = {
+            "nama": name,
+            "email": email,
+            "role": "user",
+            "google_sub": sub,
+            "auth_provider": "google",
+            "foto_url": picture,
+            "email_verified": bool(email_verified),
+            "created_at": now,
+            "updated_at": now,
+        }
+        result = mongo.db.users.insert_one(user)
+        user["_id"] = result.inserted_id
+
+    access_token = create_access_token(
+        identity=str(user["_id"]),
+        additional_claims={"role": user.get("role")},
     )
-    return payload, code
+    return response_success(
+        "Login Google berhasil",
+        {"token": access_token, "user": format_doc(user, "password_hash")},
+    )
 
 
 @auth_bp.get("/me")
