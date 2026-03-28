@@ -24,7 +24,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final Dio _dio = ApiDio.create(attachAuthToken: false);
+  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>['email', 'profile'],
     serverClientId: AppConfig.googleWebClientId,

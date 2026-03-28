@@ -11,6 +11,11 @@ class AppConfig {
     return raw.trim().replaceAll(RegExp(r'/$'), '');
   }
 
+  static String get authApiBaseUrl {
+    final String raw = dotenv.env['AUTH_API_BASE_URL'] ?? 'http://10.0.2.2:8000';
+    return raw.trim().replaceAll(RegExp(r'/$'), '');
+  }
+
   static String get groqApiKey {
     final String fromEnv = dotenv.env['GROQ_API_KEY']?.trim() ?? '';
     if (fromEnv.isNotEmpty) {

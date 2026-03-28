@@ -17,7 +17,7 @@ class HalamanLupaPassword extends StatefulWidget {
 class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
-  final Dio _dio = ApiDio.create(attachAuthToken: false);
+  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
 
   bool _isLoading = false;
 

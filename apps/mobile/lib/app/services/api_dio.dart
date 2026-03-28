@@ -8,9 +8,17 @@ class ApiDio {
   const ApiDio._();
 
   static Dio create({bool attachAuthToken = true}) {
+    return _buildDio(AppConfig.apiBaseUrl, attachAuthToken);
+  }
+
+  static Dio createAuth({bool attachAuthToken = true}) {
+    return _buildDio(AppConfig.authApiBaseUrl, attachAuthToken);
+  }
+
+  static Dio _buildDio(String baseUrl, bool attachAuthToken) {
     final Dio dio = Dio(
       BaseOptions(
-        baseUrl: AppConfig.apiBaseUrl,
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 10),
         sendTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 20),

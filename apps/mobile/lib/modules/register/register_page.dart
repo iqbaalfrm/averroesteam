@@ -22,7 +22,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final Dio _dio = ApiDio.create(attachAuthToken: false);
+  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
 
   bool _obscurePassword = true;
   bool _agreeTerms = false;
@@ -50,7 +50,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
       final Response<dynamic> response = await _dio.post<dynamic>(
         '/api/auth/register',
         data: <String, dynamic>{
-          'nama': _nameController.text.trim(),
+          'nama_lengkap': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
         },
@@ -92,8 +92,11 @@ class _HalamanRegisterState extends State<HalamanRegister> {
   void _handleAuthResponse(Response<dynamic> response) {
     final dynamic data = response.data;
     if (data is Map<String, dynamic> && _isSuccess(data)) {
-      _showMessage(_extractMessage(data, fallback: 'Berhasil'));
-      Get.offAllNamed(RuteAplikasi.login);
+      _showMessage(_extractMessage(data, fallback: 'Berhasil. Cek email untuk OTP.'));
+      Get.toNamed(RuteAplikasi.verifikasiOtp, arguments: <String, String>{
+        'email': _emailController.text.trim(),
+        'mode': 'register',
+      });
       return;
     }
     _showMessage('general_error'.tr, isError: true);

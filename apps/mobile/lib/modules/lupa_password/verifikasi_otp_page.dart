@@ -25,13 +25,14 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
   );
   final List<FocusNode> _focusNodes =
       List<FocusNode>.generate(6, (_) => FocusNode());
-  final Dio _dio = ApiDio.create(attachAuthToken: false);
+  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
 
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
   String _email = '';
+  String _mode = 'reset'; // "reset" atau "register"
   bool _isVerifying = false;
   bool _isResetting = false;
   bool _otpVerified = false;
@@ -49,6 +50,7 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     final dynamic args = Get.arguments;
     if (args is Map<String, String>) {
       _email = args['email'] ?? '';
+      _mode = args['mode'] ?? 'reset';
     }
     _startCountdown();
   }
@@ -105,11 +107,18 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
 
       final dynamic data = response.data;
       if (data is Map<String, dynamic> && data['status'] == true) {
-        setState(() {
-          _otpVerified = true;
-          _verifiedKode = kode;
-        });
-        _showMessage('otp_valid'.tr);
+        if (_mode == 'register') {
+          // Jika mendaftar, OTP berhasil lalu arahkan ke Home atau Login
+          _showMessage('otp_valid'.tr);
+          Get.offAllNamed(RuteAplikasi.login);
+        } else {
+          // Mode Lupa Sandi
+          setState(() {
+            _otpVerified = true;
+            _verifiedKode = kode;
+          });
+          _showMessage('otp_valid'.tr);
+        }
       } else {
         _showMessage('otp_invalid'.tr, isError: true);
       }
