@@ -545,11 +545,55 @@ def _seed_kelas_bundle(bundle: dict, now: datetime) -> None:
         )
 
 
+def _seed_kajian(now: datetime) -> None:
+    kajian_data = [
+        {
+            "judul": "BITCOIN DIHARAMKAN? Ustadz Devin: Banyak yang Salah Paham, Ini Alasan Crypto Tidak Haram dalam Islam",
+            "deskripsi": "Kajian sementara untuk membahas miskonsepsi umum seputar hukum Bitcoin dan aset kripto dalam perspektif syariah.",
+            "youtube_url": "https://youtu.be/ciamJjQ2ruU?si=XQI5CoGM2w7DZXjv",
+            "channel": "kasisolusi",
+            "kategori": "Kajian Crypto Syariah",
+            "durasi_label": "Kajian",
+            "urutan": 1,
+            "is_active": True,
+        },
+        {
+            "judul": "Bitcoin Zero Sum Game Jadi Haram?",
+            "deskripsi": "Kajian sementara untuk mengulas apakah Bitcoin termasuk zero sum game dan bagaimana cara memahami isu ini dengan lebih hati-hati.",
+            "youtube_url": "https://youtu.be/rU56XmYmKcg?si=p2cC1qxRj108DvNH",
+            "channel": "Mudacumasekali",
+            "kategori": "Kajian Crypto Syariah",
+            "durasi_label": "Kajian",
+            "urutan": 2,
+            "is_active": True,
+        },
+        {
+            "judul": "Bedah Halal Haram Crypto Aset bersama Ustadz Devin Halim Wijaya",
+            "deskripsi": "Kajian sementara yang berfokus pada pembahasan halal-haram crypto aset sebagai referensi awal sebelum user mendalami materi lebih lanjut.",
+            "youtube_url": "https://youtu.be/P4R19e7bowg?si=5lmtv3LFvDTt6MGA",
+            "channel": "Wakaf Ilmu",
+            "kategori": "Kajian Crypto Syariah",
+            "durasi_label": "Kajian",
+            "urutan": 3,
+            "is_active": True,
+        },
+    ]
+
+    for item in kajian_data:
+        existing = mongo.db.kajian.find_one({"youtube_url": item["youtube_url"]})
+        if not existing:
+            item["created_at"] = now
+            item["updated_at"] = now
+            mongo.db.kajian.insert_one(item)
+
 def seed_data():
     now = datetime.utcnow()
 
     _ensure_user("admin@averroes.com", "Admin Averroes", "admin", "admin123", now)
     _ensure_user("user@averroes.com", "Coba User", "user", "user123", now)
+
+    _seed_kajian(now)
+
 
     kelas_bundles = [
         {
