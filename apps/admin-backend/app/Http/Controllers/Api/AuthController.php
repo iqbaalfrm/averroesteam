@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpMail;
 
 class AuthController extends Controller
 {
@@ -43,10 +45,20 @@ class AuthController extends Controller
             'is_verified' => false,
         ]);
 
-        // LOGIKA PENUNJANG: Kirim OTP melalui log & API respon untuk masa percobaan skripsi
+        // LOGIKA PENUNJANG: Kirim OTP melalui log & Email
         Log::info("OTP Pendaftaran {$user->email} dikirim: {$otp}");
+        
+        try {
+            Mail::to($user->email)->send(new OtpMail(
+                $otp, 
+                "Averroes - Verifikasi OTP Pendaftaran Akun", 
+                "Terima kasih atas itikad baik Anda untuk mengambil peran mendalami ranah Fiqh. Berikut adalah rincian kode OTP untuk meloloskan registrasi Anda:"
+            ));
+        } catch (\Exception $e) {
+            Log::error("Gagal mengirim email OTP: " . $e->getMessage());
+        }
 
-        return $this->jsonResponse(true, 'Registrasi tercatat secara aman. Silakan masukkan kode OTP yang telah disalurkan.', [
+        return $this->jsonResponse(true, 'Registrasi tercatat secara aman. Silakan masukkan kode OTP yang telah disalurkan ke posel (email) Anda.', [
             'otp_dummy_skripsi' => $otp, // Sementara dilempar di response flutter untuk mempermudah tes emulator
             'email' => $user->email,
         ]);
@@ -136,7 +148,17 @@ class AuthController extends Controller
 
         Log::info("OTP Lupa Kata Sandi {$user->email}: {$otp}");
 
-        return $this->jsonResponse(true, 'Kode pemulihan mitigasi (OTP) berhasil diterbitkan untuk akun ini.', [
+        try {
+            Mail::to($user->email)->send(new OtpMail(
+                $otp, 
+                "Averroes - Pemulihan Hak Akses (Lupa Kata Sandi)", 
+                "Kami mendapatkan titipan permohonan pemulihan sandi atas nama Anda. Selalu perhatikan tata kelola mitigasi kata sandi. Berikut adalah instrumen pemulihan sementaran (OTP) Anda:"
+            ));
+        } catch (\Exception $e) {
+            Log::error("Gagal mengirim email pemulihan: " . $e->getMessage());
+        }
+
+        return $this->jsonResponse(true, 'Kode pemulihan mitigasi (OTP) berhasil diterbitkan dan disalurkan ke kotak masuk posel (email) Anda.', [
             'otp_dummy_skripsi' => $otp,
             'email' => $user->email,
         ]);
