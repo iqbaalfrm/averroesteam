@@ -221,8 +221,16 @@ class _HalamanZikirState extends State<HalamanZikir> {
         GestureDetector(
           onTap: () async {
             final uri = Uri.parse('https://www.youtube.com/watch?v=${_selectedVideo!.id}');
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            try {
+              final bool launched = await launchUrl(
+                uri,
+                mode: LaunchMode.externalNonBrowserApplication,
+              );
+              if (!launched) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            } catch (_) {
+              await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
             }
           },
           child: ClipRRect(
