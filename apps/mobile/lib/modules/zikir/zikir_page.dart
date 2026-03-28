@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/services/api_dio.dart';
 
@@ -48,7 +48,6 @@ class _HalamanZikirState extends State<HalamanZikir> {
     ),
   ];
 
-  late final YoutubePlayerController _controller;
   List<_KajianVideo> _videos = <_KajianVideo>[];
   _KajianVideo? _selectedVideo;
   bool _loading = true;
@@ -56,24 +55,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: _bootstrapVideoId,
-      autoPlay: false,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-        strictRelatedVideos: true,
-        enableCaption: false,
-        interfaceLanguage: 'id',
-      ),
-    );
     _loadKajian();
-  }
-
-  @override
-  void dispose() {
-    _controller.close();
-    super.dispose();
   }
 
   Future<void> _loadKajian() async {
@@ -114,7 +96,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
       });
 
       if (_selectedVideo != null) {
-        _controller.loadVideoById(videoId: _selectedVideo!.id);
+        // Ready
       }
     } catch (_) {
       if (!mounted) return;
@@ -123,8 +105,6 @@ class _HalamanZikirState extends State<HalamanZikir> {
         _selectedVideo = _fallbackVideos.first;
         _loading = false;
       });
-
-      _controller.loadVideoById(videoId: _fallbackVideos.first.id);
     }
   }
 
@@ -133,7 +113,6 @@ class _HalamanZikirState extends State<HalamanZikir> {
       return;
     }
     setState(() => _selectedVideo = video);
-    _controller.loadVideoById(videoId: video.id);
   }
 
   @override
@@ -160,70 +139,65 @@ class _HalamanZikirState extends State<HalamanZikir> {
       );
     }
 
-    return YoutubePlayerScaffold(
-      controller: _controller,
-      builder: (BuildContext context, Widget player) {
-        return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
-          body: CustomScrollView(
-            slivers: <Widget>[
-              SliverAppBar(
-                pinned: true,
-                elevation: 0,
-                backgroundColor: const Color(0xFFF8FAFC),
-                automaticallyImplyLeading: false,
-                titleSpacing: 0,
-                title: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: Row(
-                    children: <Widget>[
-                      _HeaderIconButton(
-                        icon: Symbols.arrow_back_ios_new_rounded,
-                        onTap: () => Navigator.of(context).maybePop(),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              'Kajian Averroes',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF0F172A),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Video kajian Averroes dengan fallback sementara',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverAppBar(
+            pinned: true,
+            elevation: 0,
+            backgroundColor: const Color(0xFFF8FAFC),
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            title: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: Row(
+                children: <Widget>[
+                  _HeaderIconButton(
+                    icon: Symbols.arrow_back_ios_new_rounded,
+                    onTap: () => Navigator.of(context).maybePop(),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Kajian Averroes',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Video kajian selaras dengan pandangan syariah',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  child: _buildBody(player),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: _buildBody(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(Widget player) {
+  Widget _buildBody() {
     if (_loading) {
       return const _KajianStateCard(
         icon: Symbols.progress_activity,
@@ -244,23 +218,44 @@ class _HalamanZikirState extends State<HalamanZikir> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const <BoxShadow>[
-                BoxShadow(
-                  color: Color(0x1A0F172A),
-                  blurRadius: 18,
-                  offset: Offset(0, 10),
+        GestureDetector(
+          onTap: () async {
+            final uri = Uri.parse('https://www.youtube.com/watch?v=${_selectedVideo!.id}');
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x1A0F172A),
+                    blurRadius: 18,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    Image.network(
+                      _selectedVideo!.thumbnailUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1E293B)),
+                    ),
+                    Container(color: Colors.black.withValues(alpha: 0.45)),
+                    const Center(
+                      child: Icon(Symbols.play_circle_filled, size: 64, color: Colors.white),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: player,
+              ),
             ),
           ),
         ),
