@@ -251,7 +251,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
                     ),
                     Container(color: Colors.black.withValues(alpha: 0.45)),
                     const Center(
-                      child: Icon(Symbols.play_circle_filled, size: 64, color: Colors.white),
+                      child: Icon(Symbols.play_circle, size: 64, color: Colors.white),
                     ),
                   ],
                 ),
