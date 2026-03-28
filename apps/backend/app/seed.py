@@ -872,4 +872,7 @@ def seed_data():
     print("Seeding MongoDB berhasil.")
 
 if __name__ == "__main__":
-    seed_data()
+    from app import create_app
+    app = create_app()
+    with app.app_context():
+        seed_data()
