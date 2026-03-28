@@ -9,20 +9,18 @@ import '../../modules/lupa_password/verifikasi_otp_page.dart';
 import '../../modules/register/register_page.dart';
 import '../../modules/pasar/pasar_page.dart';
 import '../../modules/portofolio/portofolio_page.dart';
-import '../../modules/psikolog/psikolog_page.dart';
-import '../../modules/diskusi/diskusi_page.dart';
 import '../../modules/reels/reels_page.dart';
 import '../../modules/screener/screener_page.dart';
 import '../../modules/shell/shell_page.dart';
 import '../../modules/zikir/zikir_page.dart';
 import '../../modules/zakat/zakat_page.dart';
-import '../../modules/konsultasi/konsultasi_page.dart';
 import '../../modules/pustaka/pustaka_page.dart';
 import '../../modules/bantuan/bantuan_page.dart';
 import '../../modules/notifikasi/notifikasi_page.dart';
 import '../../modules/edit_profil/edit_profil_page.dart';
 import '../../modules/sertifikat/sertifikat_page.dart';
 import '../../modules/kebijakan_privasi/kebijakan_privasi_page.dart';
+import '../../presentation/common/feature_unavailable_page.dart';
 import 'app_routes.dart';
 
 class HalamanAplikasi {
@@ -52,7 +50,7 @@ class HalamanAplikasi {
     ),
     GetPage<dynamic>(
       name: RuteAplikasi.diskusi,
-      page: () => const HalamanDiskusi(),
+      page: () => const FeatureUnavailablePage(),
       middlewares: <GetMiddleware>[AuthRequiredPopupMiddleware()],
     ),
     GetPage<dynamic>(
@@ -71,12 +69,12 @@ class HalamanAplikasi {
     ),
     GetPage<dynamic>(
       name: RuteAplikasi.psikolog,
-      page: () => const HalamanPsikolog(),
+      page: () => const FeatureUnavailablePage(),
       middlewares: <GetMiddleware>[AuthRequiredPopupMiddleware()],
     ),
     GetPage<dynamic>(
       name: RuteAplikasi.konsultasi,
-      page: () => const HalamanKonsultasi(),
+      page: () => const FeatureUnavailablePage(),
       middlewares: <GetMiddleware>[AuthRequiredPopupMiddleware()],
     ),
     GetPage<dynamic>(

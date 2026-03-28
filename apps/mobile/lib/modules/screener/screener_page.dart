@@ -19,8 +19,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
   final Dio _dio = ApiDio.create();
   final TextEditingController _searchController = TextEditingController();
   final GetStorage _box = GetStorage();
-  static const String _cacheKey = 'screener_cache_v1';
-  static const String _cacheAllKey = 'screener_cache_all_v1';
+  static const String _cacheTopKey = 'screener_cache_top100_v1';
 
   bool _popupSudahTampil = false;
   bool _isLoading = true;
@@ -67,6 +66,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
     if (_statusFilter != 'all') {
       query['status'] = _statusFilter;
     }
+    query['top'] = 100;
 
     for (int attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -90,11 +90,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
             .whereType<Map<dynamic, dynamic>>()
             .map((Map<dynamic, dynamic> row) => Map<String, dynamic>.from(row))
             .toList();
-        _box.write(_cacheKey, cacheRows);
-        final bool isAllFilter = _statusFilter == 'all' && q.isEmpty;
-        if (isAllFilter) {
-          _box.write(_cacheAllKey, cacheRows);
-        }
+        _box.write(_cacheTopKey, cacheRows);
 
         if (!mounted) return;
         setState(() {
@@ -111,13 +107,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
       }
     }
 
-    final List<_ScreenerItem> cached = _readCachedItems();
-    final List<_ScreenerItem> filteredFromAll = _readAllAndFilterLocally(
-      q: q,
-      statusFilter: _statusFilter,
-    );
-    final List<_ScreenerItem> fallback =
-        filteredFromAll.isNotEmpty ? filteredFromAll : cached;
+    final List<_ScreenerItem> fallback = _readTopCachedItems();
     if (fallback.isNotEmpty) {
       if (!mounted) return;
       setState(() {
@@ -138,41 +128,14 @@ class _HalamanScreenerState extends State<HalamanScreener> {
     }
   }
 
-  List<_ScreenerItem> _readCachedItems() {
-    final dynamic raw = _box.read(_cacheKey);
+  List<_ScreenerItem> _readTopCachedItems() {
+    final dynamic raw = _box.read(_cacheTopKey);
     if (raw is! List) return <_ScreenerItem>[];
     return raw
         .whereType<Map<dynamic, dynamic>>()
         .map((Map<dynamic, dynamic> row) =>
             _ScreenerItem.fromJson(Map<String, dynamic>.from(row)))
         .toList();
-  }
-
-  List<_ScreenerItem> _readAllAndFilterLocally({
-    required String q,
-    required String statusFilter,
-  }) {
-    final dynamic raw = _box.read(_cacheAllKey);
-    if (raw is! List) return <_ScreenerItem>[];
-    final List<_ScreenerItem> allItems = raw
-        .whereType<Map<dynamic, dynamic>>()
-        .map((Map<dynamic, dynamic> row) =>
-            _ScreenerItem.fromJson(Map<String, dynamic>.from(row)))
-        .toList();
-    Iterable<_ScreenerItem> result = allItems;
-    final String search = q.trim().toLowerCase();
-    if (search.isNotEmpty) {
-      result = result.where((item) {
-        final name = item.namaKoin.toLowerCase();
-        final symbol = item.simbol.toLowerCase();
-        return name.contains(search) || symbol.contains(search);
-      });
-    }
-    if (statusFilter != 'all') {
-      result = result
-          .where((item) => item.statusSyariah.toLowerCase() == statusFilter);
-    }
-    return result.toList();
   }
 
   String _logoForItem(_ScreenerItem item) {
@@ -668,26 +631,26 @@ class _StatusStyle {
       return _StatusStyle(
         label: 'screener_filter_halal'.tr,
         icon: Symbols.verified,
-        iconColor: Color(0xFF059669),
-        badgeColor: Color(0xFFECFDF5),
-        textColor: Color(0xFF059669),
+        iconColor: const Color(0xFF059669),
+        badgeColor: const Color(0xFFECFDF5),
+        textColor: const Color(0xFF059669),
       );
     }
     if (status == 'haram') {
       return _StatusStyle(
         label: 'screener_filter_haram'.tr,
         icon: Symbols.block,
-        iconColor: Color(0xFFF43F5E),
-        badgeColor: Color(0xFFFFE4E6),
-        textColor: Color(0xFFF43F5E),
+        iconColor: const Color(0xFFF43F5E),
+        badgeColor: const Color(0xFFFFE4E6),
+        textColor: const Color(0xFFF43F5E),
       );
     }
     return _StatusStyle(
       label: 'screener_filter_process'.tr,
       icon: Symbols.pending,
-      iconColor: Color(0xFF64748B),
-      badgeColor: Color(0xFFF1F5F9),
-      textColor: Color(0xFF64748B),
+      iconColor: const Color(0xFF64748B),
+      badgeColor: const Color(0xFFF1F5F9),
+      textColor: const Color(0xFF64748B),
     );
   }
 }

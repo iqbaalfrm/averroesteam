@@ -21,7 +21,6 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
   final PustakaApi _api = PustakaApi();
   final ScrollController _scrollController = ScrollController();
   bool _loading = true;
-  bool _loadingMore = false;
   String? _error;
   List<PustakaKategori> _kategori = const <PustakaKategori>[];
   List<PustakaBuku> _buku = const <PustakaBuku>[];
@@ -33,31 +32,24 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _load();
   }
 
   @override
   void dispose() {
-    _scrollController
-      ..removeListener(_onScroll)
-      ..dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    if (_scrollController.position.extentAfter < 300) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _load({String? kategoriSlug, bool resetKategori = false}) async {
+  Future<void> _load({
+    String? kategoriSlug,
+    bool resetKategori = false,
+    int page = 1,
+  }) async {
     setState(() {
       _loading = true;
-      _loadingMore = false;
       _error = null;
-      _page = 1;
+      _page = page;
       _totalPages = 1;
       if (resetKategori) {
         _selectedKategoriSlug = kategoriSlug;
@@ -68,7 +60,7 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     try {
       final kategori = await _api.fetchKategori();
       final buku = await _api.fetchBuku(
-        page: 1,
+        page: page,
         perPage: 10,
         kategoriSlug: _selectedKategoriSlug,
       );
@@ -90,28 +82,17 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     }
   }
 
-  Future<void> _loadMore() async {
-    if (_loading || _loadingMore) return;
-    if (_page >= _totalPages) return;
-    setState(() => _loadingMore = true);
-    try {
-      final buku = await _api.fetchBuku(
-        page: _page + 1,
-        perPage: 10,
-        kategoriSlug: _selectedKategoriSlug,
-      );
-      if (!mounted) return;
-      setState(() {
-        _buku = <PustakaBuku>[..._buku, ...buku.items];
-        _total = buku.total;
-        _page = buku.page;
-        _totalPages = buku.totalPages;
-        _loadingMore = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loadingMore = false);
-    }
+  Future<void> _goToPage(int targetPage) async {
+    if (_loading) return;
+    if (targetPage < 1 || targetPage > _totalPages) return;
+    if (targetPage == _page) return;
+    await _load(page: targetPage);
+    if (!mounted || !_scrollController.hasClients) return;
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _openDetail(PustakaBuku buku) async {
@@ -136,8 +117,9 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
       if (uri == null || access.url.isEmpty) {
         throw Exception('pustaka_invalid_url'.tr);
       }
-      if (action == 'read' && (buku.formatFile ?? 'pdf').toLowerCase() == 'pdf'
-          && !uri.host.contains('drive.google.com')) {
+      if (action == 'read' &&
+          (buku.formatFile ?? 'pdf').toLowerCase() == 'pdf' &&
+          !uri.host.contains('drive.google.com')) {
         if (!mounted) return;
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -156,9 +138,10 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(action == 'download'
-            ? 'pustaka_download_failed'.tr
-            : 'pustaka_open_failed'.tr)),
+        SnackBar(
+            content: Text(action == 'download'
+                ? 'pustaka_download_failed'.tr
+                : 'pustaka_open_failed'.tr)),
       );
     }
   }
@@ -253,7 +236,8 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                       final PustakaBuku buku = entry.value;
                       final _DokumenUiStyle style = _mapBukuStyle(buku);
                       return Padding(
-                        padding: EdgeInsets.only(bottom: i == _buku.length - 1 ? 0 : 16),
+                        padding: EdgeInsets.only(
+                            bottom: i == _buku.length - 1 ? 0 : 16),
                         child: _KartuDokumen(
                           judul: buku.judul,
                           tag: style.tag,
@@ -276,40 +260,24 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                   if (!_loading && _error == null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      _total > 0 ? 'pustaka_showing_books'.trParams({'count': '${_buku.length}', 'total': '$_total'}) : 'pustaka_no_books'.tr,
+                      _total > 0
+                          ? 'pustaka_showing_books'.trParams({
+                              'count': '${_buku.length}',
+                              'total': '$_total',
+                            })
+                          : 'pustaka_no_books'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF94A3B8),
                       ),
                     ),
-                    if (_loadingMore) ...[
+                    if (_totalPages > 1) ...[
                       const SizedBox(height: 10),
-                      const Center(child: CircularProgressIndicator()),
-                    ] else if (_page < _totalPages) ...[
-                      const SizedBox(height: 10),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _loadMore,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: const Color(0xFFE2E8F0)),
-                            ),
-                            child: Text(
-                              'pustaka_load_more'.tr,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF065F46),
-                              ),
-                            ),
-                          ),
-                        ),
+                      _PustakaPagination(
+                        currentPage: _page,
+                        totalPages: _totalPages,
+                        onPageSelected: _goToPage,
                       ),
                     ],
                   ],
@@ -348,7 +316,9 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
     return _DokumenUiStyle(
       tag: buku.kategoriNama,
       info: _formatBookInfo(buku),
-      icon: (buku.formatFile ?? 'pdf') == 'epub' ? Symbols.auto_stories : Symbols.menu_book,
+      icon: (buku.formatFile ?? 'pdf') == 'epub'
+          ? Symbols.auto_stories
+          : Symbols.menu_book,
       warnaIcon: const Color(0xFFFEF3C7),
       warnaTag: const Color(0xFFF59E0B),
     );
@@ -367,7 +337,9 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
 
   String _formatBytes(int? bytes) {
     if (bytes == null || bytes <= 0) return '';
-    if (bytes >= 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    if (bytes >= 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
     if (bytes >= 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
     return '$bytes B';
   }
@@ -439,7 +411,8 @@ class _KategoriPustaka extends StatelessWidget {
     final List<_ChipKategori> normalized = items
         .asMap()
         .entries
-        .map((e) => e.value.copyWith(aktif: e.key == 0 ? selectedSlug == null : e.value.aktif))
+        .map((e) => e.value
+            .copyWith(aktif: e.key == 0 ? selectedSlug == null : e.value.aktif))
         .toList();
 
     return SingleChildScrollView(
@@ -514,7 +487,9 @@ class _ChipKategoriWidget extends StatelessWidget {
             Icon(
               item.icon,
               size: 16,
-              color: item.aktif ? Colors.white : (item.warnaIcon ?? const Color(0xFF64748B)),
+              color: item.aktif
+                  ? Colors.white
+                  : (item.warnaIcon ?? const Color(0xFF64748B)),
             ),
             const SizedBox(width: 8),
             Text(
@@ -585,7 +560,8 @@ class _BannerUnggulan extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white24,
                   borderRadius: BorderRadius.circular(999),
@@ -629,7 +605,7 @@ class _BannerUnggulan extends StatelessWidget {
                     warnaText: const Color(0xFF065F46),
                   ),
                   const SizedBox(width: 10),
-                  _AksiBanner(
+                  const _AksiBanner(
                     label: '',
                     icon: Symbols.download,
                     warna: Colors.white24,
@@ -664,7 +640,8 @@ class _AksiBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: label.isEmpty ? 0 : 18, vertical: 12),
+      padding: EdgeInsets.symmetric(
+          horizontal: label.isEmpty ? 0 : 18, vertical: 12),
       width: ukuran,
       height: ukuran,
       decoration: BoxDecoration(
@@ -808,7 +785,8 @@ class _KartuDokumen extends StatelessWidget {
                       Row(
                         children: <Widget>[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: warnaTag.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
@@ -862,7 +840,8 @@ class _KartuDokumen extends StatelessWidget {
                               child: GestureDetector(
                                 onTap: onReadTap ?? onTap,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFECFDF5),
                                     borderRadius: BorderRadius.circular(14),
@@ -888,7 +867,8 @@ class _KartuDokumen extends StatelessWidget {
                                 height: 36,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                                  border: Border.all(
+                                      color: const Color(0xFFF1F5F9)),
                                 ),
                                 child: const Icon(
                                   Symbols.download_rounded,
@@ -955,7 +935,8 @@ class _KartuPermintaan extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.6)),
+        border:
+            Border.all(color: const Color(0xFFFDE68A).withValues(alpha: 0.6)),
       ),
       child: Stack(
         children: <Widget>[
@@ -990,7 +971,8 @@ class _KartuPermintaan extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
@@ -1094,7 +1076,8 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
         }
         return;
       }
-      if (action == 'read' && (_buku.formatFile ?? 'pdf').toLowerCase() == 'pdf') {
+      if (action == 'read' &&
+          (_buku.formatFile ?? 'pdf').toLowerCase() == 'pdf') {
         if (!mounted) return;
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
@@ -1205,7 +1188,8 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                                 height: 180,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _DetailCoverFallback(
+                                errorBuilder: (_, __, ___) =>
+                                    _DetailCoverFallback(
                                   judul: _buku.judul,
                                 ),
                               ),
@@ -1264,7 +1248,8 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                             onPressed: (_opening || !_buku.hasFile)
                                 ? null
                                 : () => _openAccess('read'),
-                            icon: const Icon(Symbols.chrome_reader_mode, size: 18),
+                            icon: const Icon(Symbols.chrome_reader_mode,
+                                size: 18),
                             label: Text(
                               _opening ? 'Memuat...' : 'pustaka_read'.tr,
                               style: GoogleFonts.plusJakartaSans(
@@ -1287,7 +1272,8 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                             onPressed: (_opening || !_buku.hasFile)
                                 ? null
                                 : () => _openAccess('download'),
-                            icon: const Icon(Symbols.download_rounded, size: 18),
+                            icon:
+                                const Icon(Symbols.download_rounded, size: 18),
                             label: Text(
                               'Download',
                               style: GoogleFonts.plusJakartaSans(
@@ -1414,8 +1400,7 @@ class _PdfReaderPageState extends State<_PdfReaderPage> {
                 });
               },
             ),
-          if (_loading)
-            const Center(child: CircularProgressIndicator()),
+          if (_loading) const Center(child: CircularProgressIndicator()),
           if (_error != null)
             Center(
               child: Padding(
@@ -1726,6 +1711,184 @@ class _PustakaError extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PustakaPagination extends StatelessWidget {
+  const _PustakaPagination({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onPageSelected,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final ValueChanged<int> onPageSelected;
+
+  List<int> _visiblePages() {
+    if (totalPages <= 5) {
+      return List<int>.generate(totalPages, (int index) => index + 1);
+    }
+    if (currentPage <= 3) {
+      return <int>[1, 2, 3, 4, totalPages];
+    }
+    if (currentPage >= totalPages - 2) {
+      return <int>[
+        1,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages
+      ];
+    }
+    return <int>[1, currentPage - 1, currentPage, currentPage + 1, totalPages];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<int> pages = _visiblePages();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Halaman $currentPage dari $totalPages',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: <Widget>[
+            _PaginationArrow(
+              icon: Symbols.chevron_left_rounded,
+              enabled: currentPage > 1,
+              onTap: () => onPageSelected(currentPage - 1),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: _buildPageChips(pages),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _PaginationArrow(
+              icon: Symbols.chevron_right_rounded,
+              enabled: currentPage < totalPages,
+              onTap: () => onPageSelected(currentPage + 1),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildPageChips(List<int> pages) {
+    final List<Widget> widgets = <Widget>[];
+    for (int index = 0; index < pages.length; index++) {
+      final int page = pages[index];
+      if (index > 0 && page - pages[index - 1] > 1) {
+        widgets.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              '...',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF94A3B8),
+              ),
+            ),
+          ),
+        );
+      }
+      final bool active = page == currentPage;
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: GestureDetector(
+            onTap: active ? null : () => onPageSelected(page),
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 38),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: active ? const Color(0xFF065F46) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: active
+                      ? const Color(0xFF065F46)
+                      : const Color(0xFFE2E8F0),
+                ),
+                boxShadow: active
+                    ? const <BoxShadow>[
+                        BoxShadow(
+                          color: Color(0x22065F46),
+                          blurRadius: 12,
+                          offset: Offset(0, 6),
+                        ),
+                      ]
+                    : const <BoxShadow>[
+                        BoxShadow(
+                          color: Color(0x08000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '$page',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: active ? Colors.white : const Color(0xFF475569),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return widgets;
+  }
+}
+
+class _PaginationArrow extends StatelessWidget {
+  const _PaginationArrow({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: enabled ? Colors.white : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: enabled ? const Color(0xFF065F46) : const Color(0xFFCBD5E1),
+        ),
       ),
     );
   }

@@ -64,7 +64,7 @@ class _HalamanProfilState extends State<HalamanProfil> {
   Future<void> _chooseLanguage() async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       showDragHandle: true,
       builder: (sheetContext) {
         return SafeArea(
@@ -76,10 +76,10 @@ class _HalamanProfilState extends State<HalamanProfil> {
               children: [
                 Text(
                   'choose_language'.tr,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFF0D1B18),
+                    color: AppColors.slate,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -130,12 +130,12 @@ class _HalamanProfilState extends State<HalamanProfil> {
         : 'email_not_set'.tr;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             pinned: true,
-            backgroundColor: const Color(0xFFF6F8F8).withValues(alpha: 0.92),
+            backgroundColor: AppColors.background.withValues(alpha: 0.92),
             elevation: 0,
             titleSpacing: 0,
             title: Padding(
@@ -152,10 +152,10 @@ class _HalamanProfilState extends State<HalamanProfil> {
                     const SizedBox(width: 40, height: 40),
                   Text(
                     'profile_title'.tr,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF0D1B18),
+                      color: AppColors.slate,
                     ),
                   ),
                   _CircleIconButton(
@@ -212,10 +212,10 @@ class _HalamanProfilState extends State<HalamanProfil> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'app_version'.trParams(<String, String>{'version': '2.4.0'}),
-                        style: GoogleFonts.inter(
+                        'app_version'.trParams(<String, String>{'version': '1.0.0'}),
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
-                          color: const Color(0xFF9CA3AF),
+                          color: AppColors.muted,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -259,12 +259,15 @@ class _HeroSection extends StatelessWidget {
             child: Container(
               width: 420,
               height: 280,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0x2413ECB9), Colors.transparent],
+                  colors: [
+                    AppColors.emeraldBright.withValues(alpha: 0.14),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
@@ -284,7 +287,7 @@ class _HeroSection extends StatelessWidget {
                     height: 132,
                     padding: const EdgeInsets.all(5),
                     decoration: const BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -296,16 +299,16 @@ class _HeroSection extends StatelessWidget {
                     ),
                     child: Container(
                       decoration: const BoxDecoration(
-                        color: Color(0xFFE7F7F2),
+                        color: AppColors.emeraldSoft,
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         _initials(nama),
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 36,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFF0D6B56),
+                          color: AppColors.emeraldDark,
                         ),
                       ),
                     ),
@@ -319,9 +322,9 @@ class _HeroSection extends StatelessWidget {
                         width: 38,
                         height: 38,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF13ECB9),
+                          color: AppColors.emeraldBright,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFF6F8F8), width: 3),
+                          border: Border.all(color: AppColors.background, width: 3),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x3313ECB9),
@@ -330,7 +333,7 @@ class _HeroSection extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(Symbols.edit, size: 18, color: Color(0xFF0D1B18)),
+                        child: const Icon(Symbols.edit, size: 18, color: AppColors.slate),
                       ),
                     ),
                   ),
@@ -339,10 +342,10 @@ class _HeroSection extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 nama,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 34 / 1.4,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF0D1B18),
+                  color: AppColors.slate,
                 ),
               ),
               const SizedBox(height: 6),
@@ -352,27 +355,27 @@ class _HeroSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE7F3F0),
+                      color: AppColors.emeraldSoft,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: const Color(0xFFD1FAE5)),
+                      border: Border.all(color: AppColors.mint),
                     ),
                     child: Text(
                       badge,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1,
-                        color: const Color(0xFF4C9A88),
+                        color: AppColors.emerald,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     label,
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF286B5C),
+                      color: AppColors.emerald,
                     ),
                   ),
                 ],
@@ -380,10 +383,10 @@ class _HeroSection extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 email,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6B7280),
+                  color: AppColors.muted,
                 ),
               ),
             ],
@@ -415,10 +418,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: const Color(0xFF0D1B18),
+            color: AppColors.slate,
           ),
         ),
         if (action != null)
@@ -426,10 +429,10 @@ class _SectionHeader extends StatelessWidget {
             onTap: onTap,
             child: Text(
               action!,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF13A88A),
+                color: AppColors.emerald,
               ),
             ),
           ),
@@ -478,10 +481,10 @@ class _SertifikatCard extends StatelessWidget {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFEAFBF4), Color(0xFFD7F8EE)],
+                colors: [AppColors.emeraldSoft, AppColors.mint],
               ),
             ),
-            child: const Icon(Symbols.workspace_premium, size: 30, color: Color(0xFF4C9A88)),
+            child: const Icon(Symbols.workspace_premium, size: 30, color: AppColors.emerald),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -492,32 +495,32 @@ class _SertifikatCard extends StatelessWidget {
                   primaryText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   secondaryText,
-                  style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Icon(
-                      hasCert ? Symbols.verified : Symbols.star, 
-                      size: 14, 
-                      color: hasCert ? const Color(0xFF0D9488) : const Color(0xFFEAB308),
+                      hasCert ? Symbols.verified : Symbols.star,
+                      size: 14,
+                      color: hasCert ? AppColors.emerald : AppColors.warning,
                     ),
                     const SizedBox(width: 5),
                     Text(
                       tertiaryText,
-                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF6B7280)),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.muted),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const Icon(Symbols.chevron_right, color: Color(0xFFCBD5E1)),
+          const Icon(Symbols.chevron_right, color: AppColors.lineDark),
         ],
       ),
     );
@@ -549,8 +552,11 @@ class _RiwayatCard extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(color: Color(0x1A13ECB9), shape: BoxShape.circle),
-                child: const Icon(Symbols.school, color: Color(0xFF0EB58E), size: 22),
+                decoration: BoxDecoration(
+                  color: AppColors.emeraldBright.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Symbols.school, color: AppColors.success, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -561,22 +567,22 @@ class _RiwayatCard extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
-                    Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF6B7280))),
+                    Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted)),
                   ],
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF13ECB9),
+                  color: AppColors.emeraldBright,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'continue'.tr,
-                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF0D1B18)),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
             ],
@@ -595,8 +601,8 @@ class _RiwayatCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('progress'.tr, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF9CA3AF))),
-              Text('${learning.progressMateriPercent}%', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF6B7280))),
+              Text('progress'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted)),
+              Text('${learning.progressMateriPercent}%', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted)),
             ],
           ),
         ],
@@ -624,20 +630,20 @@ class _PengaturanList extends StatelessWidget {
       child: Column(
         children: [
           _SettingRow(icon: Symbols.person_outline, label: 'edit_profile'.tr, onTap: onEdit),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.line),
           _SettingRow(
             icon: Symbols.translate,
             label: 'language'.tr,
             subtitle: currentLanguage,
             onTap: onLanguage,
           ),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.line),
           _SettingRow(
             icon: Symbols.notifications_none,
             label: 'notifications'.tr,
             onTap: () => Get.toNamed(RuteAplikasi.notifikasi),
           ),
-          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const Divider(height: 1, color: AppColors.line),
           _SettingRow(
             icon: Symbols.help_outline,
             label: 'help_support'.tr,
@@ -673,8 +679,8 @@ class _SettingRow extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(color: Color(0xFFF8FAFC), shape: BoxShape.circle),
-              child: Icon(icon, color: const Color(0xFF64748B), size: 20),
+              decoration: const BoxDecoration(color: AppColors.cloud, shape: BoxShape.circle),
+              child: Icon(icon, color: AppColors.muted, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -683,23 +689,23 @@ class _SettingRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF0D1B18)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.slate),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 3),
                     Text(
                       subtitle!,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF6B7280),
+                        color: AppColors.muted,
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            const Icon(Symbols.chevron_right, color: Color(0xFFCBD5E1)),
+            const Icon(Symbols.chevron_right, color: AppColors.lineDark),
           ],
         ),
       ),
@@ -732,24 +738,24 @@ class _LanguageOptionTile extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? const Color(0xFF13ECB9) : const Color(0xFFE5E7EB),
+            color: selected ? AppColors.emeraldBright : AppColors.line,
           ),
-          color: selected ? const Color(0xFFEFFCF8) : Colors.white,
+          color: selected ? AppColors.emeraldSoft : Colors.white,
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 label,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0D1B18),
+                  color: AppColors.slate,
                 ),
               ),
             ),
             if (selected)
-              const Icon(Symbols.check_circle, color: Color(0xFF0EB58E)),
+              const Icon(Symbols.check_circle, color: AppColors.success),
           ],
         ),
       ),
@@ -774,9 +780,9 @@ class _CircleIconButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border.all(color: AppColors.line),
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF0D1B18)),
+        child: Icon(icon, size: 20, color: AppColors.slate),
       ),
     );
   }
@@ -788,7 +794,7 @@ class _DotPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF13ECB9)
+      ..color = AppColors.emeraldBright
       ..style = PaintingStyle.fill;
     const spacing = 24.0;
     for (double y = 0; y < size.height; y += spacing) {
@@ -801,3 +807,4 @@ class _DotPatternPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

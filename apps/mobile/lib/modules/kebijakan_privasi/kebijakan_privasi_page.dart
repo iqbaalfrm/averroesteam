@@ -55,15 +55,15 @@ class HalamanKebijakanPrivasi extends StatelessWidget {
                     items: const <_ListItem>[
                       _ListItem(
                         title: 'Informasi Akun',
-                        subtitle: 'Nama lengkap, alamat email, dan nomor telepon saat pendaftaran.',
+                        subtitle: 'Nama lengkap dan alamat email saat pendaftaran.',
                       ),
                       _ListItem(
-                        title: 'Data Aktivitas',
-                        subtitle: 'Catatan ibadah, preferensi konten, dan interaksi dalam aplikasi.',
+                        title: 'Data Aktivitas Belajar',
+                        subtitle: 'Progress materi, jawaban kuis, dan riwayat sertifikat di dalam aplikasi.',
                       ),
                       _ListItem(
-                        title: 'Lokasi',
-                        subtitle: 'Digunakan secara anonim untuk menentukan waktu shalat dan arah kiblat yang akurat.',
+                        title: 'Preferensi Aplikasi',
+                        subtitle: 'Bahasa tampilan dan pengaturan notifikasi yang Anda pilih.',
                       ),
                     ],
                   ),
@@ -72,17 +72,24 @@ class HalamanKebijakanPrivasi extends StatelessWidget {
                   const SizedBox(height: 10),
                   _Paragraph(
                     text:
-                        'Kami menggunakan data Anda semata-mata untuk meningkatkan pengalaman spiritual Anda, mempersonalisasi konten pengingat, dan memastikan keamanan akun Anda. Kami tidak akan pernah menjual data pribadi Anda kepada pihak ketiga.',
+                        'Kami menggunakan data Anda untuk mengelola akun, menampilkan materi edukasi, menyimpan progress belajar, dan mengirim notifikasi yang Anda aktifkan. Kami tidak menjual data pribadi Anda kepada pihak ketiga.',
                   ),
                   const SizedBox(height: 20),
                   _SectionTitle(number: '3', title: 'Keamanan Data'),
                   const SizedBox(height: 10),
                   _QuoteBox(
                     text:
-                        'Kami menggunakan enkripsi tingkat industri (AES-256) untuk melindungi semua data sensitif yang dikirimkan melalui aplikasi kami.',
+                        'Kami menerapkan langkah keamanan yang wajar, termasuk penyimpanan password dalam bentuk hash dan kontrol akses pada data.',
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(number: '4', title: 'Hak-Hak Anda'),
+                  _SectionTitle(number: '4', title: 'Layanan Pihak Ketiga'),
+                  const SizedBox(height: 10),
+                  _Paragraph(
+                    text:
+                        'Jika Anda menggunakan fitur Chatbot, pesan Anda akan dikirim ke penyedia AI pihak ketiga. Untuk jadwal shalat, aplikasi mengambil data dari layanan API publik menggunakan nama kota.',
+                  ),
+                  const SizedBox(height: 20),
+                  _SectionTitle(number: '5', title: 'Hak-Hak Anda'),
                   const SizedBox(height: 10),
                   _HakGrid(),
                   const SizedBox(height: 24),
@@ -149,7 +156,7 @@ class _HeaderKomitmen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Terakhir diperbarui: 24 Mei 2024',
+                'Terakhir diperbarui: 14 Maret 2026',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -414,7 +421,7 @@ class _FooterContact extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          '© 2024 Averroes Tech',
+          '(c) 2026 Averroes',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 10,
             fontWeight: FontWeight.w700,

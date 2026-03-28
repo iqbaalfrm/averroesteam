@@ -39,7 +39,7 @@
           <p class="mt-1 text-xs text-slate-500">File saat ini: {{ obj|attr(field.name) }}</p>
         {% endif %}
       {% else %}
-        <input type="{{ 'number' if field.type == 'number' else 'text' }}" name="{{ field.name }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring" value="{{ obj|attr(field.name) if obj else '' }}" {% if field.type == 'number' or (field.type == 'text' and field.name not in ['slug']) %}required{% endif %}>
+        <input type="{{ 'number' if field.type == 'number' else 'text' }}" name="{{ field.name }}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-emerald-300 focus:ring" value="{{ obj|attr(field.name) if obj else '' }}" {% if field.required is not defined or field.required %}{% if field.type == 'number' or (field.type == 'text' and field.name not in ['slug']) %}required{% endif %}{% endif %}>
       {% endif %}
     </div>
     {% endfor %}

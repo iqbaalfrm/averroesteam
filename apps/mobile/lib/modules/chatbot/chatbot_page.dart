@@ -1,7 +1,8 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:dio/dio.dart';
 
 import '../../app/config/app_config.dart';
 
@@ -46,6 +47,8 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
   ];
 
   bool _isLoading = false;
+  bool _includeDalil = true;
+  _ResponseMode _responseMode = _ResponseMode.normal;
 
   @override
   void dispose() {
@@ -89,6 +92,8 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
     try {
       final String response = await _groqChatService.generateReply(
         messages: _messages,
+        includeDalil: _includeDalil,
+        responseMode: _responseMode,
       );
 
       setState(() {
@@ -137,13 +142,219 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
     return 'Saya belum bisa menjawab sekarang. Terjadi kendala koneksi ke layanan AI, coba lagi sebentar.';
   }
 
+  void _resetConversation() {
+    setState(() {
+      _messages
+        ..clear()
+        ..add(
+          const _ChatMessage(
+            sender: _Sender.assistant,
+            text: _welcomeMessage,
+          ),
+        );
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _showSettingsSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        bool localIncludeDalil = _includeDalil;
+        _ResponseMode localResponseMode = _responseMode;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2E8F0),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Pengaturan Chatbot',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Atur gaya jawaban Averroes Chatbot sesuai kebutuhanmu.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text(
+                                      'Sertakan Dalil',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        color: const Color(0xFF111827),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Bot akan mencoba menyertakan ayat atau hadits yang relevan saat menjawab.',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                value: localIncludeDalil,
+                                activeColor: const Color(0xFF10B981),
+                                onChanged: (bool value) {
+                                  setModalState(
+                                      () => localIncludeDalil = value);
+                                  setState(() => _includeDalil = value);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Mode Jawaban',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF111827),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: _ResponseMode.values
+                                .map(
+                                  (_ResponseMode mode) => Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: mode != _ResponseMode.values.last
+                                            ? 8
+                                            : 0,
+                                      ),
+                                      child: _ModeChip(
+                                        label: mode.label,
+                                        active: localResponseMode == mode,
+                                        onTap: () {
+                                          setModalState(
+                                            () => localResponseMode = mode,
+                                          );
+                                          setState(() => _responseMode = mode);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFD1FAE5)),
+                      ),
+                      child: Text(
+                        'Catatan: chatbot bersifat edukatif dan bukan fatwa final atau saran investasi.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF065F46),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFB91C1C),
+                          side: const BorderSide(color: Color(0xFFFECACA)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _resetConversation();
+                        },
+                        child: Text(
+                          'Reset Chat',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8F8),
       body: Column(
         children: <Widget>[
-          const _HeaderChatbot(),
+          _HeaderChatbot(onOpenSettings: _showSettingsSheet),
           Expanded(
             child: ListView.separated(
               controller: _scrollController,
@@ -169,7 +380,14 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
 }
 
 class _HeaderChatbot extends StatelessWidget {
-  const _HeaderChatbot();
+  const _HeaderChatbot({required this.onOpenSettings});
+
+  final VoidCallback onOpenSettings;
+
+  String _trOr(String key, String fallback) {
+    final String translated = key.tr;
+    return translated == key ? fallback : translated;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +413,7 @@ class _HeaderChatbot extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(
-                    'Reels Islami',
+                    _trOr('chatbot_title', 'Averroes Chatbot'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -215,7 +433,7 @@ class _HeaderChatbot extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Segera Hadir',
+                        _trOr('chatbot_status_ready', 'Siap Membantu'),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -227,7 +445,11 @@ class _HeaderChatbot extends StatelessWidget {
                 ],
               ),
             ),
-            const _IconCircle(icon: Symbols.tune, color: Color(0xFF9CA3AF)),
+            _IconCircle(
+              icon: Symbols.tune,
+              color: const Color(0xFF9CA3AF),
+              onTap: onOpenSettings,
+            ),
           ],
         ),
       ),
@@ -261,6 +483,11 @@ class _MessageBubble extends StatelessWidget {
 
   final _ChatMessage message;
 
+  String _trOr(String key, String fallback) {
+    final String translated = key.tr;
+    return translated == key ? fallback : translated;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isAssistant = message.sender == _Sender.assistant;
@@ -280,7 +507,9 @@ class _MessageBubble extends StatelessWidget {
                 isAssistant ? CrossAxisAlignment.start : CrossAxisAlignment.end,
             children: <Widget>[
               Text(
-                isAssistant ? 'AVERROES AI' : 'ANDA',
+                isAssistant
+                    ? _trOr('chatbot_brand', 'AVERROES CHATBOT')
+                    : 'ANDA',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -516,7 +745,57 @@ class _QuickPill extends StatelessWidget {
   }
 }
 
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF064E3B) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: active ? const Color(0xFF064E3B) : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: active ? Colors.white : const Color(0xFF64748B),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 enum _Sender { user, assistant }
+
+enum _ResponseMode {
+  singkat('Singkat'),
+  normal('Normal'),
+  detail('Detail');
+
+  const _ResponseMode(this.label);
+
+  final String label;
+}
 
 class _ChatMessage {
   const _ChatMessage({required this.sender, required this.text});
@@ -530,7 +809,11 @@ class _GroqChatService {
 
   final Dio _dio = Dio();
 
-  Future<String> generateReply({required List<_ChatMessage> messages}) async {
+  Future<String> generateReply({
+    required List<_ChatMessage> messages,
+    required bool includeDalil,
+    required _ResponseMode responseMode,
+  }) async {
     final String apiKey = AppConfig.groqApiKey.trim();
     if (apiKey.isEmpty) {
       throw StateError('GROQ_API_KEY belum diset.');
@@ -540,15 +823,34 @@ class _GroqChatService {
         ? messages.sublist(messages.length - 12)
         : messages;
 
+    final String dalilInstruction = includeDalil
+        ? 'Jika relevan, sertakan dalil yang kuat dari Al-Qur\'an atau hadits sahih/hasan yang masyhur, lalu hubungkan secara singkat ke konteks muamalah atau crypto. '
+            'Jangan mengarang ayat, hadits, nama kitab, atau nomor rujukan. Jika tidak yakin pada redaksi atau sumber yang presisi, katakan bahwa dalil perlu diverifikasi dan jangan tampilkan kutipan palsu. '
+            'Untuk dalil, prioritaskan ayat Al-Qur\'an terlebih dahulu. Jika memakai hadits, utamakan hadits yang populer dan kuat derajatnya. '
+        : 'Jangan sertakan dalil kecuali user memintanya secara eksplisit. ';
+
+    final String modeInstruction = switch (responseMode) {
+      _ResponseMode.singkat =>
+        'Utamakan jawaban sangat ringkas, sekitar 1-2 kalimat.',
+      _ResponseMode.normal => 'Utamakan format jawaban 2-4 kalimat.',
+      _ResponseMode.detail =>
+        'Berikan jawaban sedikit lebih lengkap, maksimal 1 paragraf pendek atau beberapa poin singkat bila memang perlu.',
+    };
+
     final List<Map<String, String>> promptMessages = <Map<String, String>>[
       <String, String>{
         'role': 'system',
-        'content':
-            'Anda adalah Averroes AI. Jawab hanya topik crypto (aset, blockchain, wallet, exchange, trading, risiko, keamanan, aspek syariah crypto). '
-                'Jika pertanyaan di luar crypto, tolak dengan singkat dan arahkan ke topik crypto. '
-                'Jangan memberi kepastian profit atau saran investasi pasti. '
-                'Gunakan bahasa Indonesia natural, tidak kaku, dan ringkas. '
-                'Jawaban maksimal 2-4 kalimat kecuali user minta detail.',
+        'content': 'Anda adalah Averroes Chatbot, asisten edukasi crypto syariah dalam aplikasi Averroes. '
+            'Jawab hanya topik crypto: aset kripto, blockchain, wallet, exchange, trading spot, risiko, keamanan, zakat aset kripto, dan aspek syariah terkait crypto. '
+            'Jika pertanyaan di luar topik tersebut, tolak dengan singkat lalu arahkan user kembali ke topik crypto syariah. '
+            'Gunakan bahasa Indonesia yang natural, ramah, singkat, dan tidak bertele-tele. '
+            'Utamakan jawaban praktis yang mudah dipahami pemula. '
+            'Jangan menjanjikan profit, jangan memberi sinyal beli/jual, dan jangan menyebut sesuatu pasti naik atau pasti aman. '
+            'Jika user bertanya halal/haram, jelaskan bahwa jawaban bersifat edukatif, bukan fatwa final, lalu sebutkan alasan singkat seperti manfaat proyek, mekanisme transaksi, unsur riba, gharar, maysir, atau underlying aset jika relevan. '
+            '$dalilInstruction'
+            'Jika informasi tidak cukup, katakan keterbatasannya secara jujur dan minta user kirim nama koin, ticker, atau konteks yang lebih spesifik. '
+            '$modeInstruction '
+            'Bila menyertakan dalil, boleh tambah 1 blok singkat dengan awalan "Dalil:". Pakai bullet hanya jika user meminta daftar atau langkah.',
       },
       ...recentMessages.map(
         (_ChatMessage message) => <String, String>{
@@ -561,7 +863,7 @@ class _GroqChatService {
     final Map<String, dynamic> payload = <String, dynamic>{
       'model': AppConfig.groqModel,
       'messages': promptMessages,
-      'temperature': 0.3,
+      'temperature': 0.2,
       'top_p': 0.9,
       'max_tokens': 220,
     };

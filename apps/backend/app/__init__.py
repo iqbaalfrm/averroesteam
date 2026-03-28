@@ -16,6 +16,7 @@ from .api.screener import screener_bp
 from .api.reels import reels_bp
 from .api.zakat import zakat_bp
 from .api.konsultasi import konsultasi_bp
+from .api.kajian import kajian_bp
 from .config import DevelopmentConfig, ProductionConfig
 from .extensions import csrf, mongo, jwt, mail
 from .seed import seed_data
@@ -60,6 +61,7 @@ def create_app() -> Flask:
     app.register_blueprint(admin_bp)
     app.register_blueprint(reels_bp)
     app.register_blueprint(konsultasi_bp)
+    app.register_blueprint(kajian_bp)
 
     # API uses JWT header token, so CSRF is enforced only for admin forms.
     csrf.exempt(auth_bp)
@@ -74,6 +76,7 @@ def create_app() -> Flask:
     csrf.exempt(pustaka_admin_bp)
     csrf.exempt(reels_bp)
     csrf.exempt(konsultasi_bp)
+    csrf.exempt(kajian_bp)
 
     with app.app_context():
         if app.config.get("AUTO_CREATE_DB"):

@@ -57,6 +57,13 @@ desktop.ini
 !.env.example
 
 # =====================
+# Android Keystore
+# =====================
+apps/mobile/android/key.properties
+apps/mobile/android/keystore/
+*.jks
+
+# =====================
 # Logs / Temp
 # =====================
 *.log

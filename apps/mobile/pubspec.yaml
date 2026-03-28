@@ -34,6 +34,11 @@ dependencies:
   just_audio: ^0.9.42
   share_plus: ^10.1.4
   path_provider: ^2.1.5
+  youtube_player_iframe: ^5.2.2
+  webview_flutter: ^4.13.0
+  webview_flutter_android: ^4.10.0
+  webview_flutter_platform_interface: ^2.14.0
+  webview_flutter_wkwebview: ^3.23.0
 
 dev_dependencies:
   flutter_test:

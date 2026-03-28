@@ -1,124 +1,672 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
-class HalamanZikir extends StatelessWidget {
+import '../../app/services/api_dio.dart';
+
+class HalamanZikir extends StatefulWidget {
   const HalamanZikir({super.key});
 
-  static const List<ZikirItem> _pagi = <ZikirItem>[
-    ZikirItem(
-        'Surah Al-Ikhlas',
-        'قُلْ هُوَ ٱللَّهُ أَحَدٌ',
-        'Qul huwallāhu aḥad.',
-        'Katakanlah (Muhammad), "Dialah Allah, Yang Maha Esa."',
-        3),
-    ZikirItem(
-        'Surah Al-Falaq',
-        'قُلْ أَعُوذُ بِرَبِّ ٱلْفَلَقِ',
-        'Qul a\'ūżu birabbil-falaq.',
-        'Katakanlah, "Aku berlindung kepada Tuhan yang menguasai subuh (fajar)."',
-        3),
-    ZikirItem(
-        'Surah An-Nas',
-        'قُلْ أَعُوذُ بِرَبِّ ٱلنَّاسِ',
-        'Qul a\'ūżu birabbin-nās.',
-        'Katakanlah, "Aku berlindung kepada Tuhannya manusia."',
-        3),
+  @override
+  State<HalamanZikir> createState() => _HalamanZikirState();
+}
+
+class _HalamanZikirState extends State<HalamanZikir> {
+  static const String _bootstrapVideoId = '_j1GfNyYRJM';
+  static const List<_KajianVideo> _fallbackVideos = <_KajianVideo>[
+    _KajianVideo(
+      id: 'ciamJjQ2ruU',
+      title:
+          'BITCOIN DIHARAMKAN? Ustadz Devin: Banyak yang Salah Paham, Ini Alasan Crypto Tidak Haram dalam Islam',
+      channel: 'kasisolusi',
+      duration: 'Kajian',
+      category: 'Kajian Crypto Syariah',
+      description:
+          'Pembahasan awal tentang miskonsepsi hukum Bitcoin dan aset kripto dalam perspektif syariah.',
+    ),
+    _KajianVideo(
+      id: 'rU56XmYmKcg',
+      title: 'Bitcoin Zero Sum Game Jadi Haram?',
+      channel: 'Mudacumasekali',
+      duration: 'Kajian',
+      category: 'Kajian Crypto Syariah',
+      description:
+          'Pembahasan singkat tentang isu zero sum game dan bagaimana memahami posisi Bitcoin secara lebih hati-hati.',
+    ),
+    _KajianVideo(
+      id: 'P4R19e7bowg',
+      title: 'Bedah Halal Haram Crypto Aset bersama Ustadz Devin Halim Wijaya',
+      channel: 'Wakaf Ilmu',
+      duration: 'Kajian',
+      category: 'Kajian Crypto Syariah',
+      description:
+          'Kajian pengantar mengenai halal-haram crypto aset untuk referensi awal pengguna Averroes.',
+    ),
   ];
 
-  static const List<ZikirItem> _petang = <ZikirItem>[
-    ZikirItem(
-        'Ayat Kursi',
-        'ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ',
-        'Allāhu lā ilāha illā huwal-ḥayyul-qayyūm.',
-        'Allah, tidak ada tuhan selain Dia. Yang Mahahidup, Yang terus-menerus mengurus (makhluk-Nya).',
-        1),
-    ZikirItem('Istighfar', 'أَسْتَغْفِرُ ٱللَّهَ', 'Astaghfirullāh.',
-        'Aku memohon ampunan kepada Allah.', 100),
-  ];
+  late final YoutubePlayerController _controller;
+  List<_KajianVideo> _videos = <_KajianVideo>[];
+  _KajianVideo? _selectedVideo;
+  bool _loading = true;
 
-  static const List<DoaItem> _doaHarian = <DoaItem>[
-    DoaItem('Doa Sebelum Makan', 'بِسْمِ ٱللَّهِ', 'Bismillāh.',
-        'Dengan menyebut nama Allah.'),
-    DoaItem('Doa Sesudah Makan', 'ٱلْحَمْدُ لِلَّهِ', 'Alḥamdulillāh.',
-        'Segala puji bagi Allah.'),
-    DoaItem(
-        'Doa Sebelum Tidur',
-        'بِاسْمِكَ ٱللَّهُمَّ أَمُوتُ وَأَحْيَا',
-        'Bismikallāhumma amūtu wa aḥyā.',
-        'Dengan nama-Mu, ya Allah, aku mati dan aku hidup.'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: _bootstrapVideoId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        strictRelatedVideos: true,
+        enableCaption: false,
+        interfaceLanguage: 'id',
+      ),
+    );
+    _loadKajian();
+  }
 
-  static const List<DoaItem> _asmaul = <DoaItem>[
-    DoaItem('Ar-Rahman', 'ٱلرَّحْمَٰنُ', 'Ar-Raḥmān.', 'Yang Maha Pengasih.'),
-    DoaItem('Ar-Rahim', 'ٱلرَّحِيمُ', 'Ar-Raḥīm.', 'Yang Maha Penyayang.'),
-    DoaItem('Al-Malik', 'ٱلْمَلِكُ', 'Al-Malik.', 'Yang Maha Merajai.'),
-  ];
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
+  }
+
+  Future<void> _loadKajian() async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final dio = ApiDio.create(attachAuthToken: false);
+      final response = await dio.get<dynamic>('/api/kajian');
+      final dynamic raw = response.data;
+
+      final List<_KajianVideo> loadedVideos = <_KajianVideo>[];
+      if (raw is Map<String, dynamic>) {
+        final dynamic data = raw['data'];
+        if (data is List) {
+          for (final dynamic item in data) {
+            if (item is Map) {
+              final _KajianVideo? parsed =
+                  _KajianVideo.fromApi(Map<String, dynamic>.from(item));
+              if (parsed != null) {
+                loadedVideos.add(parsed);
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      final List<_KajianVideo> effectiveVideos =
+          loadedVideos.isNotEmpty ? loadedVideos : _fallbackVideos;
+
+      setState(() {
+        _videos = effectiveVideos;
+        _selectedVideo = effectiveVideos.isNotEmpty ? effectiveVideos.first : null;
+        _loading = false;
+      });
+
+      if (_selectedVideo != null) {
+        _controller.loadVideoById(videoId: _selectedVideo!.id);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _videos = _fallbackVideos;
+        _selectedVideo = _fallbackVideos.first;
+        _loading = false;
+      });
+
+      _controller.loadVideoById(videoId: _fallbackVideos.first.id);
+    }
+  }
+
+  void _selectVideo(_KajianVideo video) {
+    if (_selectedVideo?.id == video.id) {
+      return;
+    }
+    setState(() => _selectedVideo = video);
+    _controller.loadVideoById(videoId: video.id);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
+    // FIX: Cegah crash pada Windows/Linux (karena webview_flutter butuh Android/iOS emulator)
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: Text('Kajian Averroes', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800)),
+          backgroundColor: const Color(0xFFF8FAFC),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: const _KajianStateCard(
+              icon: Symbols.desktop_windows,
+              title: 'Platform Tidak Didukung',
+              message: 'Pemutar video (WebView) belum mendukung Windows Desktop secara bawaan. Harap jalankan menggunakan Emulator Android atau iOS.',
+            ),
+          ),
+        ),
+      );
+    }
+
+    return YoutubePlayerScaffold(
+      controller: _controller,
+      builder: (BuildContext context, Widget player) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                elevation: 0,
+                backgroundColor: const Color(0xFFF8FAFC),
+                automaticallyImplyLeading: false,
+                titleSpacing: 0,
+                title: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Row(
+                    children: <Widget>[
+                      _HeaderIconButton(
+                        icon: Symbols.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Kajian Averroes',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Video kajian Averroes dengan fallback sementara',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  child: _buildBody(player),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(Widget player) {
+    if (_loading) {
+      return const _KajianStateCard(
+        icon: Symbols.progress_activity,
+        title: 'Memuat Kajian',
+        message: 'Daftar video kajian sedang diambil dari backend.',
+      );
+    }
+
+    if (_selectedVideo == null) {
+      return const _KajianStateCard(
+        icon: Symbols.smart_display,
+        title: 'Belum Ada Kajian',
+        message:
+            'Input data kajian dulu lewat panel admin dengan judul, deskripsi, dan link YouTube.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x1A0F172A),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: player,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _KajianDetailCard(video: _selectedVideo!),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
-            _topBar(context),
-            _headline(),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                      child: _heroCard(
-                          'Dzikir Pagi',
-                          'Pagi Hari • 24 Doa',
-                          Symbols.light_mode,
-                          'Mustajab',
-                          () => _openSesi(context, 'Dzikir Pagi', _pagi))),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: _heroCard(
-                          'Dzikir Petang',
-                          'Petang Hari • 22 Doa',
-                          Symbols.dark_mode,
-                          '',
-                          () => _openSesi(context, 'Dzikir Petang', _petang))),
-                ],
+            Text(
+              'Kajian Lainnya',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF0F172A),
               ),
             ),
-            _searchStub(),
-            _sectionTitle('Kategori Pilihan'),
-            _menuTile('Dzikir Setelah Shalat', '12/20', Symbols.prayer_times,
-                onTap: () =>
-                    _openSesi(context, 'Dzikir Setelah Shalat', _petang),
-                progress: 0.6,
-                trailing: '60%'),
-            _menuTile('Kumpulan Doa Harian', 'Doa makan, tidur, bepergian...',
-                Symbols.menu_book,
-                onTap: () =>
-                    _openDoa(context, 'Kumpulan Doa Harian', _doaHarian),
-                trailing: '120 Doa'),
-            _menuTile('Asmaul Husna', '15/99', Symbols.stars,
-                onTap: () => _openDoa(context, 'Asmaul Husna', _asmaul),
-                progress: 0.15,
-                trailing: '99 Nama'),
-            _menuTile('Zikir Pilihan & Selawat', 'Selawat Jibril, Nariyah...',
-                Symbols.auto_awesome,
-                onTap: () =>
-                    _openSesi(context, 'Zikir Pilihan & Selawat', _pagi)),
-            _sectionTitle('Kajian & Adab'),
-            SizedBox(
-              height: 176,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: const <Widget>[
-                  _AdabCard('FIKIH', 'Adab-Adab Berdoa Sesuai Sunnah',
-                      Symbols.menu_book),
-                  SizedBox(width: 12),
-                  _AdabCard('WAKTU MUSTAJAB', 'Waktu Terbaik Dikabulkannya Doa',
-                      Symbols.person_pin_circle),
+            Text(
+              '${_videos.length} video',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        ..._videos.map(
+          (_KajianVideo video) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _KajianCard(
+              video: video,
+              selected: _selectedVideo?.id == video.id,
+              onTap: () => _selectVideo(video),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(icon, size: 18, color: const Color(0xFF475569)),
+      ),
+    );
+  }
+}
+
+class _KajianStateCard extends StatelessWidget {
+  const _KajianStateCard({
+    required this.icon,
+    required this.title,
+    required this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: <Widget>[
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(icon, color: const Color(0xFF047857)),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+              height: 1.6,
+            ),
+          ),
+          if (action != null) ...<Widget>[
+            const SizedBox(height: 16),
+            action!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _KajianDetailCard extends StatelessWidget {
+  const _KajianDetailCard({required this.video});
+
+  final _KajianVideo video;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              video.category,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF047857),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            video.title,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF0F172A),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              const Icon(
+                Symbols.smart_display,
+                size: 16,
+                color: Color(0xFF64748B),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  video.channel,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF334155),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                video.duration,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            video.description,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF475569),
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KajianCard extends StatelessWidget {
+  const _KajianCard({
+    required this.video,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _KajianVideo video;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFECFDF5) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: selected ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x0A0F172A),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Stack(
+              children: <Widget>[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.network(
+                    video.thumbnailUrl,
+                    width: 144,
+                    height: 88,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 144,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDBEAFE),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Symbols.play_circle,
+                        size: 34,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        const Icon(
+                          Symbols.play_arrow,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          'Play',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      video.duration,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    video.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    video.channel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFF064E3B)
+                          : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFF064E3B)
+                            : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Text(
+                      selected ? 'Sedang Dipilih' : video.category,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color:
+                            selected ? Colors.white : const Color(0xFF475569),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -127,446 +675,86 @@ class HalamanZikir extends StatelessWidget {
       ),
     );
   }
-
-  Widget _topBar(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Symbols.arrow_back_ios_new)),
-              Text('Zikir & Doa',
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 19, fontWeight: FontWeight.w700)),
-              const IconButton(onPressed: null, icon: Icon(Symbols.search)),
-            ]),
-      );
-
-  Widget _headline() => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text('Penyejuk Kalbu',
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 28, fontWeight: FontWeight.w800)),
-              Text('Temukan kedamaian dalam setiap lantunan zikir',
-                  style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF4C9A88))),
-            ]),
-      );
-
-  Widget _heroCard(
-          String t, String s, IconData i, String b, VoidCallback onTap) =>
-      GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: 184,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-              color: const Color(0x1A0DA582),
-              borderRadius: BorderRadius.circular(16)),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Icon(i,
-                              color: const Color(0xFF0DA582), size: 30)),
-                      if (b.isNotEmpty)
-                        Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                                color: const Color(0x1A0DA582),
-                                borderRadius: BorderRadius.circular(999)),
-                            child: Text(b,
-                                style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF0DA582)))),
-                    ]),
-                const Spacer(),
-                Text(t,
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 20, fontWeight: FontWeight.w800)),
-                Text(s,
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF4C9A88))),
-              ]),
-        ),
-      );
-
-  Widget _searchStub() => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE2E8F0))),
-          child: Row(children: <Widget>[
-            const Icon(Symbols.manage_search,
-                size: 20, color: Color(0xFF4C9A88)),
-            const SizedBox(width: 8),
-            Text('Cari doa atau kategori...',
-                style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF4C9A88))),
-          ]),
-        ),
-      );
-
-  Widget _sectionTitle(String t) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 22, 16, 10),
-        child: Text(t,
-            style: GoogleFonts.plusJakartaSans(
-                fontSize: 18, fontWeight: FontWeight.w800)),
-      );
-
-  Widget _menuTile(String t, String s, IconData i,
-          {required VoidCallback onTap,
-          double? progress,
-          String trailing = ''}) =>
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEAF5F1))),
-            child: Row(children: <Widget>[
-              Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFE7F3F0),
-                      borderRadius: BorderRadius.circular(14)),
-                  child: Icon(i, color: const Color(0xFF0DA582))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                    Text(t,
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 4),
-                    Text(s,
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4C9A88))),
-                    if (progress != null) ...<Widget>[
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 6,
-                              backgroundColor: const Color(0xFFCFE7E2),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF0DA582)))),
-                    ],
-                  ])),
-              if (trailing.isNotEmpty)
-                Text(trailing,
-                    style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF94A3B8))),
-              const SizedBox(width: 4),
-              const Icon(Symbols.chevron_right, color: Color(0xFFCBD5F5)),
-            ]),
-          ),
-        ),
-      );
-
-  void _openSesi(BuildContext context, String judul, List<ZikirItem> items) {
-    Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => HalamanSesiZikir(judul: judul, items: items)));
-  }
-
-  void _openDoa(BuildContext context, String judul, List<DoaItem> items) {
-    Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => HalamanDaftarDoa(judul: judul, items: items)));
-  }
 }
 
-class HalamanSesiZikir extends StatefulWidget {
-  const HalamanSesiZikir({super.key, required this.judul, required this.items});
-  final String judul;
-  final List<ZikirItem> items;
-  @override
-  State<HalamanSesiZikir> createState() => _HalamanSesiZikirState();
-}
+class _KajianVideo {
+  const _KajianVideo({
+    required this.id,
+    required this.title,
+    required this.channel,
+    required this.duration,
+    required this.category,
+    required this.description,
+  });
 
-class _HalamanSesiZikirState extends State<HalamanSesiZikir> {
-  late final List<int> hitung;
-  int i = 0;
-  @override
-  void initState() {
-    super.initState();
-    hitung = List<int>.filled(widget.items.length, 0);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ZikirItem d = widget.items[i];
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      body: SafeArea(
-        child: Column(children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Symbols.close)),
-                  Text('${i + 1} dari ${widget.items.length} dzikir',
-                      style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF064E3B))),
-                  IconButton(
-                      onPressed: () => setState(() => hitung[i] = 0),
-                      icon: const Icon(Symbols.refresh)),
-                ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                    value: (i + 1) / widget.items.length,
-                    minHeight: 6,
-                    backgroundColor: const Color(0xFFD7EDE5),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF0DA582)))),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFE9F2EE))),
-                      child: Column(children: <Widget>[
-                        Text(d.arab,
-                            textAlign: TextAlign.right,
-                            style: GoogleFonts.amiri(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF064E3B))),
-                        const SizedBox(height: 10),
-                        Text(d.latin,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.plusJakartaSans(
-                                fontStyle: FontStyle.italic,
-                                color: const Color(0xFF0DA582))),
-                        const SizedBox(height: 8),
-                        Text('"${d.arti}"',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.plusJakartaSans(
-                                color: const Color(0xB30D1B18))),
-                      ]),
-                    ),
-                    const SizedBox(height: 18),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        if (hitung[i] < d.target) hitung[i]++;
-                        if (hitung[i] >= d.target &&
-                            i < widget.items.length - 1) i++;
-                      }),
-                      child: Container(
-                        width: 132,
-                        height: 132,
-                        decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF0DA582),
-                            border: Border.all(color: Colors.white, width: 6)),
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Text('${hitung[i]}',
-                                  style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 34,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white)),
-                              Text('KETUK',
-                                  style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white.withAlpha(190))),
-                            ]),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Target: ${hitung[i]}/${d.target}',
-                        style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF4C9A88))),
-                  ]),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class HalamanDaftarDoa extends StatelessWidget {
-  const HalamanDaftarDoa({super.key, required this.judul, required this.items});
-  final String judul;
-  final List<DoaItem> items;
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
-      body: SafeArea(
-        child: Column(children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  IconButton(
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Symbols.arrow_back_ios_new)),
-                  Text(judul,
-                      style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 48),
-                ]),
-          ),
-          Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, int idx) {
-                final DoaItem d = items[idx];
-                return Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFEAF5F1))),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(d.judul,
-                            style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14, fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 8),
-                        Text(d.arab,
-                            textAlign: TextAlign.right,
-                            style: GoogleFonts.amiri(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF064E3B))),
-                        const SizedBox(height: 10),
-                        Text(d.latin,
-                            style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontStyle: FontStyle.italic,
-                                color: const Color(0xFF0DA582))),
-                        const SizedBox(height: 6),
-                        Text('"${d.arti}"',
-                            style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12, color: const Color(0xB30D1B18))),
-                      ]),
-                );
-              },
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _AdabCard extends StatelessWidget {
-  const _AdabCard(this.tag, this.title, this.icon);
-  final String tag;
+  final String id;
   final String title;
-  final IconData icon;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 204,
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEAF5F1))),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Container(
-                height: 94,
-                decoration: const BoxDecoration(
-                    color: Color(0x220DA582),
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(14))),
-                child: Center(
-                    child:
-                        Icon(icon, size: 46, color: const Color(0x660DA582)))),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(tag,
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0DA582))),
-                    const SizedBox(height: 4),
-                    Text(title,
-                        style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13, fontWeight: FontWeight.w700)),
-                  ]),
-            ),
-          ]),
+  final String channel;
+  final String duration;
+  final String category;
+  final String description;
+
+  static _KajianVideo? fromApi(Map<String, dynamic> json) {
+    final String youtubeUrl = (json['youtube_url'] as String? ?? '').trim();
+    final String? videoId = _extractYoutubeId(youtubeUrl);
+    if (videoId == null || videoId.isEmpty) {
+      return null;
+    }
+
+    return _KajianVideo(
+      id: videoId,
+      title: (json['judul'] as String? ?? '').trim().isNotEmpty
+          ? (json['judul'] as String).trim()
+          : 'Kajian Averroes',
+      channel: (json['channel'] as String? ?? '').trim().isNotEmpty
+          ? (json['channel'] as String).trim()
+          : 'Averroes',
+      duration: (json['durasi_label'] as String? ?? '').trim().isNotEmpty
+          ? (json['durasi_label'] as String).trim()
+          : 'Kajian',
+      category: (json['kategori'] as String? ?? '').trim().isNotEmpty
+          ? (json['kategori'] as String).trim()
+          : 'Kajian',
+      description: (json['deskripsi'] as String? ?? '').trim().isNotEmpty
+          ? (json['deskripsi'] as String).trim()
+          : 'Belum ada deskripsi kajian.',
     );
   }
-}
 
-class ZikirItem {
-  const ZikirItem(this.judul, this.arab, this.latin, this.arti, this.target);
-  final String judul;
-  final String arab;
-  final String latin;
-  final String arti;
-  final int target;
-}
+  String get thumbnailUrl => 'https://img.youtube.com/vi/$id/hqdefault.jpg';
 
-class DoaItem {
-  const DoaItem(this.judul, this.arab, this.latin, this.arti);
-  final String judul;
-  final String arab;
-  final String latin;
-  final String arti;
+  static String? _extractYoutubeId(String url) {
+    if (url.isEmpty) return null;
+
+    final Uri? uri = Uri.tryParse(url);
+    if (uri == null) return null;
+
+    if ((uri.host.contains('youtube.com') ||
+            uri.host.contains('m.youtube.com')) &&
+        uri.queryParameters['v'] != null) {
+      final String? id = uri.queryParameters['v'];
+      if (id != null && id.length == 11) {
+        return id;
+      }
+    }
+
+    if (uri.host.contains('youtu.be')) {
+      final String id =
+          uri.pathSegments.isNotEmpty ? uri.pathSegments.first : '';
+      if (id.length == 11) {
+        return id;
+      }
+    }
+
+    final List<String> segments = uri.pathSegments;
+    if (segments.length >= 2 &&
+        (segments.first == 'embed' || segments.first == 'shorts')) {
+      final String id = segments[1];
+      if (id.length == 11) {
+        return id;
+      }
+    }
+
+    return null;
+  }
 }

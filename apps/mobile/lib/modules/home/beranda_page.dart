@@ -25,7 +25,7 @@ class _BerandaUi {
 
   static const double screenPadding = 20;
   static const double sectionGap = 20;
-  static const Color softLine = Color(0xFFF1F5F9);
+  static const Color softLine = AppColors.line;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -161,16 +161,7 @@ class HalamanBeranda extends StatelessWidget {
       extendBody: true,
       backgroundColor: Colors.transparent,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: <Color>[
-              AppColors.sand,
-              AppColors.emeraldSoft,
-            ],
-          ),
-        ),
+        color: AppColors.background,
         child: CustomScrollView(
           slivers: <Widget>[
             SliverPersistentHeader(
@@ -222,7 +213,8 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => topPadding + 70;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
@@ -238,124 +230,137 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
           ),
           child: SafeArea(
             bottom: false,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Expanded(
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.emerald,
-                            boxShadow: const <BoxShadow>[
-                              BoxShadow(
-                                color: Color(0x16000000),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(color: AppColors.emeraldSoft, width: 2),
-                          ),
-                          child: const Icon(
-                            Symbols.person,
-                            size: 24,
-                            color: Colors.white,
-                          ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.emerald,
+                          boxShadow: const <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x16000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(
+                              color: AppColors.emeraldSoft, width: 2),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Text(
-                                'assalamualaikum'.tr.tr,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.muted,
-                                ),
+                        child: const Icon(
+                          Symbols.person,
+                          size: 24,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Text(
+                              'assalamualaikum'.tr.tr,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.muted,
                               ),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: <Widget>[
-                                  Expanded(
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: Text(
+                                    AuthService.instance.namaUser,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.slate,
+                                    ),
+                                  ),
+                                ),
+                                if (AuthService
+                                    .instance.adalahTamu) ...<Widget>[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.amberSoft,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                          color: AppColors.amber
+                                              .withValues(alpha: 0.3)),
+                                    ),
                                     child: Text(
-                                      AuthService.instance.namaUser,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      'guest_mode'.tr,
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w800,
-                                        color: const Color(0xFF0F172A),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.6,
+                                        color: AppColors.amber,
                                       ),
                                     ),
                                   ),
-                                  if (AuthService.instance.adalahTamu) ...<Widget>[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.amberSoft,
-                                        borderRadius: BorderRadius.circular(999),
-                                        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
-                                      ),
-                                      child: Text(
-                                        'guest_mode'.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.6,
-                                          color: AppColors.amber,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Stack(
-                    children: <Widget>[
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.line),
-                        ),
-                        child: const Icon(
-                          Symbols.notifications_active,
-                          color: AppColors.slate,
-                          size: 20,
-                        ),
-                      ),
-                      Positioned(
-                        right: 6,
-                        top: 8,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.error,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.surface, width: 2),
-                          ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Stack(
+                  children: <Widget>[
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.lineDark),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x0A0F172A),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Symbols.notifications_active,
+                        color: AppColors.inkSoft,
+                        size: 20,
+                      ),
+                    ),
+                    Positioned(
+                      right: 6,
+                      top: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: AppColors.surface, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -363,7 +368,8 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) => false;
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) =>
+      false;
 }
 
 class _KartuJadwalShalat extends StatefulWidget {
@@ -372,8 +378,10 @@ class _KartuJadwalShalat extends StatefulWidget {
 }
 
 class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
-  _PrayerCityData _jakarta = const _PrayerCityData(city: 'Jakarta', prayer: 'Subuh', time: '--:--');
-  _PrayerCityData _makkah = const _PrayerCityData(city: 'Makkah', prayer: 'Subuh', time: '--:--');
+  _PrayerCityData _jakarta =
+      const _PrayerCityData(city: 'Jakarta', prayer: 'Subuh', time: '--:--');
+  _PrayerCityData _makkah =
+      const _PrayerCityData(city: 'Makkah', prayer: 'Subuh', time: '--:--');
   String _hijriDate = '';
   bool _loading = false;
   bool _loadFailed = false;
@@ -439,8 +447,8 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
     final now = DateTime.now();
     final badgeDate = _formatDateId(now);
     return CustomCard(
-      backgroundColor: AppColors.surface.withValues(alpha: 0.95),
-      border: const BorderSide(color: AppColors.line),
+      backgroundColor: AppColors.surface,
+      border: BorderSide(color: AppColors.lineDark.withValues(alpha: 0.7)),
       padding: const EdgeInsets.all(20),
       borderRadius: 20,
       hasShadow: true,
@@ -469,36 +477,38 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.emeraldSoft,
-                        borderRadius: BorderRadius.circular(12),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.emeraldSoft,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Symbols.schedule,
+                          size: 20,
+                          color: AppColors.emerald,
+                        ),
                       ),
-                      child: const Icon(
-                        Symbols.schedule,
-                        size: 20,
-                        color: AppColors.emerald,
+                      const SizedBox(width: 12),
+                      Text(
+                        'prayer_schedule'.tr,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: AppColors.slate,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'prayer_schedule'.tr,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                        color: AppColors.slate,
-                      ),
-                    ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.background,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: AppColors.line),
+                      border: Border.all(
+                          color: AppColors.lineDark.withValues(alpha: 0.85)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -585,7 +595,7 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
                     width: 1,
                     height: 48,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -620,7 +630,7 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.muted,
+                                color: AppColors.inkSoft,
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -647,7 +657,15 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
   }
 
   String _formatDateId(DateTime d) {
-    final hari = ['mon'.tr, 'tue'.tr, 'wed'.tr, 'thu'.tr, 'fri'.tr, 'sat'.tr, 'sun'.tr];
+    final hari = [
+      'mon'.tr,
+      'tue'.tr,
+      'wed'.tr,
+      'thu'.tr,
+      'fri'.tr,
+      'sat'.tr,
+      'sun'.tr
+    ];
     final bulan = [
       'jan'.tr,
       'feb'.tr,
@@ -676,7 +694,8 @@ class _KartuJadwalShalatState extends State<_KartuJadwalShalat> {
     final day = (hijri['day'] ?? '').toString().trim();
     final year = (hijri['year'] ?? '').toString().trim();
     final monthRaw = hijri['month'];
-    final monthName = monthRaw is Map ? (monthRaw['en'] ?? '').toString().trim() : '';
+    final monthName =
+        monthRaw is Map ? (monthRaw['en'] ?? '').toString().trim() : '';
     if (day.isEmpty || year.isEmpty || monthName.isEmpty) return '';
     return '$day $monthName $year H';
   }
@@ -723,7 +742,8 @@ class _PrayerCityData {
     String chosenTime = '--';
 
     for (final key in prayerOrder) {
-      final rawValue = (timingMap[key] ?? '').toString().split(' ').first.trim();
+      final rawValue =
+          (timingMap[key] ?? '').toString().split(' ').first.trim();
       final hhmm = _parseHourMinute(rawValue);
       if (hhmm == null) continue;
       final prayerMinutes = (hhmm.$1 * 60) + hhmm.$2;
@@ -735,7 +755,8 @@ class _PrayerCityData {
     }
 
     if (chosenTime == '--') {
-      final rawFajr = (timingMap['Fajr'] ?? '').toString().split(' ').first.trim();
+      final rawFajr =
+          (timingMap['Fajr'] ?? '').toString().split(' ').first.trim();
       final hhmm = _parseHourMinute(rawFajr);
       if (hhmm != null) {
         chosenPrayer = 'Fajr';
@@ -825,7 +846,7 @@ class _GridFitur extends StatelessWidget {
       ),
       _ItemFitur(
         judul: 'dhikr'.tr,
-        ikon: Symbols.auto_stories,
+        ikon: Symbols.smart_display,
         warna: paletSenada[3],
         tujuan: RuteAplikasi.zikir,
       ),
@@ -848,7 +869,7 @@ class _GridFitur extends StatelessWidget {
             crossAxisCount: 4,
             crossAxisSpacing: 12,
             mainAxisSpacing: 16,
-            childAspectRatio: 0.78,
+            childAspectRatio: 0.68,
           ),
           itemBuilder: (BuildContext context, int index) {
             final _ItemFitur item = fitur[index];
@@ -863,6 +884,11 @@ class _GridFitur extends StatelessWidget {
               },
               padding: const EdgeInsets.all(12),
               backgroundColor: terkunci ? AppColors.cloud : AppColors.surface,
+              border: BorderSide(
+                color: terkunci
+                    ? AppColors.line
+                    : AppColors.lineDark.withValues(alpha: 0.7),
+              ),
               borderRadius: 16,
               hasShadow: !terkunci,
               child: Stack(
@@ -873,8 +899,8 @@ class _GridFitur extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
                         Container(
-                          width: 44,
-                          height: 44,
+                          width: 46,
+                          height: 46,
                           decoration: BoxDecoration(
                             color: terkunci
                                 ? AppColors.line.withValues(alpha: 0.5)
@@ -883,16 +909,14 @@ class _GridFitur extends StatelessWidget {
                             border: Border.all(
                               color: terkunci
                                   ? AppColors.line
-                                  : Colors.white,
+                                  : AppColors.emeraldSoft,
                               width: 1.5,
                             ),
                           ),
                           child: Icon(
                             item.ikon,
-                            size: 20,
-                            color: terkunci
-                                ? AppColors.muted
-                                : AppColors.slate,
+                            size: 21,
+                            color: terkunci ? AppColors.muted : AppColors.slate,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -901,12 +925,12 @@ class _GridFitur extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: terkunci
-                                ? AppColors.muted
-                                : AppColors.inkSoft,
+                            color:
+                                terkunci ? AppColors.muted : AppColors.inkSoft,
+                            height: 1.2,
                           ),
                           textAlign: TextAlign.center,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -993,7 +1017,8 @@ class _KartuLanjutkanBelajarState extends State<_KartuLanjutkanBelajar> {
         ? 'loading_last_class'.tr
         : _last == null
             ? 'no_material_progress'.tr
-            : 'class_label'.tr + '${_last!.kelasJudul} ' + 'material_label'.tr + '${_last!.nextMateriIndex}/${_last!.totalMateri})';
+            : "${'class_label'.tr}${_last!.kelasJudul} "
+                "${'material_label'.tr}${_last!.nextMateriIndex}/${_last!.totalMateri}";
     return CustomCard(
       onTap: _openEdukasi,
       padding: const EdgeInsets.all(20),
@@ -1014,38 +1039,38 @@ class _KartuLanjutkanBelajarState extends State<_KartuLanjutkanBelajar> {
               size: 22,
             ),
           ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'continue_learning'.tr,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slate,
-                    ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'continue_learning'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slate,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.muted,
-                    ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Icon(
-              Symbols.chevron_right,
-              color: AppColors.muted,
-            ),
-          ],
-        ),
-      );
+          ),
+          const Icon(
+            Symbols.chevron_right,
+            color: AppColors.muted,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1099,8 +1124,8 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
             : response.data as Map<String, dynamic>;
 
         final dynamic rawStatus = data['status'];
-        final bool isSuccess =
-            rawStatus == true || rawStatus?.toString().toLowerCase() == 'success';
+        final bool isSuccess = rawStatus == true ||
+            rawStatus?.toString().toLowerCase() == 'success';
 
         if (isSuccess && data['data'] != null) {
           final Map<String, dynamic> innerData =
@@ -1195,45 +1220,46 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
           _buildError()
         else if (_beritaList.isEmpty)
           _buildEmpty()
-        else
-          ...[
-            ..._beritaList.map(
-              (Map<String, dynamic> item) => _buildKartuBerita(item),
-            ),
-            const SizedBox(height: 6),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const _HalamanDaftarBeritaTerbaru(),
-                ),
+        else ...[
+          ..._beritaList.map(
+            (Map<String, dynamic> item) => _buildKartuBerita(item),
+          ),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const _HalamanDaftarBeritaTerbaru(),
               ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: _BerandaUi.softLine),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Symbols.newspaper, size: 16, color: Color(0xFF059669)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'see_news'.tr,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.emerald,
-                      ),
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _BerandaUi.softLine),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Symbols.newspaper,
+                      size: 16, color: Color(0xFF059669)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'see_news'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.emerald,
                     ),
-                    const SizedBox(width: 6),
-                    const Icon(Symbols.arrow_forward, size: 14, color: Color(0xFF059669)),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Symbols.arrow_forward,
+                      size: 14, color: Color(0xFF059669)),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
       ],
     );
   }
@@ -1336,9 +1362,9 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
     final String penulis = (item['penulis'] as String?) ?? '';
     final String tanggal = (item['tanggal_asli'] as String?) ?? '';
     final String gambarUrl = ((item['gambar_url'] ??
-                item['thumbnail'] ??
-                item['image_url'] ??
-                item['urlToImage']) as String?) ??
+            item['thumbnail'] ??
+            item['image_url'] ??
+            item['urlToImage']) as String?) ??
         '';
 
     return CustomCard(
@@ -1358,8 +1384,8 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
                     width: 72,
                     height: 72,
                     fit: BoxFit.cover,
-                    errorBuilder:
-                        (BuildContext context, Object error, StackTrace? stackTrace) {
+                    errorBuilder: (BuildContext context, Object error,
+                        StackTrace? stackTrace) {
                       return Container(
                         width: 72,
                         height: 72,
@@ -1485,10 +1511,12 @@ class _HalamanDaftarBeritaTerbaru extends StatefulWidget {
   const _HalamanDaftarBeritaTerbaru();
 
   @override
-  State<_HalamanDaftarBeritaTerbaru> createState() => _HalamanDaftarBeritaTerbaruState();
+  State<_HalamanDaftarBeritaTerbaru> createState() =>
+      _HalamanDaftarBeritaTerbaruState();
 }
 
-class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru> {
+class _HalamanDaftarBeritaTerbaruState
+    extends State<_HalamanDaftarBeritaTerbaru> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _items = <Map<String, dynamic>>[];
@@ -1513,9 +1541,14 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
           ? jsonDecode(response.data as String) as Map<String, dynamic>
           : response.data as Map<String, dynamic>;
       final data = raw['data'];
-      final rows = data is Map ? (data['items'] as List<dynamic>? ?? <dynamic>[]) : <dynamic>[];
+      final rows = data is Map
+          ? (data['items'] as List<dynamic>? ?? <dynamic>[])
+          : <dynamic>[];
       setState(() {
-        _items = rows.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+        _items = rows
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
         _loading = false;
       });
     } catch (_) {
@@ -1553,7 +1586,8 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
                     children: [
                       Text(_error!),
                       const SizedBox(height: 8),
-                      TextButton(onPressed: _fetch, child: const Text('Coba lagi')),
+                      TextButton(
+                          onPressed: _fetch, child: const Text('Coba lagi')),
                     ],
                   ),
                 )
@@ -1566,9 +1600,9 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
                     final ringkasan = (item['ringkasan'] as String?) ?? '';
                     final tanggal = (item['tanggal_asli'] as String?) ?? '';
                     final gambarUrl = ((item['gambar_url'] ??
-                                item['thumbnail'] ??
-                                item['image_url'] ??
-                                item['urlToImage']) as String?) ??
+                            item['thumbnail'] ??
+                            item['image_url'] ??
+                            item['urlToImage']) as String?) ??
                         '';
                     return GestureDetector(
                       onTap: () => _openDetail(item),
@@ -1591,7 +1625,8 @@ class _HalamanDaftarBeritaTerbaruState extends State<_HalamanDaftarBeritaTerbaru
                                       width: 72,
                                       height: 72,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => _newsThumbFallback(),
+                                      errorBuilder: (_, __, ___) =>
+                                          _newsThumbFallback(),
                                     )
                                   : _newsThumbFallback(),
                             ),
@@ -1700,17 +1735,21 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
     final String judul = (_item['judul'] as String?)?.trim() ?? 'Berita';
     final String ringkasan = (_item['ringkasan'] as String?)?.trim() ?? '';
     final String konten = (_item['konten'] as String?)?.trim() ?? '';
-    final String tanggal = ((_item['tanggal_asli'] as String?)?.trim().isNotEmpty ?? false)
-        ? (_item['tanggal_asli'] as String).trim()
-        : ((_item['published_at'] as String?)?.trim() ?? '');
+    final String tanggal =
+        ((_item['tanggal_asli'] as String?)?.trim().isNotEmpty ?? false)
+            ? (_item['tanggal_asli'] as String).trim()
+            : ((_item['published_at'] as String?)?.trim() ?? '');
     final String sumberUrl = (_item['sumber_url'] as String?)?.trim() ?? '';
     final String gambarUrl = ((_item['gambar_url'] ??
                 _item['thumbnail'] ??
                 _item['image_url'] ??
-                _item['urlToImage']) as String?)?.trim() ??
+                _item['urlToImage']) as String?)
+            ?.trim() ??
         '';
-    final String isi = _cleanArticleText(konten.isNotEmpty ? konten : ringkasan);
-    final List<Map<String, String>> blocks = _parseArticleBlocks(_item['konten_blocks']);
+    final String isi =
+        _cleanArticleText(konten.isNotEmpty ? konten : ringkasan);
+    final List<Map<String, String>> blocks =
+        _parseArticleBlocks(_item['konten_blocks']);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1802,7 +1841,8 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
                               url,
                               width: double.infinity,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                              errorBuilder: (_, __, ___) =>
+                                  const SizedBox.shrink(),
                             ),
                           ),
                         );
@@ -1839,9 +1879,11 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
               ),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                 side: const BorderSide(color: Color(0xFFCBD5E1)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -1901,7 +1943,6 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
   }
 }
 
-
 class _KartuPortofolio extends StatefulWidget {
   @override
   State<_KartuPortofolio> createState() => _KartuPortofolioState();
@@ -1920,7 +1961,8 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
   void initState() {
     super.initState();
     _fetch();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) => _fetch(silent: true));
+    _refreshTimer =
+        Timer.periodic(const Duration(seconds: 8), (_) => _fetch(silent: true));
     PortofolioSync.revision.addListener(_onPortofolioChanged);
   }
 
@@ -1991,20 +2033,20 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _BerandaUi.softLine),
+        border: Border.all(color: AppColors.lineDark.withValues(alpha: 0.7)),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[
             Colors.white,
-            AppColors.emeraldSoft,
+            Color(0xFFF1FBF6),
           ],
         ),
         boxShadow: const <BoxShadow>[
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
+            color: Color(0x120F172A),
+            blurRadius: 20,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -2036,7 +2078,7 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFDDF7EE),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFBEEAD8)),
+                          border: Border.all(color: const Color(0xFFB7E3D3)),
                           boxShadow: const <BoxShadow>[
                             BoxShadow(
                               color: Color(0x14000000),
@@ -2083,9 +2125,17 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: Colors.white.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: _BerandaUi.softLine),
+                        border: Border.all(
+                            color: AppColors.lineDark.withValues(alpha: 0.7)),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x0D0F172A),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Icon(
                         _isHidden ? Symbols.visibility : Symbols.visibility_off,
@@ -2107,26 +2157,27 @@ class _KartuPortofolioState extends State<_KartuPortofolio> {
                   Text(
                     _loading
                         ? 'loading_portfolio'.tr
-                        : '$_jumlahAset' + 'crypto_assets'.tr,
+                        : '$_jumlahAset${'crypto_assets'.tr}',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.6,
-                      color: AppColors.emerald,
+                      color: AppColors.emeraldDark,
                     ),
                   ),
                   GestureDetector(
                     onTap: _openPortofolio,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: AppColors.emerald,
                         borderRadius: BorderRadius.circular(999),
                         boxShadow: const <BoxShadow>[
                           BoxShadow(
-                            color: Color(0x220F766E),
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
+                            color: Color(0x260F766E),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
                           ),
                         ],
                       ),

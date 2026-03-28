@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:averroes_core/averroes_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/config/app_config.dart';
+import '../../app/services/api_error_mapper.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
 
@@ -42,9 +44,7 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
           .map((e) => _UserCertificate.fromJson(Map<String, dynamic>.from(e)))
           .toList();
     } on DioException catch (e) {
-      _error = e.response?.data is Map
-          ? ((e.response!.data as Map)['message']?.toString() ?? 'Gagal memuat sertifikat.')
-          : 'Gagal memuat sertifikat.';
+      _error = ApiErrorMapper.humanize(e, fallback: 'Gagal memuat sertifikat.');
     } catch (_) {
       _error = 'Gagal memuat sertifikat.';
     } finally {
@@ -78,7 +78,7 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
     final uri = Uri.parse(fullUrl);
     
     if (token != null && token.isNotEmpty) {
-      // Open in browser with auth — use WebView
+      // Open in browser with auth; use WebView
       if (!mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -98,11 +98,11 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.background,
         elevation: 0,
-        foregroundColor: const Color(0xFF0F172A),
+        foregroundColor: AppColors.slate,
         title: Text(
           'Sertifikat Saya',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
@@ -119,15 +119,14 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: <Widget>[
-            Container(
+            CustomCard(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF064E3B),
-                borderRadius: BorderRadius.circular(14),
-              ),
+              backgroundColor: AppColors.emerald,
+              border: const BorderSide(color: AppColors.emeraldDark),
+              borderRadius: 14,
               child: Row(
                 children: [
-                  const Icon(Symbols.workspace_premium, color: Color(0xFF13ECB9)),
+                  const Icon(Symbols.workspace_premium, color: Colors.white),
                   const SizedBox(width: 10),
                   Text(
                     'Total Sertifikat: ${_items.length}',
@@ -219,163 +218,135 @@ class _CertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CustomCard(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0A000000), blurRadius: 12, offset: Offset(0, 6)),
-        ],
-      ),
+      padding: const EdgeInsets.all(16),
+      hasShadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // Header with gradient
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF065F46), Color(0xFF059669)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Symbols.workspace_premium, color: Colors.white, size: 24),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.emeraldSoft,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.mint),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.kelas,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
+                child: const Icon(Symbols.workspace_premium, color: AppColors.emerald, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.kelas,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.slate,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.namaSertifikat,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white70,
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      item.namaSertifikat,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.muted,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          // Body
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Row(
-              children: [
-                _InfoChip(
-                  icon: Symbols.verified,
-                  label: 'Nilai: ${item.scorePercent}%',
-                  color: const Color(0xFF059669),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _InfoChip(
+                icon: Symbols.verified,
+                label: 'Nilai: ${item.scorePercent}%',
+                color: AppColors.emerald,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'No: ${item.nomor}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'No: ${item.nomor}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          if (item.generatedAt != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Terbit: ${_formatDate(item.generatedAt!)}',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                color: AppColors.muted,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onView,
+                  icon: const Icon(Symbols.visibility, size: 16),
+                  label: Text(
+                    'Lihat Sertifikat',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          if (item.generatedAt != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Terbit: ${_formatDate(item.generatedAt!)}',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 10,
-                  color: const Color(0xFF94A3B8),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.emerald,
+                    side: const BorderSide(color: AppColors.mint),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
                 ),
               ),
-            ),
-          // Buttons
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: onView,
-                    icon: const Icon(Symbols.visibility, size: 16),
-                    label: Text(
-                      'Lihat Sertifikat',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF065F46),
-                      side: const BorderSide(color: Color(0xFFA7F3D0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: onDownload,
+                  icon: const Icon(Symbols.download, size: 16),
+                  label: Text(
+                    'Download',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onDownload,
-                    icon: const Icon(Symbols.download, size: 16),
-                    label: Text(
-                      'Download',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF065F46),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -432,7 +403,6 @@ class _InfoChip extends StatelessWidget {
   }
 }
 
-// ─── View Certificate ───────────────────────────────────────────────────────
 
 class _SertifikatViewPage extends StatelessWidget {
   const _SertifikatViewPage({required this.cert});
@@ -445,11 +415,11 @@ class _SertifikatViewPage extends StatelessWidget {
     final formattedDate = _formatDate(cert.generatedAt ?? '');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FDF4),
+      backgroundColor: AppColors.sand,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF0FDF4),
+        backgroundColor: AppColors.sand,
         elevation: 0,
-        foregroundColor: const Color(0xFF065F46),
+        foregroundColor: AppColors.emerald,
         title: Text(
           'Sertifikat',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
@@ -459,40 +429,37 @@ class _SertifikatViewPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFF065F46), width: 3),
-            boxShadow: const [
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.emerald, width: 2),
+            boxShadow: [
               BoxShadow(
-                color: Color(0x1A065F46),
-                blurRadius: 24,
-                offset: Offset(0, 12),
+                color: AppColors.emerald.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Column(
             children: [
-              // Top accent
               Container(
-                height: 6,
+                height: 4,
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF065F46), Color(0xFF13ECB9), Color(0xFF065F46)],
-                  ),
+                  color: AppColors.emerald,
                 ),
               ),
               // Logo
               Text(
-                '✦ AVERROES ✦',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
+                'AVERROES',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF065F46),
-                  letterSpacing: 3,
+                  color: AppColors.emerald,
+                  letterSpacing: 2,
                 ),
               ),
               const SizedBox(height: 16),
@@ -500,30 +467,30 @@ class _SertifikatViewPage extends StatelessWidget {
               Text(
                 cert.namaSertifikat,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF065F46),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Platform Edukasi Aset Kripto Syariah',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF6B7280),
+                  color: AppColors.muted,
                 ),
               ),
               const SizedBox(height: 28),
               // Given to
               Text(
                 'DIBERIKAN KEPADA',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF9CA3AF),
-                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.muted,
+                  letterSpacing: 1.2,
                 ),
               ),
               const SizedBox(height: 10),
@@ -531,16 +498,16 @@ class _SertifikatViewPage extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 4),
                 decoration: const BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: Color(0xFF13ECB9), width: 2),
+                    bottom: BorderSide(color: AppColors.emerald, width: 2),
                   ),
                 ),
                 child: Text(
                   namaUser,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0D1B18),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slate,
                   ),
                 ),
               ),
@@ -548,20 +515,20 @@ class _SertifikatViewPage extends StatelessWidget {
               // Class
               Text(
                 'Telah menyelesaikan kelas:',
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF065F46),
+                  color: AppColors.emerald,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 cert.kelas,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF065F46),
+                  color: AppColors.slate,
                 ),
               ),
               const SizedBox(height: 14),
@@ -569,16 +536,16 @@ class _SertifikatViewPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
+                  color: AppColors.emeraldSoft,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                  border: Border.all(color: AppColors.mint),
                 ),
                 child: Text(
                   'Nilai: ${cert.scorePercent}%',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF065F46),
+                    color: AppColors.emerald,
                   ),
                 ),
               ),
@@ -588,7 +555,7 @@ class _SertifikatViewPage extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 16),
                 decoration: const BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: Color(0xFFD1D5DB), width: 1, style: BorderStyle.solid),
+                    top: BorderSide(color: AppColors.line, width: 1, style: BorderStyle.solid),
                   ),
                 ),
                 child: Row(
@@ -598,19 +565,19 @@ class _SertifikatViewPage extends StatelessWidget {
                       children: [
                         Text(
                           formattedDate,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF374151),
+                            color: AppColors.inkSoft,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Tanggal Terbit',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF9CA3AF),
+                            color: AppColors.muted,
                           ),
                         ),
                       ],
@@ -621,16 +588,12 @@ class _SertifikatViewPage extends StatelessWidget {
                       height: 52,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF065F46), Color(0xFF13ECB9)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: AppColors.emerald,
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         'LULUS',
-                        style: GoogleFonts.inter(
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -644,19 +607,19 @@ class _SertifikatViewPage extends StatelessWidget {
                           cert.nomor.length > 16
                               ? '${cert.nomor.substring(0, 16)}...'
                               : cert.nomor,
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
-                            color: const Color(0xFF374151),
+                            color: AppColors.inkSoft,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Nomor Sertifikat',
-                          style: GoogleFonts.inter(
+                          style: GoogleFonts.plusJakartaSans(
                             fontSize: 9,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF9CA3AF),
+                            color: AppColors.muted,
                           ),
                         ),
                       ],
@@ -667,12 +630,10 @@ class _SertifikatViewPage extends StatelessWidget {
               // Bottom accent
               const SizedBox(height: 24),
               Container(
-                height: 6,
+                height: 4,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF065F46), Color(0xFF13ECB9), Color(0xFF065F46)],
-                  ),
+                  color: AppColors.emerald,
                 ),
               ),
             ],
@@ -693,7 +654,6 @@ class _SertifikatViewPage extends StatelessWidget {
   }
 }
 
-// ─── WebView for Download ───────────────────────────────────────────────────
 
 class _SertifikatWebViewPage extends StatelessWidget {
   const _SertifikatWebViewPage({
@@ -707,7 +667,10 @@ class _SertifikatWebViewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.background,
+        foregroundColor: AppColors.slate,
         title: Text(
           title,
           maxLines: 1,
@@ -730,14 +693,14 @@ class _SertifikatWebViewPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Symbols.workspace_premium, size: 64, color: Color(0xFF065F46)),
+            const Icon(Symbols.workspace_premium, size: 64, color: AppColors.emerald),
             const SizedBox(height: 16),
             Text(
               'Sertifikat siap di-download',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF065F46),
+                color: AppColors.emerald,
               ),
             ),
             const SizedBox(height: 8),
@@ -748,7 +711,7 @@ class _SertifikatWebViewPage extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
-                  color: const Color(0xFF6B7280),
+                  color: AppColors.muted,
                 ),
               ),
             ),
@@ -766,7 +729,7 @@ class _SertifikatWebViewPage extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF065F46),
+                backgroundColor: AppColors.emerald,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -781,7 +744,6 @@ class _SertifikatWebViewPage extends StatelessWidget {
   }
 }
 
-// ─── Shared Widgets ─────────────────────────────────────────────────────────
 
 class _ErrorCard extends StatelessWidget {
   const _ErrorCard({required this.message, required this.onRetry});
@@ -791,16 +753,16 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CustomCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
+      backgroundColor: const Color(0xFFFEF2F2),
+      border: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
       child: Column(
         children: <Widget>[
-          Text(message, style: GoogleFonts.plusJakartaSans(color: const Color(0xFFB91C1C))),
+          Text(
+            message,
+            style: GoogleFonts.plusJakartaSans(color: AppColors.error),
+          ),
           const SizedBox(height: 10),
           OutlinedButton(onPressed: onRetry, child: const Text('Coba lagi')),
         ],
@@ -816,24 +778,21 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CustomCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
       child: Column(
         children: [
-          const Icon(Symbols.workspace_premium, size: 40, color: Color(0xFFCBD5E1)),
+          const Icon(Symbols.workspace_premium, size: 40, color: AppColors.lineDark),
           const SizedBox(height: 10),
           Text(
             text,
             textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B)),
+            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
           ),
         ],
       ),
     );
   }
 }
+
+

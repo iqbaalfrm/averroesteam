@@ -145,6 +145,20 @@ ENTITY_CONFIG = {
             {"name": "sumber_url", "label": "URL Sumber", "type": "text"},
         ],
     },
+    "kajian": {
+        "label": "Kajian",
+        "collection": "kajian",
+        "fields": [
+            {"name": "judul", "label": "Judul", "type": "text"},
+            {"name": "deskripsi", "label": "Deskripsi", "type": "textarea"},
+            {"name": "youtube_url", "label": "Link YouTube", "type": "text"},
+            {"name": "channel", "label": "Channel", "type": "text", "required": False},
+            {"name": "kategori", "label": "Kategori", "type": "text", "required": False},
+            {"name": "durasi_label", "label": "Durasi Label", "type": "text", "required": False},
+            {"name": "urutan", "label": "Urutan", "type": "number", "required": False},
+            {"name": "is_active", "label": "Aktif", "type": "boolean"},
+        ],
+    },
     "diskusi": {
         "label": "Diskusi",
         "collection": "diskusi",
@@ -196,6 +210,7 @@ SIDEBAR_ITEMS = [
     ("kategori_buku", "Kategori Buku"),
     ("screener", "Screener"),
     ("berita", "Berita"),
+    ("kajian", "Kajian"),
     ("diskusi", "Diskusi"),
     ("ahli_syariah", "Ahli Syariah"),
     ("sessions", "Transaksi"),
@@ -278,6 +293,7 @@ def dashboard():
         "Buku": mongo.db.buku.count_documents({}),
         "Screener": mongo.db.screener.count_documents({}),
         "Berita": mongo.db.berita.count_documents({}),
+        "Kajian": mongo.db.kajian.count_documents({}),
         "Diskusi": mongo.db.diskusi.count_documents({}),
     }
     return render_template(

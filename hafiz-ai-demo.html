@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hafiz AI — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1612;
+    --parchment: #f5f0e8;
+    --parchment-dark: #ede7d8;
+    --gold: #c9973a;
+    --gold-light: #e8c97a;
+    --teal: #2a6b5e;
+    --teal-light: #3d9b8a;
+    --muted: #7a6f62;
+    --border: rgba(201,151,58,0.25);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 20px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 20%, rgba(201,151,58,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(42,107,94,0.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  .logo-arabic {
+    font-family: 'Amiri', serif;
+    font-size: 36px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .logo-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+    margin: 20px auto;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    backdrop-filter: blur(8px);
+    margin-bottom: 20px;
+  }
+
+  .card-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 120px;
+    background: var(--parchment);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--ink);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.7;
+  }
+
+  textarea:focus { border-color: var(--gold); }
+  textarea::placeholder { color: var(--muted); opacity: 0.7; }
+
+  .btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn:hover { background: var(--teal-light); }
+  .btn:active { transform: scale(0.99); }
+  .btn:disabled { background: var(--muted); cursor: not-allowed; opacity: 0.7; }
+
+  .result-card {
+    background: rgba(255,255,255,0.75);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    backdrop-filter: blur(8px);
+    display: none;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .result-card.visible { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .ayat-arabic {
+    font-family: 'Amiri', serif;
+    font-size: 28px;
+    color: var(--ink);
+    text-align: right;
+    direction: rtl;
+    line-height: 1.9;
+    margin-bottom: 16px;
+    padding: 20px;
+    background: var(--parchment);
+    border-radius: 10px;
+    border-left: 3px solid var(--gold);
+  }
+
+  .ayat-ref {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .ayat-translation {
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.8;
+    margin-bottom: 20px;
+    font-style: italic;
+    opacity: 0.85;
+  }
+
+  .reflection-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 10px;
+  }
+
+  .reflection-text {
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.8;
+  }
+
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .loading.visible { display: block; }
+
+  .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: #fff0f0;
+    border: 1px solid #ffcccc;
+    border-radius: 10px;
+    padding: 16px;
+    color: #c0392b;
+    font-size: 14px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: var(--parchment-dark);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tag:hover {
+    background: var(--gold-light);
+    color: var(--ink);
+    border-color: var(--gold);
+  }
+
+  .model-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 20px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    background: rgba(255,255,255,0.5);
+  }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal-light); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <span class="logo-arabic">حافظ</span>
+    <div class="divider"></div>
+    <span class="logo-title">Hafiz AI — Demo Refleksi</span>
+  </header>
+
+  <div class="card">
+    <div class="card-label">Cerita kondisimu hari ini</div>
+    <textarea id="userInput" placeholder="Tulis apa yang kamu rasakan... misalnya: hari ini aku merasa sangat lelah dan kehilangan motivasi. Rasanya semua usaha sia-sia."></textarea>
+
+    <div class="tag-row">
+      <span class="tag" onclick="fillExample('Hari ini aku merasa sangat cemas menghadapi ujian besok, takut gagal dan mengecewakan orang tua.')">Cemas & takut</span>
+      <span class="tag" onclick="fillExample('Aku baru saja kehilangan seseorang yang sangat aku sayangi. Rasanya sangat berat dan sepi.')">Kehilangan</span>
+      <span class="tag" onclick="fillExample('Alhamdulillah hari ini aku mendapat kabar baik yang sudah lama ditunggu-tunggu, rasanya bersyukur sekali.')">Bersyukur</span>
+      <span class="tag" onclick="fillExample('Aku merasa frustasi karena sudah berusaha keras tapi hasilnya tidak sesuai harapan.')">Frustasi</span>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="getAyat()">
+      <span>Cari ayat untukku</span>
+    </button>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Mencari ayat yang relevan...
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="ayat-ref" id="ayatRef"></div>
+    <div class="ayat-arabic" id="ayatArabic"></div>
+    <div class="ayat-translation" id="ayatTranslation"></div>
+    <div class="divider" style="margin: 20px 0;"></div>
+    <div class="reflection-title">Refleksi untukmu</div>
+    <div class="reflection-text" id="reflectionText"></div>
+    <div style="text-align:center">
+      <div class="model-badge">
+        <div class="dot"></div>
+        Powered by GLM-4-Flash
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_KEY = 'sk-tRHnGaOXmU7ruWT863jnVyUfhK1AwsVCfEUilii1pG63iasT';
+
+function fillExample(text) {
+  document.getElementById('userInput').value = text;
+}
+
+async function getAyat() {
+  const input = document.getElementById('userInput').value.trim();
+  if (!input) return;
+
+  const btn = document.getElementById('submitBtn');
+  const loading = document.getElementById('loading');
+  const resultCard = document.getElementById('resultCard');
+  const errorMsg = document.getElementById('errorMsg');
+
+  btn.disabled = true;
+  loading.classList.add('visible');
+  resultCard.classList.remove('visible');
+  errorMsg.classList.remove('visible');
+
+  const prompt = `Kamu adalah asisten spiritual Islam yang bijak dan penuh empati.
+
+Pengguna berbagi perasaannya: "${input}"
+
+Tugasmu:
+1. Pahami emosi dan situasi pengguna
+2. Pilih SATU ayat Al-Quran yang paling relevan dan menyentuh untuk situasi ini
+3. Berikan refleksi personal yang hangat dan bermakna
+
+Balas HANYA dalam format JSON berikut, tanpa teks lain:
+{
+  "surah_name": "nama surah dalam bahasa Indonesia",
+  "surah_number": nomor surah (angka),
+  "ayat_number": nomor ayat (angka),
+  "arabic": "teks Arab ayat",
+  "translation": "terjemahan bahasa Indonesia yang indah",
+  "reflection": "refleksi personal 2-3 kalimat yang hangat, spesifik untuk perasaan pengguna, menggunakan kata 'kamu'"
+}`;
+
+  try {
+    const res = await fetch('http://localhost:5000/api/ayat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: input })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Server error');
+    }
+
+    let text = data.choices[0].message.content.trim();
+    text = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(text);
+
+    document.getElementById('ayatRef').textContent = `${result.surah_name} • ${result.surah_number}:${result.ayat_number}`;
+    document.getElementById('ayatArabic').textContent = result.arabic;
+    document.getElementById('ayatTranslation').textContent = `"${result.translation}"`;
+    document.getElementById('reflectionText').textContent = result.reflection;
+
+    resultCard.classList.add('visible');
+  } catch (err) {
+    errorMsg.textContent = `Gagal: ${err.message}. Pastikan API key valid dan coba lagi.`;
+    errorMsg.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('visible');
+  }
+}
+
+document.getElementById('userInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.metaKey) getAyat();
+});
+</script>
+</body>
+</html>

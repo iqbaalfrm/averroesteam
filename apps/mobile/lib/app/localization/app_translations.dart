@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:get/get.dart';
 
 class AppTranslations extends Translations {
@@ -109,10 +107,13 @@ class AppTranslations extends Translations {
           'market': 'Pasar',
           'library': 'Pustaka',
           'chatbot': 'Chatbot',
+          'chatbot_title': 'Averroes Chatbot',
+          'chatbot_status_ready': 'Siap Membantu',
+          'chatbot_brand': 'AVERROES CHATBOT',
           'zakat': 'Zakat',
           'psychologist': 'Psikolog',
           'consultation': 'Konsultasi',
-          'dhikr': 'Zikir',
+          'dhikr': 'Kajian',
           'continue_learning': 'Lanjutkan Belajar',
           'no_material_progress': 'Belum ada progress materi',
           'loading_last_class': 'Memuat kelas terakhir...',
@@ -349,8 +350,10 @@ class AppTranslations extends Translations {
           'zakat_maal': 'Zakat Maal',
           'zakat_trade': 'Perdagangan',
           'zakat_crypto': 'Kripto & Aset',
-          'zakat_total_assets': 'Total Aset (Portofolio Crypto)',
+          'zakat_total_assets': 'Total Harta',
           'zakat_debt': 'Hutang Jatuh Tempo',
+          'zakat_manual_hint':
+              'Isi total harta dan hutang jatuh tempo secara manual untuk menghitung zakat maal.',
           'zakat_gold_price': 'Harga Emas Saat Ini',
           'zakat_nisab': 'Nisab (85gr Emas)',
           'zakat_status': 'Status',
@@ -359,12 +362,14 @@ class AppTranslations extends Translations {
           'zakat_total_paid': 'TOTAL ZAKAT DIBAYARKAN',
           'zakat_baznas_info': 'Pembayaran via Lembaga Resmi Baznas',
           'zakat_rules_title': 'Ketentuan Zakat Maal',
-          'zakat_rules_desc': 'Zakat maal wajib dikeluarkan jika harta telah mencapai nisab dan haul (1 tahun hijriah).',
+          'zakat_rules_desc':
+              'Zakat maal wajib dikeluarkan jika harta telah mencapai nisab dan haul (1 tahun hijriah).',
           'zakat_pay_now': 'Bayar Sekarang',
           'zakat_secure_tx': 'Transaksi aman & terenkripsi',
           // Portofolio
           'portofolio_title': 'Portofolio Saya',
-          'portofolio_load_error': 'Gagal memuat portofolio. Pastikan sudah login.',
+          'portofolio_load_error':
+              'Gagal memuat portofolio. Pastikan sudah login.',
           'portofolio_delete_asset': 'Hapus aset',
           'portofolio_delete_confirm': 'Hapus @asset dari portofolio?',
           'portofolio_cancel': 'Batal',
@@ -384,9 +389,11 @@ class AppTranslations extends Translations {
           'portofolio_filter': 'Filter',
           'portofolio_crypto_manual': 'Kripto Manual',
           // Diskusi
-          'diskusi_vip_post_unavailable': 'Posting VIP akan dibuka setelah backend kanal VIP aktif.',
+          'diskusi_vip_post_unavailable':
+              'Posting VIP akan dibuka setelah backend kanal VIP aktif.',
           'diskusi_vip_exclusive': 'Akses VIP Eksklusif',
-          'diskusi_vip_upsell_desc': 'Akses fitur diskusi tingkat lanjut yang dipantau dan dibimbing langsung oleh 3 ustadz pakar fiqh muamalah. Anda juga berhak mengakses koin rekomendasi.',
+          'diskusi_vip_upsell_desc':
+              'Akses fitur diskusi tingkat lanjut yang dipantau dan dibimbing langsung oleh 3 ustadz pakar fiqh muamalah. Anda juga berhak mengakses koin rekomendasi.',
           'diskusi_monthly_sub': 'Langganan Bulanan',
           'diskusi_best_value': 'Best Value',
           'diskusi_open_pg': 'Membuka gateway pembayaran...',
@@ -400,11 +407,14 @@ class AppTranslations extends Translations {
           'diskusi_create_vip': 'Buat Topik VIP',
           'diskusi_create_general': 'Buat Diskusi',
           'diskusi_vip_paid': 'Diskusi VIP Berbayar',
-          'diskusi_vip_paid_desc': 'Akses khusus member VIP. Semua diskusi dipantau langsung oleh 3 ustadz pembimbing.',
+          'diskusi_vip_paid_desc':
+              'Akses khusus member VIP. Semua diskusi dipantau langsung oleh 3 ustadz pembimbing.',
           'diskusi_upgrade_vip': 'Upgrade ke VIP',
           'diskusi_vip_active': 'Ruang VIP Aktif',
-          'diskusi_vip_active_desc': 'Semua member VIP bisa berdiskusi di sini, dipantau langsung oleh 3 ustadz.',
-          'diskusi_vip_thread_backend': 'Detail thread VIP akan terhubung backend.',
+          'diskusi_vip_active_desc':
+              'Semua member VIP bisa berdiskusi di sini, dipantau langsung oleh 3 ustadz.',
+          'diskusi_vip_thread_backend':
+              'Detail thread VIP akan terhubung backend.',
           // Pustaka
           'pustaka_title': 'Pustaka Averroes',
           'pustaka_load_error': 'Gagal memuat pustaka',
@@ -430,9 +440,9 @@ class AppTranslations extends Translations {
           'reels_share_failed': 'Gagal membagikan: @error',
           'reels_process_share': 'Memproses...',
           'reels_share_image': 'Bagikan Gambar',
-          'reels_shared_from': '📱 Dibagikan dari Averroes — Aplikasi Kajian Aset Kripto Syariah',
+          'reels_shared_from':
+              '📱 Dibagikan dari Averroes — Aplikasi Kajian Aset Kripto Syariah',
           'reels_dl_at': 'Download di: averroes.com',
-
         },
         'en_US': <String, String>{
           'app_name': 'Averroes',
@@ -539,10 +549,13 @@ class AppTranslations extends Translations {
           'market': 'Market',
           'library': 'Library',
           'chatbot': 'Chatbot',
+          'chatbot_title': 'Averroes Chatbot',
+          'chatbot_status_ready': 'Ready to Help',
+          'chatbot_brand': 'AVERROES CHATBOT',
           'zakat': 'Zakat',
           'psychologist': 'Psychologist',
           'consultation': 'Consultation',
-          'dhikr': 'Dhikr',
+          'dhikr': 'Lectures',
           'continue_learning': 'Continue Learning',
           'no_material_progress': 'No material progress yet',
           'loading_last_class': 'Loading last class...',
@@ -780,8 +793,10 @@ class AppTranslations extends Translations {
           'zakat_maal': 'Wealth Zakat',
           'zakat_trade': 'Trading',
           'zakat_crypto': 'Crypto & Assets',
-          'zakat_total_assets': 'Total Assets (Crypto Portfolio)',
+          'zakat_total_assets': 'Total Assets',
           'zakat_debt': 'Due Debts',
+          'zakat_manual_hint':
+              'Enter total assets and due debts manually to calculate wealth zakat.',
           'zakat_gold_price': 'Current Gold Price',
           'zakat_nisab': 'Nisab (85g Gold)',
           'zakat_status': 'Status',
@@ -790,11 +805,13 @@ class AppTranslations extends Translations {
           'zakat_total_paid': 'TOTAL ZAKAT PAID',
           'zakat_baznas_info': 'Payment via Official Baznas Agency',
           'zakat_rules_title': 'Wealth Zakat Rules',
-          'zakat_rules_desc': 'Wealth zakat is obligatory if the assets have reached the nisab and haul (1 lunar year).',
+          'zakat_rules_desc':
+              'Wealth zakat is obligatory if the assets have reached the nisab and haul (1 lunar year).',
           'zakat_pay_now': 'Pay Now',
           'zakat_secure_tx': 'Secure & encrypted transaction',
           'portofolio_title': 'My Portfolio',
-          'portofolio_load_error': 'Failed to load portfolio. Make sure you are logged in.',
+          'portofolio_load_error':
+              'Failed to load portfolio. Make sure you are logged in.',
           'portofolio_delete_asset': 'Delete asset',
           'portofolio_delete_confirm': 'Delete @asset from portfolio?',
           'portofolio_cancel': 'Cancel',
@@ -814,9 +831,11 @@ class AppTranslations extends Translations {
           'portofolio_filter': 'Filter',
           'portofolio_crypto_manual': 'Manual Crypto',
           // Diskusi
-          'diskusi_vip_post_unavailable': 'VIP posting will open once VIP backend channel is active.',
+          'diskusi_vip_post_unavailable':
+              'VIP posting will open once VIP backend channel is active.',
           'diskusi_vip_exclusive': 'Exclusive VIP Access',
-          'diskusi_vip_upsell_desc': 'Access advanced discussion features monitored and guided directly by 3 expert scholars in fiqh muamalah. You also get access to recommended coins.',
+          'diskusi_vip_upsell_desc':
+              'Access advanced discussion features monitored and guided directly by 3 expert scholars in fiqh muamalah. You also get access to recommended coins.',
           'diskusi_monthly_sub': 'Monthly Subscription',
           'diskusi_best_value': 'Best Value',
           'diskusi_open_pg': 'Opening payment gateway...',
@@ -830,11 +849,14 @@ class AppTranslations extends Translations {
           'diskusi_create_vip': 'Create VIP Topic',
           'diskusi_create_general': 'Create Discussion',
           'diskusi_vip_paid': 'Paid VIP Discussion',
-          'diskusi_vip_paid_desc': 'Exclusive access for VIP members. All discussions are monitored directly by 3 guiding scholars.',
+          'diskusi_vip_paid_desc':
+              'Exclusive access for VIP members. All discussions are monitored directly by 3 guiding scholars.',
           'diskusi_upgrade_vip': 'Upgrade to VIP',
           'diskusi_vip_active': 'Active VIP Room',
-          'diskusi_vip_active_desc': 'All VIP members can discuss here, monitored directly by 3 scholars.',
-          'diskusi_vip_thread_backend': 'VIP thread details will be connected to backend.',
+          'diskusi_vip_active_desc':
+              'All VIP members can discuss here, monitored directly by 3 scholars.',
+          'diskusi_vip_thread_backend':
+              'VIP thread details will be connected to backend.',
           // Pustaka
           'pustaka_title': 'Averroes Library',
           'pustaka_load_error': 'Failed to load library',
@@ -860,10 +882,10 @@ class AppTranslations extends Translations {
           'reels_share_failed': 'Failed to share: @error',
           'reels_process_share': 'Processing...',
           'reels_share_image': 'Share Image',
-          'reels_shared_from': '📱 Shared from Averroes — Sharia Crypto Asset Learning App',
+          'reels_shared_from':
+              '📱 Shared from Averroes — Sharia Crypto Asset Learning App',
           'reels_dl_at': 'Download at: averroes.com',
           // Portofolio
-
         },
         'ar': <String, String>{
           'app_name': 'أفيرويس',
@@ -968,10 +990,13 @@ class AppTranslations extends Translations {
           'market': 'السوق',
           'library': 'المكتبة',
           'chatbot': 'الدردشة الآلية',
+          'chatbot_title': 'أفيرويس شات بوت',
+          'chatbot_status_ready': 'جاهز للمساعدة',
+          'chatbot_brand': 'AVERROES CHATBOT',
           'zakat': 'الزكاة',
           'psychologist': 'أخصائي نفسي',
           'consultation': 'استشارة',
-          'dhikr': 'الذكر',
+          'dhikr': 'المحاضرات',
           'continue_learning': 'استمر في التعلم',
           'no_material_progress': 'لا يوجد تقدم في المواد بعد',
           'loading_last_class': 'جاري تحميل آخر فصل...',

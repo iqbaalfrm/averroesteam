@@ -52,7 +52,8 @@ class TemaAverroes {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         hintStyle: GoogleFonts.plusJakartaSans(
           fontSize: 14,
           fontWeight: FontWeight.w400,
@@ -95,7 +96,8 @@ class TemaAverroes {
           elevation: 0,
           backgroundColor: AppColors.emerald,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
@@ -108,7 +110,8 @@ class TemaAverroes {
           elevation: 0,
           foregroundColor: AppColors.emerald,
           side: const BorderSide(color: AppColors.emerald),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
@@ -134,19 +137,19 @@ class TemaAverroes {
           if (states.contains(WidgetState.selected)) {
             return GoogleFonts.plusJakartaSans(
               fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.emeraldDark,
+              fontWeight: FontWeight.w800,
+              color: AppColors.emerald,
             );
           }
           return GoogleFonts.plusJakartaSans(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: AppColors.muted,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.emeraldDark, size: 24);
+            return const IconThemeData(color: AppColors.emerald, size: 24);
           }
           return const IconThemeData(color: AppColors.muted, size: 24);
         }),

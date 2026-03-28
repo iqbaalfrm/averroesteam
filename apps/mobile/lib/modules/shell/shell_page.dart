@@ -7,8 +7,8 @@ import '../../app/widgets/guest_guard.dart';
 import '../edukasi/edukasi_page.dart';
 import '../home/beranda_page.dart';
 import '../profile/profile_page.dart';
-import '../diskusi/diskusi_page.dart';
 import '../reels/reels_page.dart';
+import '../../presentation/common/feature_unavailable_page.dart';
 import 'shell_controller.dart';
 
 class HalamanShell extends StatelessWidget {
@@ -26,7 +26,7 @@ class HalamanShell extends StatelessWidget {
             HalamanBeranda(),
             HalamanEdukasi(),
             HalamanReels(),
-            HalamanDiskusi(),
+            FeatureUnavailablePage(),
             HalamanProfil(),
           ],
         ),
