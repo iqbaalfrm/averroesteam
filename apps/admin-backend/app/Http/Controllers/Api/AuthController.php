@@ -68,8 +68,15 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp' => 'required|string'
+            'otp' => 'nullable|string',
+            'kode' => 'nullable|string',
         ]);
+
+        // Kompatibilitas: Terima field 'otp' maupun 'kode' dari Flutter
+        $otpInput = $request->otp ?? $request->kode;
+        if (!$otpInput) {
+            return $this->jsonResponse(false, 'Kode OTP wajib diisi.');
+        }
 
         $user = User::where('email', $request->email)->first();
 
@@ -77,7 +84,7 @@ class AuthController extends Controller
             return $this->jsonResponse(false, 'Miskonsepsi akun: Email ini tidak dijumpai dalam koleksi sistem.');
         }
 
-        if ((string) $user->verify_otp !== (string) $request->otp) {
+        if ((string) $user->verify_otp !== (string) $otpInput) {
             return $this->jsonResponse(false, 'Verifikasi tertolak: Kode OTP belum sesuai.');
         }
 
@@ -90,10 +97,10 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->jsonResponse(true, 'Verifikasi sempurna. Pendaftaran Anda sepenuhnya sah secara sistem di peladen admin-backend.', [
-            'access_token' => $token,
+            'token' => $token,
             'token_type' => 'Bearer',
             'user' => [
-                'nama_lengkap' => $user->nama_lengkap,
+                'nama' => $user->nama_lengkap,
                 'email' => $user->email,
                 'role' => $user->role ?? 'user',
             ]
@@ -121,10 +128,10 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return $this->jsonResponse(true, 'Autentikasi diizinkan. Selamat datang di Averroes via Laravel Sanctum!', [
-            'access_token' => $token,
+            'token' => $token,
             'token_type' => 'Bearer',
             'user' => [
-                'nama_lengkap' => $user->nama_lengkap,
+                'nama' => $user->nama_lengkap,
                 'email' => $user->email,
                 'role' => $user->role ?? 'user',
             ]
@@ -168,20 +175,121 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'otp' => 'required|string',
-            'new_password' => 'required|string|min:6'
+            'otp' => 'nullable|string',
+            'kode' => 'nullable|string',
+            'new_password' => 'nullable|string|min:6',
+            'password_baru' => 'nullable|string|min:6',
         ]);
+
+        // Kompatibilitas: Terima field 'otp'/'kode' dan 'new_password'/'password_baru'
+        $otpInput = $request->otp ?? $request->kode;
+        $newPassword = $request->new_password ?? $request->password_baru;
+
+        if (!$otpInput) {
+            return $this->jsonResponse(false, 'Kode OTP wajib diisi.');
+        }
+        if (!$newPassword || strlen($newPassword) < 6) {
+            return $this->jsonResponse(false, 'Kata sandi baru wajib diisi (minimal 6 karakter).');
+        }
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || (string) $user->reset_otp !== (string) $request->otp) {
+        if (!$user || (string) $user->reset_otp !== (string) $otpInput) {
             return $this->jsonResponse(false, 'Otorisasi gagal: Sandi mitigasi OTP Anda telah kedaluwarsa atau tidak akurat.');
         }
 
-        $user->password = Hash::make($request->new_password);
+        $user->password = Hash::make($newPassword);
         $user->reset_otp = null;
         $user->save();
 
         return $this->jsonResponse(true, 'Pemulihan wewenang akun (Reset Sandi) sukses dilaksanakan secara presisi.');
+    }
+
+    public function logout(Request $request)
+    {
+        // Mencabut token saat ini sehingga tidak berlaku lagi
+        $request->user()->currentAccessToken()->delete();
+
+        return $this->jsonResponse(true, 'Hubungan akses berhasil diputus. Sesi otentikasi Anda telah diakhiri secara aman.');
+    }
+
+    /**
+     * Bug #11: Kirim ulang OTP Registrasi
+     */
+    public function resendOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return $this->jsonResponse(false, 'Email tidak ditemukan dalam sistem.');
+        }
+
+        if ($user->is_verified) {
+            return $this->jsonResponse(false, 'Akun ini sudah terverifikasi. Silakan langsung masuk (login).');
+        }
+
+        $otp = (string) rand(100000, 999999);
+        $user->verify_otp = $otp;
+        $user->save();
+
+        Log::info("Resend OTP Pendaftaran {$user->email}: {$otp}");
+
+        try {
+            Mail::to($user->email)->send(new OtpMail(
+                $otp,
+                "Averroes - Kirim Ulang Kode OTP Pendaftaran",
+                "Berikut adalah kode OTP terbaru Anda untuk menyelesaikan proses registrasi:"
+            ));
+        } catch (\Exception $e) {
+            Log::error("Gagal mengirim ulang email OTP: " . $e->getMessage());
+        }
+
+        return $this->jsonResponse(true, 'Kode OTP baru berhasil diterbitkan.', [
+            'otp_dummy_skripsi' => $otp,
+            'email' => $user->email,
+        ]);
+    }
+
+    /**
+     * Bug #12: Login Tamu (Guest) — Kompatibilitas dengan Flutter
+     */
+    public function guestLogin()
+    {
+        $guest = User::create([
+            'nama_lengkap' => 'Pengguna Tamu',
+            'email' => 'guest_' . uniqid() . '@averroes.local',
+            'password' => Hash::make(bin2hex(random_bytes(16))),
+            'role' => 'guest',
+            'is_verified' => true,
+        ]);
+
+        $token = $guest->createToken('guest_token')->plainTextToken;
+
+        return $this->jsonResponse(true, 'Login tamu berhasil', [
+            'token' => $token,
+            'user' => [
+                'nama' => $guest->nama_lengkap,
+                'email' => $guest->email,
+                'role' => $guest->role,
+            ]
+        ]);
+    }
+
+    /**
+     * Bug #12: Login Google — Kompatibilitas dengan Flutter
+     */
+    public function googleLogin(Request $request)
+    {
+        $request->validate([
+            'id_token' => 'required|string',
+        ]);
+
+        // Placeholder: Untuk implementasi penuh, validasi id_token via Google API
+        // Sementara ini mengembalikan pesan bahwa fitur belum aktif
+        return $this->jsonResponse(false, 'Login Google belum dikonfigurasi di peladen Laravel. Silakan gunakan email/kata sandi.');
     }
 }
