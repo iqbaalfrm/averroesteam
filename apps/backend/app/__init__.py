@@ -1,7 +1,8 @@
 import os
 
-from flask import Flask
+from flask import Flask, request
 from dotenv import load_dotenv
+from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .admin.routes import admin_bp
@@ -17,6 +18,7 @@ from .api.reels import reels_bp
 from .api.zakat import zakat_bp
 from .api.konsultasi import konsultasi_bp
 from .api.kajian import kajian_bp
+from .api.common import response_error
 from .config import DevelopmentConfig, ProductionConfig
 from .extensions import csrf, mongo, jwt, mail
 from .seed import seed_data
@@ -98,5 +100,38 @@ def create_app() -> Flask:
             "message": "Backend Averroes Flask aktif",
             "data": {"admin": "/admin", "api": "/api"},
         }
+
+    def _is_api_request() -> bool:
+        path = (request.path or "").lower()
+        if path == "/api" or path.startswith("/api/"):
+            return True
+        return (request.accept_mimetypes.best or "") == "application/json"
+
+    @app.errorhandler(404)
+    def handle_not_found(error):
+        if _is_api_request():
+            return response_error("Endpoint tidak ditemukan", 404)
+        return "<h1>404</h1><p>Halaman tidak ditemukan.</p>", 404
+
+    @app.errorhandler(405)
+    def handle_method_not_allowed(error):
+        if _is_api_request():
+            return response_error("Metode request tidak diizinkan", 405)
+        return "<h1>405</h1><p>Metode request tidak diizinkan.</p>", 405
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        if isinstance(error, HTTPException):
+            if _is_api_request():
+                return response_error(error.description or "Request gagal", error.code or 500)
+            return (
+                f"<h1>{error.code or 500}</h1><p>{error.description or 'Request gagal.'}</p>",
+                error.code or 500,
+            )
+
+        app.logger.exception("Unhandled application error", exc_info=error)
+        if _is_api_request():
+            return response_error("Terjadi kesalahan pada server", 500)
+        return "<h1>500</h1><p>Terjadi kesalahan pada server.</p>", 500
 
     return app

@@ -1,3 +1,4 @@
+import 'package:averroes_core/averroes_core.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Response;
@@ -6,6 +7,8 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
+import '../../presentation/common/app_logo_badge.dart';
+import '../../presentation/common/auth_ui_kit.dart';
 
 class HalamanLupaPassword extends StatefulWidget {
   const HalamanLupaPassword({super.key});
@@ -29,10 +32,7 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
 
   Future<void> _kirimOTP() async {
     final FormState? state = _formKey.currentState;
-    if (state == null || !state.validate()) {
-      return;
-    }
-    if (_isLoading) {
+    if (state == null || !state.validate() || _isLoading) {
       return;
     }
 
@@ -51,7 +51,6 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
         final String pesan = _extractMessage(data, fallback: 'otp_sent'.tr);
         _showMessage(pesan);
 
-        // Navigate ke halaman OTP verification
         Get.toNamed(
           RuteAplikasi.verifikasiOtp,
           arguments: <String, String>{
@@ -65,9 +64,8 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
       final dynamic data = error.response?.data;
       final String message = _extractMessage(
         data,
-        fallback: data is Map<String, dynamic>
-            ? 'general_error'.tr
-            : 'network_error'.tr,
+        fallback:
+            data is Map<String, dynamic> ? 'general_error'.tr : 'network_error'.tr,
       );
       _showMessage(message, isError: true);
     } catch (_) {
@@ -80,15 +78,9 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
   }
 
   void _showMessage(String message, {bool isError = false}) {
-    Get.snackbar(
-      isError ? 'Gagal' : 'Berhasil',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor:
-          isError ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-      colorText: const Color(0xFF0D1B18),
-      margin: const EdgeInsets.all(16),
-      borderRadius: 12,
+    AuthUiKit.showSnack(
+      message: message,
+      isError: isError,
     );
   }
 
@@ -109,27 +101,11 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F8),
+      backgroundColor: AuthUiKit.background,
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            // Top bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Row(
-                children: <Widget>[
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(
-                      Symbols.arrow_back_ios_new,
-                      size: 20,
-                      color: Color(0xFF0D1B18),
-                    ),
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ),
+            const _TopBar(),
             Expanded(
               child: SingleChildScrollView(
                 padding:
@@ -139,162 +115,205 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
+                      const SizedBox(height: 12),
+                      const _HeaderSection(),
                       const SizedBox(height: 24),
-                      // Icon
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Symbols.lock_reset,
-                          color: Color(0xFFF59E0B),
-                          size: 36,
-                        ),
+                      _EmailField(controller: _emailController),
+                      const SizedBox(height: 18),
+                      _PrimaryButton(
+                        isLoading: _isLoading,
+                        onPressed: _kirimOTP,
                       ),
                       const SizedBox(height: 20),
-                      Text(
-                        'forgot_password_title'.tr,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0D1B18),
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'forgot_password_subtitle'.tr,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      // Email field
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          'email'.tr,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF0D1B18),
-                          ),
-                        ),
-                      ),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          hintText: 'enter_registered_email'.tr,
-                          hintStyle: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF94A3B8),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          prefixIcon: const Icon(
-                            Symbols.mail,
-                            color: Color(0xFF94A3B8),
-                            size: 20,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE2E8F0)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFF59E0B)),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        validator: (String? value) {
-                          final String input = value?.trim() ?? '';
-                          if (input.isEmpty) {
-                            return 'email_required'.tr;
-                          }
-                          if (!input.contains('@') || !input.contains('.')) {
-                            return 'invalid_email'.tr;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      // Submit button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF59E0B),
-                            foregroundColor: Colors.white,
-                            elevation: 6,
-                            shadowColor: const Color(0x55F59E0B),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            textStyle: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
-                          ),
-                          onPressed: _isLoading ? null : _kirimOTP,
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: <Widget>[
-                                    const Icon(Symbols.send, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text('send_otp'.tr),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Back to login
-                      Center(
-                        child: GestureDetector(
-                          onTap: () => Get.back(),
-                          child: Text(
-                            'back_to_login'.tr,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF4C9A88),
-                            ),
-                          ),
-                        ),
+                      _BackToLoginLink(
+                        onTap: () => Get.offNamed(RuteAplikasi.login),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        children: <Widget>[
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(
+              Symbols.arrow_back_ios_new,
+              size: 20,
+              color: AppColors.slate,
+            ),
+          ),
+          const Spacer(),
+          const AppLogoBadge(
+            size: 48,
+            radius: 14,
+            padding: 8,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderSection extends StatelessWidget {
+  const _HeaderSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const AppLogoBadge(
+          size: 96,
+          radius: 28,
+          padding: 10,
+          backgroundColor: Color(0xFFFFF7E7),
+          borderColor: Color(0xFFF8DFA7),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'forgot_password_title'.tr,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            color: AppColors.slate,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'forgot_password_subtitle'.tr,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.muted,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmailField extends StatelessWidget {
+  const _EmailField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'email'.tr,
+            style: AuthUiKit.labelStyle(),
+          ),
+        ),
+        TextFormField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          decoration: AuthUiKit.inputDecoration(
+            hintText: 'enter_registered_email'.tr,
+          ).copyWith(
+            prefixIcon: const Icon(
+              Symbols.mail,
+              color: AppColors.muted,
+              size: 20,
+            ),
+          ),
+          validator: (String? value) {
+            final String input = value?.trim() ?? '';
+            if (input.isEmpty) {
+              return 'email_required'.tr;
+            }
+            if (!input.contains('@') || !input.contains('.')) {
+              return 'invalid_email'.tr;
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        style: AuthUiKit.primaryButtonStyle(
+          foregroundColor: Colors.white,
+        ),
+        onPressed: isLoading ? null : onPressed,
+        child: isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Icon(Symbols.send, size: 18),
+                  const SizedBox(width: 8),
+                  Text('send_otp'.tr),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _BackToLoginLink extends StatelessWidget {
+  const _BackToLoginLink({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Text(
+          'back_to_login'.tr,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.emerald,
+          ),
         ),
       ),
     );

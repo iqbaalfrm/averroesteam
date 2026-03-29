@@ -10,6 +10,61 @@ from .common import response_success, response_error, format_doc
 
 screener_bp = Blueprint("screener_api", __name__, url_prefix="/api/screener")
 
+_DEFAULT_SCREENER_ROWS: list[dict] = [
+    {
+        "id": "default-screener-btc",
+        "nama_koin": "Bitcoin",
+        "simbol": "BTC",
+        "status": "halal",
+        "status_syariah": "halal",
+        "penjelasan_fiqh": (
+            "Underlying: Jaringan pembayaran dan penyimpan nilai digital | "
+            "Nilai: Nilai pasar terbentuk terbuka di market global | "
+            "Serah-terima: Dapat dimiliki, dipindahkan, dan disimpan langsung oleh pemilik"
+        ),
+        "referensi_ulama": "Kajian internal tim Averroes untuk kebutuhan edukasi, bukan fatwa resmi.",
+    },
+    {
+        "id": "default-screener-eth",
+        "nama_koin": "Ethereum",
+        "simbol": "ETH",
+        "status": "proses",
+        "status_syariah": "proses",
+        "penjelasan_fiqh": (
+            "Underlying: Infrastruktur smart contract dan gas fee jaringan | "
+            "Nilai: Memiliki utilitas jaringan yang jelas namun butuh telaah lanjutan | "
+            "Serah-terima: Dapat dimiliki dan dipindahkan antar wallet"
+        ),
+        "referensi_ulama": "Kajian internal tim Averroes untuk kebutuhan edukasi, bukan fatwa resmi.",
+    },
+    {
+        "id": "default-screener-bnb",
+        "nama_koin": "BNB",
+        "simbol": "BNB",
+        "status": "proses",
+        "status_syariah": "proses",
+        "penjelasan_fiqh": (
+            "Underlying: Token utilitas ekosistem exchange dan chain | "
+            "Nilai: Ada utilitas, tetapi perlu penelaahan struktur dan penggunaan lebih detail | "
+            "Serah-terima: Dapat dipindahkan dan disimpan oleh pemilik"
+        ),
+        "referensi_ulama": "Kajian internal tim Averroes untuk kebutuhan edukasi, bukan fatwa resmi.",
+    },
+    {
+        "id": "default-screener-sol",
+        "nama_koin": "Solana",
+        "simbol": "SOL",
+        "status": "proses",
+        "status_syariah": "proses",
+        "penjelasan_fiqh": (
+            "Underlying: Infrastruktur blockchain untuk aplikasi dan pembayaran fee | "
+            "Nilai: Utilitas jaringan ada, tetapi screening syariah memerlukan review berkala | "
+            "Serah-terima: Dapat dipindahkan dan dimiliki secara langsung"
+        ),
+        "referensi_ulama": "Kajian internal tim Averroes untuk kebutuhan edukasi, bukan fatwa resmi.",
+    },
+]
+
 # ─── CoinGecko Top-N Cache ──────────────────────────────────────────
 # Simpan hasil fetch CoinGecko agar tidak memanggil API terlalu sering.
 # Cache berlaku selama _CG_TTL detik (default 5 menit).
@@ -83,6 +138,19 @@ def _build_symbol_map(top_coins: list[dict]) -> dict:
 def _enrich_doc(doc: dict, cg_coin: dict | None) -> dict:
     """Gabungkan data DB screener dengan data market CoinGecko."""
     d = format_doc(doc)
+    d["status_syariah"] = (
+        str(d.get("status_syariah") or d.get("status") or "proses").strip().lower()
+    )
+    d["penjelasan_fiqh"] = (
+        str(d.get("penjelasan_fiqh") or d.get("alasan") or "Belum ada penjelasan fiqh.")
+        .strip()
+    )
+    d["referensi_ulama"] = (
+        str(
+            d.get("referensi_ulama")
+            or "Kajian internal tim Averroes untuk kebutuhan edukasi, bukan fatwa resmi."
+        ).strip()
+    )
     if cg_coin:
         d["harga_usd"] = cg_coin.get("current_price")
         d["market_cap"] = cg_coin.get("market_cap")
@@ -98,6 +166,21 @@ def _enrich_doc(doc: dict, cg_coin: dict | None) -> dict:
         d["peringkat_market_cap"] = None
         d["coingecko_id"] = ""
     return d
+
+
+def _fallback_rows(q: str, status: str) -> list[dict]:
+    rows = list(_DEFAULT_SCREENER_ROWS)
+    if q:
+        needle = q.lower()
+        rows = [
+            row
+            for row in rows
+            if needle in (row.get("nama_koin") or "").lower()
+            or needle in (row.get("simbol") or "").lower()
+        ]
+    if status in {"halal", "proses", "haram"}:
+        rows = [row for row in rows if (row.get("status_syariah") or row.get("status")) == status]
+    return rows
 
 
 @screener_bp.get("")
@@ -133,6 +216,8 @@ def list_screener():
 
     # Ambil semua data screener dari DB
     rows = list(mongo.db.screener.find(filters).sort("nama_koin", 1))
+    if not rows and mongo.db.screener.count_documents({}) == 0:
+        rows = _fallback_rows(q, status)
 
     if show_all:
         # Tanpa filter top market cap – tetap enrichkan dengan data CoinGecko
@@ -155,7 +240,7 @@ def list_screener():
         # Fallback: tampilkan data DB tanpa enrichment
         return response_success(
             "Berhasil mengambil data screener (tanpa data market)",
-            [format_doc(row) for row in rows],
+            [_enrich_doc(row, None) for row in rows],
         )
 
     sym_map = _build_symbol_map(top_coins)

@@ -12,6 +12,7 @@ class RuteAplikasi {
   static const String zakat = '/zakat';
   static const String psikolog = '/psikolog';
   static const String konsultasi = '/konsultasi';
+  static const String kajian = '/kajian';
   static const String zikir = '/zikir';
   static const String bantuan = '/bantuan';
   static const String notifikasi = '/notifikasi';

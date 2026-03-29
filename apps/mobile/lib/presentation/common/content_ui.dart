@@ -81,10 +81,10 @@ class AppEmptyStateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _AppStateCardBase(
       icon: icon,
-      text: text,
+      message: text,
       backgroundColor: Colors.white,
       borderColor: const Color(0xFFE2E8F0),
-      textColor: AppColors.muted,
+      messageColor: AppColors.muted,
       iconColor: AppColors.muted,
     );
   }
@@ -106,41 +106,198 @@ class AppErrorStateCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _AppStateCardBase(
       icon: Symbols.error,
-      text: message,
+      title: 'Terjadi Masalah',
+      message: message,
       backgroundColor: const Color(0xFFFEF2F2),
       borderColor: const Color(0xFFFECACA),
-      textColor: const Color(0xFFB91C1C),
+      titleColor: const Color(0xFF991B1B),
+      messageColor: const Color(0xFFB91C1C),
       iconColor: const Color(0xFFDC2626),
       action: onRetry == null
-          ? null
-          : OutlinedButton(
+          ? const SizedBox.shrink()
+          : AppSecondaryButton(
+              label: retryLabel,
+              icon: Symbols.refresh,
               onPressed: onRetry,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFB91C1C),
-                side: const BorderSide(color: Color(0xFFFCA5A5)),
-              ),
-              child: Text(retryLabel),
+              foregroundColor: const Color(0xFFB91C1C),
+              borderColor: const Color(0xFFFCA5A5),
             ),
+    );
+  }
+}
+
+class AppLoadingStateCard extends StatelessWidget {
+  const AppLoadingStateCard({
+    super.key,
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AppStateCardBase(
+      leading: Container(
+        width: 54,
+        height: 54,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.emeraldSoft,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFD1FAE5)),
+        ),
+        child: const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.4,
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.emeraldDark),
+          ),
+        ),
+      ),
+      title: title,
+      message: message,
+      backgroundColor: Colors.white,
+      borderColor: const Color(0xFFE2E8F0),
+      titleColor: AppColors.slate,
+      messageColor: AppColors.muted,
+      iconColor: AppColors.emeraldDark,
+    );
+  }
+}
+
+class AppInfoStateCard extends StatelessWidget {
+  const AppInfoStateCard({
+    super.key,
+    required this.title,
+    required this.message,
+    this.icon = Symbols.info,
+    this.action,
+  });
+
+  final String title;
+  final String message;
+  final IconData icon;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    return _AppStateCardBase(
+      icon: icon,
+      title: title,
+      message: message,
+      backgroundColor: Colors.white,
+      borderColor: const Color(0xFFE2E8F0),
+      titleColor: AppColors.slate,
+      messageColor: AppColors.muted,
+      iconColor: AppColors.emeraldDark,
+      action: action,
+    );
+  }
+}
+
+class AppPrimaryButton extends StatelessWidget {
+  const AppPrimaryButton({
+    super.key,
+    required this.label,
+    this.icon,
+    this.onPressed,
+    this.isLoading = false,
+  });
+
+  final String label;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: isLoading ? null : onPressed,
+      icon: isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            )
+          : Icon(icon ?? Symbols.arrow_forward, size: 18),
+      label: Text(
+        isLoading ? 'Memuat...' : label,
+        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.emeraldDark,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 0,
+      ),
+    );
+  }
+}
+
+class AppSecondaryButton extends StatelessWidget {
+  const AppSecondaryButton({
+    super.key,
+    required this.label,
+    this.icon,
+    this.onPressed,
+    this.foregroundColor = const Color(0xFF334155),
+    this.borderColor = const Color(0xFFCBD5E1),
+  });
+
+  final String label;
+  final IconData? icon;
+  final VoidCallback? onPressed;
+  final Color foregroundColor;
+  final Color borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon ?? Symbols.arrow_forward, size: 18),
+      label: Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: foregroundColor,
+        side: BorderSide(color: borderColor),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
     );
   }
 }
 
 class _AppStateCardBase extends StatelessWidget {
   const _AppStateCardBase({
-    required this.icon,
-    required this.text,
+    this.icon,
+    this.leading,
+    this.title,
+    required this.message,
     required this.backgroundColor,
     required this.borderColor,
-    required this.textColor,
+    this.titleColor = AppColors.slate,
+    required this.messageColor,
     required this.iconColor,
     this.action,
   });
 
-  final IconData icon;
-  final String text;
+  final IconData? icon;
+  final Widget? leading;
+  final String? title;
+  final String message;
   final Color backgroundColor;
   final Color borderColor;
-  final Color textColor;
+  final Color titleColor;
+  final Color messageColor;
   final Color iconColor;
   final Widget? action;
 
@@ -156,18 +313,43 @@ class _AppStateCardBase extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 20, color: iconColor),
+          if (leading != null)
+            leading!
+          else if (icon != null)
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor.withValues(alpha: 0.85)),
+              ),
+              child: Icon(icon, size: 22, color: iconColor),
+            ),
           const SizedBox(height: 8),
+          if ((title ?? '').isNotEmpty) ...<Widget>[
+            Text(
+              title!,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: titleColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+          ],
           Text(
-            text,
+            message,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: textColor,
+              color: messageColor,
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
-          if (action != null) ...<Widget>[
+          if (action != null && action is! SizedBox) ...<Widget>[
             const SizedBox(height: 10),
             action!,
           ],
@@ -176,4 +358,3 @@ class _AppStateCardBase extends StatelessWidget {
     );
   }
 }
-

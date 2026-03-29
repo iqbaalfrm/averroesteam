@@ -5,8 +5,8 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart' as dio;
 
-import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
+import '../../presentation/common/content_ui.dart';
 
 class HalamanZakat extends StatefulWidget {
   const HalamanZakat({super.key});
@@ -53,8 +53,7 @@ class _HalamanZakatState extends State<HalamanZakat> {
   Future<void> _load() async {
     try {
       final dio = ApiDio.create(attachAuthToken: false);
-      final res =
-          await dio.get<dynamic>('${AppConfig.apiBaseUrl}/api/zakat/nishab');
+      final res = await dio.get<dynamic>('/api/zakat/nishab');
       final raw = res.data;
       if (raw is Map<String, dynamic>) {
         final data = raw['data'];
@@ -930,41 +929,14 @@ class _BottomBayar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          GestureDetector(
-            onTap: enabled ? onTap : null,
+          SizedBox(
+            width: double.infinity,
             child: Opacity(
               opacity: enabled ? 1 : 0.6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981),
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: const <BoxShadow>[
-                    BoxShadow(
-                      color: Color(0x3310B981),
-                      blurRadius: 16,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    const Icon(
-                      Symbols.account_balance_wallet,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'zakat_pay_now'.tr,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
+              child: AppPrimaryButton(
+                onPressed: enabled ? onTap : null,
+                icon: Symbols.account_balance_wallet,
+                label: 'zakat_pay_now'.tr,
               ),
             ),
           ),

@@ -78,6 +78,10 @@ class HalamanAplikasi {
       middlewares: <GetMiddleware>[AuthRequiredPopupMiddleware()],
     ),
     GetPage<dynamic>(
+      name: RuteAplikasi.kajian,
+      page: () => const HalamanZikir(),
+    ),
+    GetPage<dynamic>(
       name: RuteAplikasi.zikir,
       page: () => const HalamanZikir(),
     ),

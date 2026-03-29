@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../presentation/common/content_ui.dart';
 import 'pustaka_api.dart';
 
 class HalamanPustaka extends StatefulWidget {
@@ -191,10 +192,6 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const _IconButtonCard(
-                    icon: Symbols.search_rounded,
                   ),
                 ],
               ),
@@ -1152,7 +1149,16 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: AppLoadingStateCard(
+                  title: 'Memuat Detail Buku',
+                  message:
+                      'Informasi buku dan akses bacanya sedang disiapkan.',
+                ),
+              ),
+            )
           : _error != null
               ? Center(
                   child: _PustakaError(
@@ -1244,49 +1250,23 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                     Row(
                       children: <Widget>[
                         Expanded(
-                          child: ElevatedButton.icon(
+                          child: AppPrimaryButton(
                             onPressed: (_opening || !_buku.hasFile)
                                 ? null
                                 : () => _openAccess('read'),
-                            icon: const Icon(Symbols.chrome_reader_mode,
-                                size: 18),
-                            label: Text(
-                              _opening ? 'Memuat...' : 'pustaka_read'.tr,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF065F46),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
+                            isLoading: _opening,
+                            icon: Symbols.chrome_reader_mode,
+                            label: 'pustaka_read'.tr,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: OutlinedButton.icon(
+                          child: AppSecondaryButton(
                             onPressed: (_opening || !_buku.hasFile)
                                 ? null
                                 : () => _openAccess('download'),
-                            icon:
-                                const Icon(Symbols.download_rounded, size: 18),
-                            label: Text(
-                              'Download',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: Color(0xFFCBD5E1)),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
+                            icon: Symbols.download_rounded,
+                            label: 'Download',
                           ),
                         ),
                       ],
@@ -1621,22 +1601,9 @@ class _PustakaLoadingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: List<Widget>.generate(
-        3,
-        (int i) => Padding(
-          padding: EdgeInsets.only(bottom: i == 2 ? 0 : 16),
-          child: Container(
-            height: 130,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-            ),
-            child: const Center(child: CircularProgressIndicator()),
-          ),
-        ),
-      ),
+    return const AppLoadingStateCard(
+      title: 'Memuat Pustaka',
+      message: 'Daftar ebook Averroes sedang disiapkan untuk kamu baca.',
     );
   }
 }
@@ -1646,21 +1613,9 @@ class _PustakaEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-      ),
-      child: Text(
-        'Belum ada buku yang dipublikasikan.',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: const Color(0xFF64748B),
-        ),
-      ),
+    return const AppEmptyStateCard(
+      icon: Symbols.menu_book,
+      text: 'Belum ada buku yang dipublikasikan.',
     );
   }
 }
@@ -1673,45 +1628,9 @@ class _PustakaError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            message,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFFB91C1C),
-            ),
-          ),
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: () => onRetry(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFECFDF5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'Coba Lagi',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF065F46),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return AppErrorStateCard(
+      message: message,
+      onRetry: () => onRetry(),
     );
   }
 }

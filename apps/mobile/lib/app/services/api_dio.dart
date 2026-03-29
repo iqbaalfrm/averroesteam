@@ -12,7 +12,9 @@ class ApiDio {
   }
 
   static Dio createAuth({bool attachAuthToken = true}) {
-    return _buildDio(AppConfig.authApiBaseUrl, attachAuthToken);
+    // Auth endpoints are served by the same backend app as the core API.
+    // Keeping auth on the main API base avoids route drift between ports/services.
+    return _buildDio(AppConfig.apiBaseUrl, attachAuthToken);
   }
 
   static Dio _buildDio(String baseUrl, bool attachAuthToken) {

@@ -265,7 +265,7 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             Text(
-                              'assalamualaikum'.tr.tr,
+                              'assalamualaikum'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -320,44 +320,47 @@ class _HeaderBerandaDelegate extends SliverPersistentHeaderDelegate {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Stack(
-                  children: <Widget>[
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.lineDark),
-                        boxShadow: const <BoxShadow>[
-                          BoxShadow(
-                            color: Color(0x0A0F172A),
-                            blurRadius: 10,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Symbols.notifications_active,
-                        color: AppColors.inkSoft,
-                        size: 20,
-                      ),
-                    ),
-                    Positioned(
-                      right: 6,
-                      top: 8,
-                      child: Container(
-                        width: 8,
-                        height: 8,
+                GestureDetector(
+                  onTap: () => Get.toNamed(RuteAplikasi.notifikasi),
+                  child: Stack(
+                    children: <Widget>[
+                      Container(
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.error,
+                          color: AppColors.surface,
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: AppColors.surface, width: 2),
+                          border: Border.all(color: AppColors.lineDark),
+                          boxShadow: const <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x0A0F172A),
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Symbols.notifications_active,
+                          color: AppColors.inkSoft,
+                          size: 20,
                         ),
                       ),
-                    ),
-                  ],
+                      Positioned(
+                        right: 6,
+                        top: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border:
+                                Border.all(color: AppColors.surface, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -848,7 +851,7 @@ class _GridFitur extends StatelessWidget {
         judul: 'dhikr'.tr,
         ikon: Symbols.smart_display,
         warna: paletSenada[3],
-        tujuan: RuteAplikasi.zikir,
+        tujuan: RuteAplikasi.kajian,
       ),
     ];
 

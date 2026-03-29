@@ -5,8 +5,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
-import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
+import '../../presentation/common/content_ui.dart';
 
 class HalamanScreener extends StatefulWidget {
   const HalamanScreener({super.key});
@@ -71,7 +71,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
     for (int attempt = 1; attempt <= 2; attempt++) {
       try {
         final Response<dynamic> response = await _dio.get<dynamic>(
-          '${AppConfig.apiBaseUrl}/api/screener',
+          '/api/screener',
           queryParameters: query,
           options: Options(receiveTimeout: const Duration(seconds: 35)),
         );
@@ -258,13 +258,23 @@ class _HalamanScreenerState extends State<HalamanScreener> {
                   const SizedBox(height: 2),
                   if (_isLoading)
                     const Padding(
-                      padding: EdgeInsets.only(top: 32),
-                      child: CircularProgressIndicator(),
+                      padding: EdgeInsets.only(top: 24),
+                      child: AppLoadingStateCard(
+                        title: 'Memuat Screener',
+                        message:
+                            'Data aset kripto syariah sedang disiapkan untuk kamu cek.',
+                      ),
                     )
                   else if (_error != null)
-                    _ErrorCard(message: _error!, onRetry: _fetchScreener)
+                    AppErrorStateCard(
+                      message: _error!,
+                      onRetry: () => _fetchScreener(),
+                    )
                   else if (_items.isEmpty)
-                    const _EmptyCard()
+                    AppEmptyStateCard(
+                      text:
+                          'Belum ada aset yang cocok dengan filter yang kamu pilih.',
+                    )
                   else
                     ..._items.map(
                       (_ScreenerItem item) => Padding(

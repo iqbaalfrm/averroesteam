@@ -4,9 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../app/services/api_dio.dart';
+import '../../presentation/common/content_ui.dart';
 
 class HalamanZikir extends StatefulWidget {
   const HalamanZikir({super.key});
@@ -48,6 +49,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
     ),
   ];
 
+  late final YoutubePlayerController _controller;
   List<_KajianVideo> _videos = <_KajianVideo>[];
   _KajianVideo? _selectedVideo;
   bool _loading = true;
@@ -55,7 +57,24 @@ class _HalamanZikirState extends State<HalamanZikir> {
   @override
   void initState() {
     super.initState();
+    _controller = YoutubePlayerController.fromVideoId(
+      videoId: _bootstrapVideoId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        strictRelatedVideos: true,
+        enableCaption: false,
+        interfaceLanguage: 'id',
+      ),
+    );
     _loadKajian();
+  }
+
+  @override
+  void dispose() {
+    _controller.close();
+    super.dispose();
   }
 
   Future<void> _loadKajian() async {
@@ -91,12 +110,13 @@ class _HalamanZikirState extends State<HalamanZikir> {
 
       setState(() {
         _videos = effectiveVideos;
-        _selectedVideo = effectiveVideos.isNotEmpty ? effectiveVideos.first : null;
+        _selectedVideo =
+            effectiveVideos.isNotEmpty ? effectiveVideos.first : null;
         _loading = false;
       });
 
       if (_selectedVideo != null) {
-        // Ready
+        _controller.loadVideoById(videoId: _selectedVideo!.id);
       }
     } catch (_) {
       if (!mounted) return;
@@ -105,6 +125,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
         _selectedVideo = _fallbackVideos.first;
         _loading = false;
       });
+      _controller.loadVideoById(videoId: _fallbackVideos.first.id);
     }
   }
 
@@ -113,6 +134,7 @@ class _HalamanZikirState extends State<HalamanZikir> {
       return;
     }
     setState(() => _selectedVideo = video);
+    _controller.loadVideoById(videoId: video.id);
   }
 
   @override
@@ -129,85 +151,90 @@ class _HalamanZikirState extends State<HalamanZikir> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: const _KajianStateCard(
+            child: const AppInfoStateCard(
               icon: Symbols.desktop_windows,
               title: 'Platform Tidak Didukung',
-              message: 'Pemutar video (WebView) belum mendukung Windows Desktop secara bawaan. Harap jalankan menggunakan Emulator Android atau iOS.',
+              message:
+                  'Pemutar video belum mendukung Windows Desktop secara bawaan. Jalankan lewat Android Emulator atau iOS untuk preview penuh.',
             ),
           ),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        slivers: <Widget>[
-          SliverAppBar(
-            pinned: true,
-            elevation: 0,
-            backgroundColor: const Color(0xFFF8FAFC),
-            automaticallyImplyLeading: false,
-            titleSpacing: 0,
-            title: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: <Widget>[
-                  _HeaderIconButton(
-                    icon: Symbols.arrow_back_ios_new_rounded,
-                    onTap: () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Kajian Averroes',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
-                          ),
+    return YoutubePlayerScaffold(
+      controller: _controller,
+      builder: (BuildContext context, Widget player) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: CustomScrollView(
+            slivers: <Widget>[
+              SliverAppBar(
+                pinned: true,
+                elevation: 0,
+                backgroundColor: const Color(0xFFF8FAFC),
+                automaticallyImplyLeading: false,
+                titleSpacing: 0,
+                title: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Row(
+                    children: <Widget>[
+                      _HeaderIconButton(
+                        icon: Symbols.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Kajian Averroes',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Video kajian selaras dengan pandangan syariah',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Video kajian selaras dengan pandangan syariah',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  child: _buildBody(player),
+                ),
+              ),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: _buildBody(),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(Widget player) {
     if (_loading) {
-      return const _KajianStateCard(
-        icon: Symbols.progress_activity,
+      return const AppLoadingStateCard(
         title: 'Memuat Kajian',
         message: 'Daftar video kajian sedang diambil dari backend.',
       );
     }
 
     if (_selectedVideo == null) {
-      return const _KajianStateCard(
+      return const AppInfoStateCard(
         icon: Symbols.smart_display,
         title: 'Belum Ada Kajian',
         message:
@@ -218,52 +245,23 @@ class _HalamanZikirState extends State<HalamanZikir> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        GestureDetector(
-          onTap: () async {
-            final uri = Uri.parse('https://www.youtube.com/watch?v=${_selectedVideo!.id}');
-            try {
-              final bool launched = await launchUrl(
-                uri,
-                mode: LaunchMode.externalNonBrowserApplication,
-              );
-              if (!launched) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            } catch (_) {
-              await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-            }
-          },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x1A0F172A),
-                    blurRadius: 18,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    Image.network(
-                      _selectedVideo!.thumbnailUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF1E293B)),
-                    ),
-                    Container(color: Colors.black.withValues(alpha: 0.45)),
-                    const Center(
-                      child: Icon(Symbols.play_circle, size: 64, color: Colors.white),
-                    ),
-                  ],
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x1A0F172A),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
                 ),
-              ),
+              ],
+            ),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: player,
             ),
           ),
         ),
@@ -337,70 +335,6 @@ class _HeaderIconButton extends StatelessWidget {
           ],
         ),
         child: Icon(icon, size: 18, color: const Color(0xFF475569)),
-      ),
-    );
-  }
-}
-
-class _KajianStateCard extends StatelessWidget {
-  const _KajianStateCard({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.action,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: <Widget>[
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFECFDF5),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(icon, color: const Color(0xFF047857)),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF0F172A),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF64748B),
-              height: 1.6,
-            ),
-          ),
-          if (action != null) ...<Widget>[
-            const SizedBox(height: 16),
-            action!,
-          ],
-        ],
       ),
     );
   }

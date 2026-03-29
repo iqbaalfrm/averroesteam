@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
 
 class PustakaApi {
@@ -9,9 +8,7 @@ class PustakaApi {
   final Dio _dio;
 
   Future<List<PustakaKategori>> fetchKategori() async {
-    final Response<dynamic> r = await _dio.get<dynamic>(
-      '${AppConfig.apiBaseUrl}/api/buku/kategori',
-    );
+    final Response<dynamic> r = await _dio.get<dynamic>('/api/buku/kategori');
     final List<dynamic> rows = _extractList(r.data);
     return rows
         .whereType<Map<dynamic, dynamic>>()
@@ -26,7 +23,7 @@ class PustakaApi {
     String sort = 'terbaru',
   }) async {
     final Response<dynamic> r = await _dio.get<dynamic>(
-      '${AppConfig.apiBaseUrl}/api/buku',
+      '/api/buku',
       queryParameters: <String, dynamic>{
         'page': page,
         'per_page': perPage,
@@ -52,9 +49,7 @@ class PustakaApi {
   }
 
   Future<PustakaBuku> fetchBukuDetail(String id) async {
-    final Response<dynamic> r = await _dio.get<dynamic>(
-      '${AppConfig.apiBaseUrl}/api/buku/$id',
-    );
+    final Response<dynamic> r = await _dio.get<dynamic>('/api/buku/$id');
     final Map<String, dynamic> data = _extractMap(r.data);
     return PustakaBuku.fromJson(data);
   }
@@ -64,7 +59,7 @@ class PustakaApi {
     String action = 'read',
   }) async {
     final Response<dynamic> r = await _dio.post<dynamic>(
-      '${AppConfig.apiBaseUrl}/api/buku/$bukuId/access',
+      '/api/buku/$bukuId/access',
       data: <String, dynamic>{'action': action},
     );
     final Map<String, dynamic> data = _extractMap(r.data);

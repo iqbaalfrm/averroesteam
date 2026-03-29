@@ -22,6 +22,68 @@ from .common import admin_required, response_error, response_success, format_doc
 pustaka_bp = Blueprint("pustaka_api", __name__, url_prefix="/api/buku")
 pustaka_admin_bp = Blueprint("pustaka_admin_api", __name__, url_prefix="/api/admin/buku")
 
+_DEFAULT_CATEGORY = {
+    "id": "default-kategori-dokumen",
+    "nama": "Dokumen",
+    "slug": "dokumen",
+    "is_active": True,
+}
+
+_DEFAULT_BOOKS: list[dict] = [
+    {
+        "id": "default-buku-1",
+        "judul": "Al-Ahkam Al-Fiqhiyyah Al-Muta'alliqah bil-'Umalat al-Iliktruniyyah",
+        "penulis": "Tim Riset Averroes",
+        "deskripsi": "Kajian hukum fiqih terkait transaksi dan muamalah elektronik.",
+        "slug": "al-ahkam-al-fiqhiyyah-al-muta-alliqah-bil-umalat-al-iliktruniyyah",
+        "kategori": _DEFAULT_CATEGORY,
+        "akses": "gratis",
+        "bahasa": "id",
+        "format_file": "pdf",
+        "drive_file_id": "1hc1yBau9ub_DSvQR6mvIUjIwLhHcRC9S",
+        "is_featured": True,
+    },
+    {
+        "id": "default-buku-2",
+        "judul": "Hukum Fiqih terhadap Uang Kertas (Fiat)",
+        "penulis": "Tim Riset Averroes",
+        "deskripsi": "Pembahasan fiqih mengenai uang kertas (fiat) dalam perspektif muamalah.",
+        "slug": "hukum-fiqih-terhadap-uang-kertas-fiat",
+        "kategori": _DEFAULT_CATEGORY,
+        "akses": "gratis",
+        "bahasa": "id",
+        "format_file": "pdf",
+        "drive_file_id": "1KY-iwtK_ydpXECCqjmNTe3w9NgGpJa3s",
+        "is_featured": False,
+    },
+    {
+        "id": "default-buku-3",
+        "judul": "ISCHAIN - Soal Jawab Cryptocurrency",
+        "penulis": "ISCHAIN",
+        "deskripsi": "Kumpulan tanya jawab praktis seputar cryptocurrency dari perspektif syariah.",
+        "slug": "ischain-soal-jawab-cryptocurrency",
+        "kategori": _DEFAULT_CATEGORY,
+        "akses": "gratis",
+        "bahasa": "id",
+        "format_file": "pdf",
+        "drive_file_id": "1UpeSMuSjgEb-aqHuHE5xry1HAp5HSwK8",
+        "is_featured": False,
+    },
+    {
+        "id": "default-buku-4",
+        "judul": "ISCHAIN - Panduan Memilih Aset Kripto yang Halal",
+        "penulis": "ISCHAIN",
+        "deskripsi": "Panduan ringkas untuk menyaring aset kripto yang sesuai prinsip halal.",
+        "slug": "ischain-panduan-memilih-aset-kripto-yang-halal",
+        "kategori": _DEFAULT_CATEGORY,
+        "akses": "gratis",
+        "bahasa": "id",
+        "format_file": "pdf",
+        "drive_file_id": "159GtpjQKavAc-CH2owF3EjA9yXHIzP1M",
+        "is_featured": True,
+    },
+]
+
 
 def _slugify(text: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", (text or "").strip().lower()).strip("-")
@@ -86,7 +148,7 @@ def _to_int(v, default: int, min_value: int = 1, max_value: int | None = None) -
 
 
 def _cover_url_for_book(b: dict) -> str | None:
-    if not b.get("cover_key"):
+    if not b.get("_id") or not b.get("cover_key"):
         return None
     return url_for("pustaka_api.cover_buku", buku_id=str(b["_id"]), _external=True)
 
@@ -108,6 +170,66 @@ def _serialize_public_book(b: dict) -> dict:
     for k in ["created_by", "updated_by", "file_key", "file_pdf"]:
          payload.pop(k, None)
     return payload
+
+
+def _fallback_books() -> list[dict]:
+    return [dict(item) for item in _DEFAULT_BOOKS]
+
+
+def _find_fallback_book(*, buku_id: str | None = None, slug: str | None = None) -> dict | None:
+    for item in _fallback_books():
+        if buku_id and item["id"] == buku_id:
+            return item
+        if slug and item["slug"] == slug:
+            return item
+    return None
+
+
+def _fallback_book_filters_match(
+    book: dict,
+    *,
+    q: str,
+    kategori_slug: str,
+    format_file: str,
+    featured: bool | None,
+) -> bool:
+    if q:
+        needle = q.lower()
+        haystack = " ".join(
+            [
+                str(book.get("judul") or ""),
+                str(book.get("penulis") or ""),
+                str(book.get("deskripsi") or ""),
+            ]
+        ).lower()
+        if needle not in haystack:
+            return False
+    if kategori_slug and (book.get("kategori") or {}).get("slug") != kategori_slug:
+        return False
+    if format_file and (book.get("format_file") or "").lower() != format_file:
+        return False
+    if featured is not None and bool(book.get("is_featured")) != featured:
+        return False
+    return True
+
+
+def _serialize_fallback_book(book: dict) -> dict:
+    return {
+        "id": book["id"],
+        "judul": book["judul"],
+        "penulis": book["penulis"],
+        "deskripsi": book["deskripsi"],
+        "slug": book["slug"],
+        "kategori": dict(book.get("kategori") or _DEFAULT_CATEGORY),
+        "akses": book.get("akses") or "gratis",
+        "bahasa": book.get("bahasa") or "id",
+        "format_file": book.get("format_file") or "pdf",
+        "drive_file_id": book.get("drive_file_id"),
+        "cover_url": None,
+        "can_download": bool(book.get("drive_file_id")),
+        "has_file": bool(book.get("drive_file_id")),
+        "is_featured": bool(book.get("is_featured")),
+    }
 
 
 def _serialize_admin_book(b: dict) -> dict:
@@ -246,8 +368,29 @@ def list_buku():
     total = mongo.db.buku.count_documents(filters)
     rows = list(cursor.skip((page - 1) * per_page).limit(per_page))
 
+    if total == 0 and mongo.db.buku.count_documents({"status": "published"}) == 0:
+        fallback_rows = [
+            book
+            for book in _fallback_books()
+            if _fallback_book_filters_match(
+                book,
+                q=q,
+                kategori_slug=kategori_slug,
+                format_file=format_file,
+                featured=featured,
+            )
+        ]
+        if sort == "judul":
+            fallback_rows.sort(key=lambda item: str(item.get("judul") or "").lower())
+        total = len(fallback_rows)
+        start = (page - 1) * per_page
+        rows = fallback_rows[start : start + per_page]
+
     data = {
-        "items": [_serialize_public_book(row) for row in rows],
+        "items": [
+            _serialize_public_book(row) if row.get("_id") else _serialize_fallback_book(row)
+            for row in rows
+        ],
         "pagination": _build_pagination_payload(page=page, per_page=per_page, total=total),
         "filters": {
             "q": q,
@@ -264,11 +407,16 @@ def list_buku():
 @pustaka_bp.get("/kategori")
 def list_kategori_buku():
     rows = list(mongo.db.kategori_buku.find({"is_active": True}).sort([("urutan", 1), ("nama", 1)]))
+    if not rows and mongo.db.buku.count_documents({"status": "published"}) == 0:
+        return response_success("Berhasil mengambil kategori buku", [dict(_DEFAULT_CATEGORY)])
     return response_success("Berhasil mengambil kategori buku", [format_doc(row) for row in rows])
 
 
 @pustaka_bp.get("/slug/<string:slug>")
 def detail_buku_slug(slug: str):
+    fallback = _find_fallback_book(slug=slug)
+    if fallback and mongo.db.buku.count_documents({"status": "published"}) == 0:
+        return response_success("Berhasil mengambil detail buku", _serialize_fallback_book(fallback))
     row = mongo.db.buku.find_one({"slug": slug, "status": "published"})
     if not row:
         return response_error("Buku tidak ditemukan", 404)
@@ -277,6 +425,9 @@ def detail_buku_slug(slug: str):
 
 @pustaka_bp.get("/<string:buku_id>")
 def detail_buku(buku_id: str):
+    fallback = _find_fallback_book(buku_id=buku_id)
+    if fallback and mongo.db.buku.count_documents({"status": "published"}) == 0:
+        return response_success("Berhasil mengambil detail buku", _serialize_fallback_book(fallback))
     try:
         row = mongo.db.buku.find_one({"_id": ObjectId(buku_id), "status": "published"})
     except Exception:
@@ -307,6 +458,24 @@ def cover_buku(buku_id: str):
 
 @pustaka_bp.post("/<string:buku_id>/access")
 def access_buku(buku_id: str):
+    fallback = _find_fallback_book(buku_id=buku_id)
+    if fallback and mongo.db.buku.count_documents({"status": "published"}) == 0:
+        drive_id = str(fallback.get("drive_file_id") or "").strip()
+        if not drive_id:
+            return response_error("File buku tidak tersedia", 400)
+        action = (request.get_json(silent=True) or {}).get("action") or "read"
+        action = str(action).strip().lower()
+        if action not in {"read", "download"}:
+            action = "read"
+        if action == "read":
+            url = f"https://drive.google.com/file/d/{drive_id}/preview"
+        else:
+            url = f"https://drive.google.com/uc?export=download&id={drive_id}"
+        expires = int(current_app.config.get("PUSTAKA_SIGNED_URL_EXPIRES_SECONDS", 600))
+        return response_success(
+            "URL akses buku berhasil dibuat",
+            {"url": url, "expires_in": expires, "filename": fallback.get("judul")},
+        )
     try:
          row = mongo.db.buku.find_one({"_id": ObjectId(buku_id), "status": "published"})
     except Exception:

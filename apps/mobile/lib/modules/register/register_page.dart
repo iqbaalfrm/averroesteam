@@ -7,6 +7,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
+import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
@@ -50,13 +51,13 @@ class _HalamanRegisterState extends State<HalamanRegister> {
       final Response<dynamic> response = await _dio.post<dynamic>(
         '/api/auth/register',
         data: <String, dynamic>{
-          'nama_lengkap': _nameController.text.trim(),
+          'nama': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text,
         },
       );
 
-      _handleAuthResponse(response);
+      await _handleAuthResponse(response);
     });
   }
 
@@ -89,15 +90,23 @@ class _HalamanRegisterState extends State<HalamanRegister> {
     }
   }
 
-  void _handleAuthResponse(Response<dynamic> response) {
+  Future<void> _handleAuthResponse(Response<dynamic> response) async {
     final dynamic data = response.data;
     if (data is Map<String, dynamic> && _isSuccess(data)) {
-      _showMessage(_extractMessage(data, fallback: 'Berhasil. Cek email untuk OTP.'));
-      Get.toNamed(RuteAplikasi.verifikasiOtp, arguments: <String, String>{
-        'email': _emailController.text.trim(),
-        'mode': 'register',
-      });
-      return;
+      final Map<String, dynamic>? innerData =
+          data['data'] as Map<String, dynamic>?;
+      final String? token = innerData?['token'] as String?;
+      final Map<String, dynamic>? user = innerData?['user'] as Map<String, dynamic>?;
+
+      if (token != null && token.isNotEmpty) {
+        await AuthService.instance
+            .simpanAuth(token, user ?? <String, dynamic>{});
+        _showMessage(
+          _extractMessage(data, fallback: 'Registrasi berhasil'),
+        );
+        Get.offAllNamed(RuteAplikasi.beranda);
+        return;
+      }
     }
     _showMessage('general_error'.tr, isError: true);
   }
