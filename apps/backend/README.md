@@ -47,11 +47,15 @@ Gunakan `.env` dan atur minimal:
 - `UPLOAD_FOLDER` (opsional). Jika path relatif (mis. `uploads`), otomatis dipetakan ke `apps/backend/uploads`.
   Pastikan folder ini writable oleh user service (contoh `www-data`).
 
-Konfigurasi scraping berita crypto:
+Konfigurasi feed berita crypto:
 - `NEWS_SCRAPER_ENABLED=true`
 - `NEWS_SCRAPER_INTERVAL_SECONDS=21600` (6 jam)
 - `NEWS_SCRAPER_LIMIT=20`
-- `NEWS_SCRAPER_FEEDS=https://cryptowave.co.id/`
+- `NEWS_SCRAPER_FEEDS=https://news.google.com/rss/search?q=crypto&hl=id&gl=ID&ceid=ID:id`
+
+Catatan berita:
+- Backend hanya menyimpan metadata feed (`judul`, `ringkasan`, `gambar_url`, `published_at`, `sumber_url`, `sumber_nama`).
+- Artikel lengkap tidak di-scrape atau disalin ke database.
 
 Catatan:
 - Saat `APP_ENV=production`, app akan gagal start jika secret wajib belum diisi.

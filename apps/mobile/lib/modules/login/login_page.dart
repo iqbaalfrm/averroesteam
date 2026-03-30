@@ -33,6 +33,8 @@ class _HalamanLoginState extends State<HalamanLogin> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  bool get _isGoogleLoginConfigured => AppConfig.isGoogleLoginConfigured;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -59,6 +61,10 @@ class _HalamanLoginState extends State<HalamanLogin> {
   }
 
   Future<void> _loginGoogle() async {
+    if (!_isGoogleLoginConfigured) {
+      _showMessage('google_login_unavailable'.tr, isError: true);
+      return;
+    }
     await _runRequest(() async {
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account == null) {
@@ -108,6 +114,7 @@ class _HalamanLoginState extends State<HalamanLogin> {
       final String message =
           _extractMessage(data, fallback: 'network_error'.tr);
       _showMessage(message, isError: true);
+      _maybeRouteToRegisterVerification(data);
     } catch (_) {
       _showMessage('general_error'.tr, isError: true);
     } finally {
@@ -172,6 +179,30 @@ class _HalamanLoginState extends State<HalamanLogin> {
     );
   }
 
+  void _maybeRouteToRegisterVerification(dynamic data) {
+    if (data is! Map<String, dynamic>) {
+      return;
+    }
+    final dynamic innerData = data['data'];
+    if (innerData is! Map<String, dynamic>) {
+      return;
+    }
+    if (innerData['requires_verification'] != true) {
+      return;
+    }
+    final String email = (innerData['email'] as String? ?? '').trim();
+    if (email.isEmpty) {
+      return;
+    }
+    Get.toNamed(
+      RuteAplikasi.verifikasiOtp,
+      arguments: <String, String>{
+        'email': email,
+        'mode': 'register',
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,13 +248,15 @@ class _HalamanLoginState extends State<HalamanLogin> {
                             isLoading: _isLoading,
                             onPressed: _loginEmailPassword,
                           ),
-                          const SizedBox(height: 24),
-                          _DividerSection(),
-                          const SizedBox(height: 12),
-                          _GoogleButton(
-                            isLoading: _isLoading,
-                            onPressed: _loginGoogle,
-                          ),
+                          if (_isGoogleLoginConfigured) ...<Widget>[
+                            const SizedBox(height: 24),
+                            _DividerSection(),
+                            const SizedBox(height: 12),
+                            _GoogleButton(
+                              isLoading: _isLoading,
+                              onPressed: _loginGoogle,
+                            ),
+                          ],
                           const SizedBox(height: 24),
                           _BottomSection(
                             isLoading: _isLoading,

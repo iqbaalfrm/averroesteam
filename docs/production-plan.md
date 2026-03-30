@@ -251,7 +251,7 @@ Fitur opsional / bisa ditunda jika mengganggu stabilisasi:
 - [x] Reels
 - [x] Diskusi
 - [x] Psikolog / Konsultasi
-- [x] Zikir / Pustaka / Bantuan / Kebijakan Privasi
+- [x] Kajian / Pustaka / Bantuan / Kebijakan Privasi
 
 Dasar teknis rekomendasi scope:
 

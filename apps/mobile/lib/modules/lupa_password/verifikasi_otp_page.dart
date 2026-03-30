@@ -10,6 +10,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
+import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
@@ -97,8 +98,11 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     setState(() => _isVerifying = true);
 
     try {
+      final String endpoint = _mode == 'register'
+          ? '/api/auth/verifikasi-otp-register'
+          : '/api/auth/verifikasi-otp';
       final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/verifikasi-otp',
+        endpoint,
         data: <String, dynamic>{
           'email': _email,
           'kode': kode,
@@ -106,10 +110,23 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
       );
 
       final dynamic data = response.data;
-      if (data is Map<String, dynamic> && data['status'] == true) {
+      if (data is Map<String, dynamic> && _isSuccess(data)) {
         if (_mode == 'register') {
-          _showMessage('otp_valid'.tr);
-          Get.offAllNamed(RuteAplikasi.login);
+          final Map<String, dynamic>? innerData =
+              data['data'] as Map<String, dynamic>?;
+          final String? token = innerData?['token'] as String?;
+          final Map<String, dynamic>? user =
+              innerData?['user'] as Map<String, dynamic>?;
+          if (token != null && token.isNotEmpty) {
+            await AuthService.instance
+                .simpanAuth(token, user ?? <String, dynamic>{});
+            _showMessage(
+              _extractMessage(data, fallback: 'login_success'.tr),
+            );
+            Get.offAllNamed(RuteAplikasi.beranda);
+            return;
+          }
+          _showMessage('general_error'.tr, isError: true);
         } else {
           setState(() {
             _otpVerified = true;
@@ -197,8 +214,11 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     }
 
     try {
+      final String endpoint = _mode == 'register'
+          ? '/api/auth/resend-otp-register'
+          : '/api/auth/lupa-password';
       await _dio.post<dynamic>(
-        '/api/auth/lupa-password',
+        endpoint,
         data: <String, dynamic>{'email': _email},
       );
       _showMessage('new_otp_sent'.tr);
@@ -238,6 +258,17 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
       }
     }
     return fallback;
+  }
+
+  bool _isSuccess(Map<String, dynamic> data) {
+    final dynamic status = data['status'];
+    if (status == true) {
+      return true;
+    }
+    if (status is String && status.toLowerCase() == 'success') {
+      return true;
+    }
+    return false;
   }
 
   @override

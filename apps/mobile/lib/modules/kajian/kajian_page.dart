@@ -9,14 +9,14 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../app/services/api_dio.dart';
 import '../../presentation/common/content_ui.dart';
 
-class HalamanZikir extends StatefulWidget {
-  const HalamanZikir({super.key});
+class HalamanKajian extends StatefulWidget {
+  const HalamanKajian({super.key});
 
   @override
-  State<HalamanZikir> createState() => _HalamanZikirState();
+  State<HalamanKajian> createState() => _HalamanKajianState();
 }
 
-class _HalamanZikirState extends State<HalamanZikir> {
+class _HalamanKajianState extends State<HalamanKajian> {
   static const String _bootstrapVideoId = '_j1GfNyYRJM';
   static const List<_KajianVideo> _fallbackVideos = <_KajianVideo>[
     _KajianVideo(

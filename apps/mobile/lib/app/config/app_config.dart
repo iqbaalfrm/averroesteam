@@ -11,11 +11,6 @@ class AppConfig {
     return raw.trim().replaceAll(RegExp(r'/$'), '');
   }
 
-  static String get authApiBaseUrl {
-    final String raw = dotenv.env['AUTH_API_BASE_URL'] ?? 'http://10.0.2.2:8000';
-    return raw.trim().replaceAll(RegExp(r'/$'), '');
-  }
-
   static String get groqApiKey {
     final String fromEnv = dotenv.env['GROQ_API_KEY']?.trim() ?? '';
     if (fromEnv.isNotEmpty) {
@@ -26,6 +21,8 @@ class AppConfig {
 
   static String get groqModel =>
       dotenv.env['GROQ_MODEL'] ?? 'llama-3.1-8b-instant';
+
+  static bool get isGroqConfigured => groqApiKey.isNotEmpty;
 
   /// OAuth web client ID untuk verifikasi id_token di backend.
   /// Isi lewat .env dengan GOOGLE_WEB_CLIENT_ID.
@@ -38,4 +35,7 @@ class AppConfig {
         const String.fromEnvironment('GOOGLE_WEB_CLIENT_ID').trim();
     return fromConst.isNotEmpty ? fromConst : null;
   }
+
+  static bool get isGoogleLoginConfigured =>
+      (googleWebClientId?.trim().isNotEmpty ?? false);
 }

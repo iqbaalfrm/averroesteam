@@ -12,7 +12,7 @@ import '../../modules/portofolio/portofolio_page.dart';
 import '../../modules/reels/reels_page.dart';
 import '../../modules/screener/screener_page.dart';
 import '../../modules/shell/shell_page.dart';
-import '../../modules/zikir/zikir_page.dart';
+import '../../modules/kajian/kajian_page.dart';
 import '../../modules/zakat/zakat_page.dart';
 import '../../modules/pustaka/pustaka_page.dart';
 import '../../modules/bantuan/bantuan_page.dart';
@@ -79,11 +79,7 @@ class HalamanAplikasi {
     ),
     GetPage<dynamic>(
       name: RuteAplikasi.kajian,
-      page: () => const HalamanZikir(),
-    ),
-    GetPage<dynamic>(
-      name: RuteAplikasi.zikir,
-      page: () => const HalamanZikir(),
+      page: () => const HalamanKajian(),
     ),
     GetPage<dynamic>(
       name: RuteAplikasi.bantuan,

@@ -50,6 +50,8 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
   bool _includeDalil = true;
   _ResponseMode _responseMode = _ResponseMode.normal;
 
+  bool get _isChatConfigured => AppConfig.isGroqConfigured;
+
   @override
   void dispose() {
     _inputController.dispose();
@@ -354,7 +356,12 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
       backgroundColor: const Color(0xFFF6F8F8),
       body: Column(
         children: <Widget>[
-          _HeaderChatbot(onOpenSettings: _showSettingsSheet),
+          _HeaderChatbot(
+            onOpenSettings: _showSettingsSheet,
+            isConfigured: _isChatConfigured,
+          ),
+          if (!_isChatConfigured)
+            const _ChatbotConfigNotice(),
           Expanded(
             child: ListView.separated(
               controller: _scrollController,
@@ -372,6 +379,7 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
             onSend: _sendMessage,
             isLoading: _isLoading,
             quickPrompts: _quickPrompts,
+            enabled: _isChatConfigured,
           ),
         ],
       ),
@@ -380,9 +388,13 @@ class _HalamanChatbotState extends State<HalamanChatbot> {
 }
 
 class _HeaderChatbot extends StatelessWidget {
-  const _HeaderChatbot({required this.onOpenSettings});
+  const _HeaderChatbot({
+    required this.onOpenSettings,
+    required this.isConfigured,
+  });
 
   final VoidCallback onOpenSettings;
+  final bool isConfigured;
 
   String _trOr(String key, String fallback) {
     final String translated = key.tr;
@@ -426,18 +438,27 @@ class _HeaderChatbot extends StatelessWidget {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF13ECB9),
+                        decoration: BoxDecoration(
+                          color: isConfigured
+                              ? const Color(0xFF13ECB9)
+                              : const Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _trOr('chatbot_status_ready', 'Siap Membantu'),
+                        isConfigured
+                            ? _trOr('chatbot_status_ready', 'Siap Membantu')
+                            : _trOr(
+                                'chatbot_status_unconfigured',
+                                'Butuh Konfigurasi',
+                              ),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF13ECB9),
+                          color: isConfigured
+                              ? const Color(0xFF13ECB9)
+                              : const Color(0xFFF59E0B),
                         ),
                       ),
                     ],
@@ -451,6 +472,41 @@ class _HeaderChatbot extends StatelessWidget {
               onTap: onOpenSettings,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatbotConfigNotice extends StatelessWidget {
+  const _ChatbotConfigNotice();
+
+  String _trOr(String key, String fallback) {
+    final String translated = key.tr;
+    return translated == key ? fallback : translated;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Text(
+        _trOr(
+          'chatbot_unconfigured_message',
+          'Chatbot belum dikonfigurasi untuk build ini. Isi GROQ_API_KEY di .env lalu lakukan full restart app.',
+        ),
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF92400E),
+          height: 1.5,
         ),
       ),
     );
@@ -605,12 +661,14 @@ class _FooterChatbot extends StatelessWidget {
     required this.onSend,
     required this.isLoading,
     required this.quickPrompts,
+    required this.enabled,
   });
 
   final TextEditingController controller;
   final ValueChanged<String?> onSend;
   final bool isLoading;
   final List<String> quickPrompts;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -633,7 +691,9 @@ class _FooterChatbot extends StatelessWidget {
                         padding: const EdgeInsets.only(right: 8),
                         child: _QuickPill(
                           label: prompt,
-                          onTap: isLoading ? null : () => onSend(prompt),
+                          onTap: !enabled || isLoading
+                              ? null
+                              : () => onSend(prompt),
                         ),
                       ))
                   .toList(),
@@ -653,9 +713,11 @@ class _FooterChatbot extends StatelessWidget {
                   child: TextField(
                     controller: controller,
                     textInputAction: TextInputAction.send,
-                    onSubmitted: isLoading ? null : (_) => onSend(null),
+                    onSubmitted:
+                        !enabled || isLoading ? null : (_) => onSend(null),
                     minLines: 1,
                     maxLines: 4,
+                    enabled: enabled,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -675,21 +737,25 @@ class _FooterChatbot extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               InkWell(
-                onTap: isLoading ? null : () => onSend(null),
+                onTap: !enabled || isLoading ? null : () => onSend(null),
                 borderRadius: BorderRadius.circular(999),
                 child: Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF13ECB9),
+                    color: enabled
+                        ? const Color(0xFF13ECB9)
+                        : const Color(0xFFE5E7EB),
                     borderRadius: BorderRadius.circular(999),
-                    boxShadow: const <BoxShadow>[
-                      BoxShadow(
-                        color: Color(0x3313ECB9),
-                        blurRadius: 10,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
+                    boxShadow: enabled
+                        ? const <BoxShadow>[
+                            BoxShadow(
+                              color: Color(0x3313ECB9),
+                              blurRadius: 10,
+                              offset: Offset(0, 6),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: isLoading
                       ? const Padding(
@@ -701,9 +767,11 @@ class _FooterChatbot extends StatelessWidget {
                             ),
                           ),
                         )
-                      : const Icon(
+                      : Icon(
                           Symbols.send,
-                          color: Color(0xFF0D1B18),
+                          color: enabled
+                              ? Color(0xFF0D1B18)
+                              : Color(0xFF9CA3AF),
                         ),
                 ),
               ),

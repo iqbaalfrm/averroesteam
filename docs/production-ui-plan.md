@@ -45,7 +45,7 @@ Screen lain masuk fase berikutnya:
 
 - `screener`, `pasar`, `portofolio`, `notifikasi`
 - `chatbot`, `reels`, `diskusi`, `psikolog`, `konsultasi`
-- `zakat`, `zikir`, `pustaka`, `bantuan`
+- `zakat`, `kajian`, `pustaka`, `bantuan`
 
 ## Output Production UI (Definition of Done)
 

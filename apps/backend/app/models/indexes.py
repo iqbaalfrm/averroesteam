@@ -4,6 +4,7 @@ from pymongo.database import Database
 def setup_indexes(db: Database):
     db.users.create_index([("email", ASCENDING)], unique=True, sparse=True)
     db.password_reset_otp.create_index([("email", ASCENDING)])
+    db.password_reset_otp.create_index([("email", ASCENDING), ("purpose", ASCENDING)])
     berita_indexes = db.berita.index_information()
     slug_idx = berita_indexes.get("slug_1")
     if slug_idx:

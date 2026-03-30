@@ -7,7 +7,6 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/services/api_dio.dart';
-import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
@@ -57,7 +56,7 @@ class _HalamanRegisterState extends State<HalamanRegister> {
         },
       );
 
-      await _handleAuthResponse(response);
+      await _handleRegisterResponse(response);
     });
   }
 
@@ -90,21 +89,29 @@ class _HalamanRegisterState extends State<HalamanRegister> {
     }
   }
 
-  Future<void> _handleAuthResponse(Response<dynamic> response) async {
+  Future<void> _handleRegisterResponse(Response<dynamic> response) async {
     final dynamic data = response.data;
     if (data is Map<String, dynamic> && _isSuccess(data)) {
       final Map<String, dynamic>? innerData =
           data['data'] as Map<String, dynamic>?;
-      final String? token = innerData?['token'] as String?;
-      final Map<String, dynamic>? user = innerData?['user'] as Map<String, dynamic>?;
+      final String email = ((innerData?['email'] as String?) ??
+              _emailController.text.trim())
+          .trim();
+      final bool requiresVerification =
+          innerData?['requires_verification'] == true;
 
-      if (token != null && token.isNotEmpty) {
-        await AuthService.instance
-            .simpanAuth(token, user ?? <String, dynamic>{});
-        _showMessage(
-          _extractMessage(data, fallback: 'Registrasi berhasil'),
+      if (requiresVerification && email.isNotEmpty) {
+        _showMessage(_extractMessage(
+          data,
+          fallback: 'Registrasi berhasil. Kode OTP telah dikirim ke email Anda',
+        ));
+        Get.toNamed(
+          RuteAplikasi.verifikasiOtp,
+          arguments: <String, String>{
+            'email': email,
+            'mode': 'register',
+          },
         );
-        Get.offAllNamed(RuteAplikasi.beranda);
         return;
       }
     }

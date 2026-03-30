@@ -8,7 +8,8 @@ Fokus pada edukasi yang tenang, bukan ajakan investasi.
 ```text
 .
 |- apps/
-|  |- backend/        # Backend API + admin (Flask)
+|  |- admin-backend/  # Admin backend terpisah
+|  |- backend/        # Backend API utama (Flask)
 |  |- mobile/         # Aplikasi Flutter utama
 |  `- web/            # Frontend web (scaffold/opsional)
 |- packages/          # Shared Flutter packages
@@ -22,7 +23,7 @@ Fokus pada edukasi yang tenang, bukan ajakan investasi.
 
 ## Konvensi Struktur
 
-- `apps/` hanya untuk aplikasi yang bisa dijalankan (`backend`, `mobile`, `web`)
+- `apps/` untuk aplikasi runnable (`backend`, `admin-backend`, `mobile`, `web`)
 - `packages/` untuk kode reusable (tema, network, shared models)
 - `docs/` untuk rencana, status, runbook, audit
 - `scripts/` untuk helper operasional/testing (mis. smoke test)
@@ -43,8 +44,17 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 copy .env.example .env
-flask --app run.py db upgrade
 python run.py
+```
+
+## Menjalankan Admin Backend
+
+```bash
+cd apps/admin-backend
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan serve
 ```
 
 ## Tim

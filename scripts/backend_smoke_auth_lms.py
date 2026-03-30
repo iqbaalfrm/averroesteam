@@ -71,8 +71,18 @@ def main():
         "password": password,
     })
     assert_ok("POST /api/auth/register", status in (200, 201) and is_success(payload), pick_message(payload, str(status)))
+    register_payload = payload.get("data") or {}
+    assert_ok("register requires verification", register_payload.get("requires_verification") is True)
+    register_otp = register_payload.get("otp_debug")
+    assert_ok("register returns otp_debug (dev)", isinstance(register_otp, str) and len(register_otp) == 6)
+
+    status, payload = http_json("POST", f"{base_url}/api/auth/login", {"email": email, "password": password})
+    assert_ok("POST /api/auth/login blocked before verification", status == 403 and not is_success(payload), pick_message(payload, str(status)))
+
+    status, payload = http_json("POST", f"{base_url}/api/auth/verifikasi-otp-register", {"email": email, "kode": register_otp})
+    assert_ok("POST /api/auth/verifikasi-otp-register", status == 200 and is_success(payload), pick_message(payload, str(status)))
     token = payload.get("data", {}).get("token")
-    assert_ok("register returns token", isinstance(token, str) and len(token) > 10)
+    assert_ok("register verification returns token", isinstance(token, str) and len(token) > 10)
 
     status, payload = http_json("POST", f"{base_url}/api/auth/google", {"email": email})
     assert_ok("POST /api/auth/google stub", status == 501 and not is_success(payload), pick_message(payload, str(status)))
@@ -159,4 +169,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -28,6 +28,67 @@ class _BerandaUi {
   static const Color softLine = AppColors.line;
 }
 
+String _normalizeNewsText(String raw) {
+  return raw.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+}
+
+String _extractNewsSummary(Map<String, dynamic> item) {
+  final String judul = (item['judul'] as String?)?.trim() ?? '';
+  final String ringkasan = (item['ringkasan'] as String?)?.trim() ?? '';
+  if (ringkasan.isEmpty) {
+    return '';
+  }
+  if (_normalizeNewsText(ringkasan) == _normalizeNewsText(judul)) {
+    return '';
+  }
+  return ringkasan;
+}
+
+String _formatPublishedAt(String raw) {
+  final String value = raw.trim();
+  if (value.isEmpty) {
+    return '';
+  }
+  final DateTime? parsed = DateTime.tryParse(value);
+  if (parsed == null) {
+    return value;
+  }
+  final DateTime local = parsed.toLocal();
+  const List<String> bulan = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Agu',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Des',
+  ];
+  final String jam = local.hour.toString().padLeft(2, '0');
+  final String menit = local.minute.toString().padLeft(2, '0');
+  return '${local.day} ${bulan[local.month - 1]} ${local.year}, $jam:$menit';
+}
+
+String _extractNewsDate(Map<String, dynamic> item) {
+  final String tanggalAsli = (item['tanggal_asli'] as String?)?.trim() ?? '';
+  if (tanggalAsli.isNotEmpty) {
+    return tanggalAsli;
+  }
+  return _formatPublishedAt((item['published_at'] as String?)?.trim() ?? '');
+}
+
+String _extractNewsSource(Map<String, dynamic> item) {
+  final String sumberNama = (item['sumber_nama'] as String?)?.trim() ?? '';
+  if (sumberNama.isNotEmpty) {
+    return sumberNama;
+  }
+  return (item['penulis'] as String?)?.trim() ?? '';
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
@@ -1180,7 +1241,7 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
       children: <Widget>[
         _SectionHeader(
           title: 'crypto_asset_news'.tr,
-          subtitle: 'source_cryptowave'.tr,
+          subtitle: 'source_google_news'.tr,
           leadingIcon: Symbols.newspaper,
           trailing: !_isLoading
               ? GestureDetector(
@@ -1361,9 +1422,9 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
 
   Widget _buildKartuBerita(Map<String, dynamic> item) {
     final String judul = (item['judul'] as String?) ?? '';
-    final String ringkasan = (item['ringkasan'] as String?) ?? '';
-    final String penulis = (item['penulis'] as String?) ?? '';
-    final String tanggal = (item['tanggal_asli'] as String?) ?? '';
+    final String ringkasan = _extractNewsSummary(item);
+    final String penulis = _extractNewsSource(item);
+    final String tanggal = _extractNewsDate(item);
     final String gambarUrl = ((item['gambar_url'] ??
             item['thumbnail'] ??
             item['image_url'] ??
@@ -1600,8 +1661,9 @@ class _HalamanDaftarBeritaTerbaruState
                   itemBuilder: (context, i) {
                     final item = _items[i];
                     final judul = (item['judul'] as String?) ?? '';
-                    final ringkasan = (item['ringkasan'] as String?) ?? '';
-                    final tanggal = (item['tanggal_asli'] as String?) ?? '';
+                    final ringkasan = _extractNewsSummary(item);
+                    final tanggal = _extractNewsDate(item);
+                    final sumber = _extractNewsSource(item);
                     final gambarUrl = ((item['gambar_url'] ??
                             item['thumbnail'] ??
                             item['image_url'] ??
@@ -1661,12 +1723,47 @@ class _HalamanDaftarBeritaTerbaruState
                                     ),
                                   ],
                                   const SizedBox(height: 6),
-                                  Text(
-                                    tanggal,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      color: const Color(0xFF94A3B8),
-                                    ),
+                                  Row(
+                                    children: <Widget>[
+                                      if (sumber.isNotEmpty)
+                                        Flexible(
+                                          child: Text(
+                                            sumber,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: const Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ),
+                                      if (sumber.isNotEmpty && tanggal.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6),
+                                          child: Container(
+                                            width: 3,
+                                            height: 3,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFFCBD5E1),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ),
+                                      if (tanggal.isNotEmpty)
+                                        Flexible(
+                                          child: Text(
+                                            tanggal,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              color: const Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -1698,61 +1795,21 @@ class _HalamanDetailBerita extends StatefulWidget {
 }
 
 class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
-  late Map<String, dynamic> _item = Map<String, dynamic>.from(widget.item);
-  bool _loadingFull = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchFullIfNeeded();
-  }
-
-  Future<void> _fetchFullIfNeeded() async {
-    final String id = (_item['id'] ?? '').toString().trim();
-    final String konten = (_item['konten'] ?? '').toString().trim();
-    if (id.isEmpty) return;
-    if (konten.length >= 700) return;
-
-    setState(() => _loadingFull = true);
-    try {
-      final Dio dio = ApiDio.create(attachAuthToken: false);
-      final Response<dynamic> r = await dio.get<dynamic>(
-        '${AppConfig.apiBaseUrl}/api/berita/$id/full',
-      );
-      final Map<String, dynamic> raw = r.data is String
-          ? jsonDecode(r.data as String) as Map<String, dynamic>
-          : (r.data as Map<String, dynamic>);
-      final dynamic data = raw['data'];
-      if (data is Map) {
-        _item = Map<String, dynamic>.from(data);
-      }
-    } catch (_) {
-      // Keep fallback content from list API.
-    } finally {
-      if (mounted) setState(() => _loadingFull = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final String judul = (_item['judul'] as String?)?.trim() ?? 'Berita';
-    final String ringkasan = (_item['ringkasan'] as String?)?.trim() ?? '';
-    final String konten = (_item['konten'] as String?)?.trim() ?? '';
-    final String tanggal =
-        ((_item['tanggal_asli'] as String?)?.trim().isNotEmpty ?? false)
-            ? (_item['tanggal_asli'] as String).trim()
-            : ((_item['published_at'] as String?)?.trim() ?? '');
-    final String sumberUrl = (_item['sumber_url'] as String?)?.trim() ?? '';
-    final String gambarUrl = ((_item['gambar_url'] ??
-                _item['thumbnail'] ??
-                _item['image_url'] ??
-                _item['urlToImage']) as String?)
+    final Map<String, dynamic> item = widget.item;
+    final String judul = (item['judul'] as String?)?.trim() ?? 'Berita';
+    final String ringkasan = _extractNewsSummary(item);
+    final String tanggal = _extractNewsDate(item);
+    final String sumberNama = _extractNewsSource(item);
+    final String sumberUrl = (item['sumber_url'] as String?)?.trim() ?? '';
+    final String gambarUrl = ((item['gambar_url'] ??
+                item['thumbnail'] ??
+                item['image_url'] ??
+                item['urlToImage']) as String?)
             ?.trim() ??
         '';
-    final String isi =
-        _cleanArticleText(konten.isNotEmpty ? konten : ringkasan);
-    final List<Map<String, String>> blocks =
-        _parseArticleBlocks(_item['konten_blocks']);
+    final String isi = _cleanArticleText(ringkasan);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -1788,26 +1845,23 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
               height: 1.25,
             ),
           ),
-          if (tanggal.isNotEmpty) ...[
+          if (sumberNama.isNotEmpty || tanggal.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              tanggal,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF94A3B8),
-              ),
-            ),
-          ],
-          if (_loadingFull) ...[
-            const SizedBox(height: 8),
-            Text(
-              'loading_full_content'.tr,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F766E),
-              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                if (sumberNama.isNotEmpty)
+                  _DetailMetaChip(
+                    icon: Symbols.public,
+                    label: sumberNama,
+                  ),
+                if (tanggal.isNotEmpty)
+                  _DetailMetaChip(
+                    icon: Symbols.schedule,
+                    label: tanggal,
+                  ),
+              ],
             ),
           ],
           const SizedBox(height: 14),
@@ -1819,53 +1873,39 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: blocks.isEmpty
-                ? Text(
-                    isi.isEmpty ? 'no_content_available'.tr : isi,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF334155),
-                      height: 1.55,
-                    ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: blocks.map((b) {
-                      final String type = b['type'] ?? 'p';
-                      if (type == 'img') {
-                        final String url = b['url'] ?? '';
-                        if (url.isEmpty) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              url,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const SizedBox.shrink(),
-                            ),
-                          ),
-                        );
-                      }
-                      final String txt = (b['text'] ?? '').trim();
-                      if (txt.isEmpty) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(
-                          txt,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF334155),
-                            height: 1.55,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'news_preview_title'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
                   ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  isi.isEmpty ? 'no_content_available'.tr : isi,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF334155),
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'news_preview_notice'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
           ),
           if (sumberUrl.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -1923,26 +1963,47 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
         .toList();
     return lines.join('\n\n').trim();
   }
+}
 
-  List<Map<String, String>> _parseArticleBlocks(dynamic raw) {
-    if (raw is! List) return <Map<String, String>>[];
-    final out = <Map<String, String>>[];
-    for (final item in raw) {
-      if (item is! Map) continue;
-      final String type = (item['type'] ?? '').toString().trim().toLowerCase();
-      if (type == 'img') {
-        final String url = (item['url'] ?? '').toString().trim();
-        if (url.isNotEmpty) {
-          out.add(<String, String>{'type': 'img', 'url': url});
-        }
-      } else if (type == 'p') {
-        final String text = (item['text'] ?? '').toString().trim();
-        if (text.isNotEmpty) {
-          out.add(<String, String>{'type': 'p', 'text': text});
-        }
-      }
-    }
-    return out;
+class _DetailMetaChip extends StatelessWidget {
+  const _DetailMetaChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: const Color(0xFF64748B)),
+          const SizedBox(width: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF475569),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

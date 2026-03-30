@@ -5,7 +5,6 @@ import time
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html import unescape
-from urllib.parse import urljoin, urlparse
 from typing import Iterable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
@@ -36,8 +35,7 @@ def _slugify(text: str | None) -> str:
 
 def _ensure_unique_berita_slug(base_text: str, source_url: str) -> str:
     base = _slugify(base_text)
-    # Stabilizer so same title from different URL still gets deterministic unique slug.
-    url_hint = _slugify(urlparse(source_url).path)[:24]
+    url_hint = _slugify(source_url)[:24]
     if url_hint:
         base = f"{base}-{url_hint}".strip("-")
     slug = base
@@ -67,6 +65,32 @@ def _parse_datetime(value: str | None) -> datetime:
             return datetime.now(UTC).replace(tzinfo=None)
 
 
+def _clean_text(value: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", value or "")
+    text = unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _is_noise_text(value: str) -> bool:
+    text = (value or "").strip()
+    if not text:
+        return True
+    for pattern in _NOISE_PATTERNS:
+        if re.search(pattern, text, flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def _sanitize_text(value: str, fallback: str = "") -> str:
+    text = _clean_text(value)
+    return fallback if _is_noise_text(text) else text
+
+
+def _normalize_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
 def _get_text(node: ET.Element | None, tags: Iterable[str]) -> str:
     if node is None:
         return ""
@@ -79,6 +103,18 @@ def _get_text(node: ET.Element | None, tags: Iterable[str]) -> str:
 
 def _local_tag(tag: str) -> str:
     return tag.split("}", 1)[-1].lower()
+
+
+def _find_first_text_by_local_tag(node: ET.Element | None, local_name: str) -> str:
+    if node is None:
+        return ""
+    target = local_name.strip().lower()
+    for child in node.iter():
+        if _local_tag(child.tag) != target:
+            continue
+        if child.text and child.text.strip():
+            return child.text.strip()
+    return ""
 
 
 def _extract_feed_image(node: ET.Element | None) -> str:
@@ -101,55 +137,86 @@ def _extract_feed_image(node: ET.Element | None) -> str:
     return ""
 
 
+def _extract_summary(description: str, title: str, source_name: str) -> str:
+    summary = _sanitize_text(description)
+    if not summary:
+        return ""
+
+    normalized_summary = _normalize_text(summary)
+    normalized_title = _normalize_text(title)
+    normalized_source = _normalize_text(source_name)
+
+    if normalized_summary == normalized_title:
+        return ""
+    if normalized_source and normalized_summary == normalized_source:
+        return ""
+    if normalized_title and normalized_summary.startswith(normalized_title):
+        return ""
+    return summary[:400]
+
+
 def _iter_entries(root: ET.Element) -> list[dict]:
     entries: list[dict] = []
     items = root.findall(".//item")
     if items:
         for item in items:
             title = _sanitize_text(_get_text(item, ("title",)))
-            link = _get_text(item, ("link",))
-            summary = _sanitize_text(_get_text(item, ("description", "summary", "content")))
+            link = _get_text(item, ("link",)).strip()
+            description = _get_text(item, ("description", "summary", "content"))
             published = _get_text(item, ("pubDate", "published", "updated"))
-            if title and link:
-                entries.append(
-                    {
-                        "judul": title,
-                        "sumber_url": link,
-                        "gambar_url": _extract_feed_image(item),
-                        "ringkasan": summary or title,
-                        "konten": summary or title,
-                        "published_at": _parse_datetime(published),
-                    }
-                )
+            source_name = _sanitize_text(_find_first_text_by_local_tag(item, "source"))
+            image_url = _extract_feed_image(item)
+
+            if not title or not link:
+                continue
+
+            summary = _extract_summary(description, title=title, source_name=source_name)
+            entries.append(
+                {
+                    "judul": title[:255],
+                    "sumber_url": link[:1024],
+                    "sumber_nama": source_name[:255] if source_name else None,
+                    "gambar_url": image_url[:1024] if image_url else None,
+                    "ringkasan": summary,
+                    "published_at": _parse_datetime(published),
+                    "provider": "google_news" if "news.google.com" in link else "rss",
+                    "updated_at": datetime.utcnow(),
+                }
+            )
         return entries
 
-    # Atom fallback
     atom_entries = root.findall(".//{http://www.w3.org/2005/Atom}entry")
     for item in atom_entries:
         title = _sanitize_text(_get_text(item, ("{http://www.w3.org/2005/Atom}title",)))
         link_node = item.find("{http://www.w3.org/2005/Atom}link")
         link = link_node.attrib.get("href", "").strip() if link_node is not None else ""
-        summary = _sanitize_text(
-            _get_text(
-                item,
-                ("{http://www.w3.org/2005/Atom}summary", "{http://www.w3.org/2005/Atom}content"),
-            )
+        summary_raw = _get_text(
+            item,
+            ("{http://www.w3.org/2005/Atom}summary", "{http://www.w3.org/2005/Atom}content"),
         )
         published = _get_text(
             item,
             ("{http://www.w3.org/2005/Atom}published", "{http://www.w3.org/2005/Atom}updated"),
         )
-        if title and link:
-            entries.append(
-                {
-                    "judul": title,
-                    "sumber_url": link,
-                    "gambar_url": _extract_feed_image(item),
-                    "ringkasan": summary or title,
-                    "konten": summary or title,
-                    "published_at": _parse_datetime(published),
-                }
-            )
+        source_name = _sanitize_text(_find_first_text_by_local_tag(item, "source"))
+        image_url = _extract_feed_image(item)
+
+        if not title or not link:
+            continue
+
+        summary = _extract_summary(summary_raw, title=title, source_name=source_name)
+        entries.append(
+            {
+                "judul": title[:255],
+                "sumber_url": link[:1024],
+                "sumber_nama": source_name[:255] if source_name else None,
+                "gambar_url": image_url[:1024] if image_url else None,
+                "ringkasan": summary,
+                "published_at": _parse_datetime(published),
+                "provider": "google_news" if "news.google.com" in link else "rss",
+                "updated_at": datetime.utcnow(),
+            }
+        )
     return entries
 
 
@@ -161,189 +228,21 @@ def _fetch_feed(url: str, timeout_seconds: int = 20) -> list[dict]:
     return _iter_entries(root)
 
 
-def _fetch_html(url: str, timeout_seconds: int = 20) -> str:
-    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (AverroesBot/1.0)"})
-    with urlopen(req, timeout=timeout_seconds) as resp:
-        return resp.read().decode("utf-8", "ignore")
-
-
-def _clean_text(value: str) -> str:
-    text = re.sub(r"<[^>]+>", " ", value or "")
-    text = unescape(text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def _is_noise_text(value: str) -> bool:
-    text = (value or "").strip()
-    if not text:
-        return True
-    for p in _NOISE_PATTERNS:
-        if re.search(p, text, flags=re.IGNORECASE):
-            return True
-    return False
-
-
-def _sanitize_text(value: str, fallback: str = "") -> str:
-    text = _clean_text(value)
-    return fallback if _is_noise_text(text) else text
-
-
-def _find_meta(html: str, name_or_prop: str) -> str:
-    # Matches: <meta property="og:title" content="..."> / <meta name="description" content="...">
-    patterns = [
-        rf'<meta[^>]+property=["\']{re.escape(name_or_prop)}["\'][^>]+content=["\']([^"\']+)["\']',
-        rf'<meta[^>]+name=["\']{re.escape(name_or_prop)}["\'][^>]+content=["\']([^"\']+)["\']',
-        rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']{re.escape(name_or_prop)}["\']',
-        rf'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']{re.escape(name_or_prop)}["\']',
-    ]
-    for p in patterns:
-        m = re.search(p, html, flags=re.IGNORECASE)
-        if m:
-            return _clean_text(m.group(1))
-    return ""
-
-
-def _extract_cryptowave_body_text(html: str) -> str:
-    scopes: list[str] = []
-    article_match = re.search(r"<article[^>]*>(.*?)</article>", html, flags=re.IGNORECASE | re.DOTALL)
-    if article_match:
-        scopes.append(article_match.group(1))
-    main_match = re.search(r"<main[^>]*>(.*?)</main>", html, flags=re.IGNORECASE | re.DOTALL)
-    if main_match:
-        scopes.append(main_match.group(1))
-    scopes.append(html)
-
-    for scope in scopes:
-        paras = re.findall(r"<p[^>]*>(.*?)</p>", scope, flags=re.IGNORECASE | re.DOTALL)
-        clean_paras: list[str] = []
-        for p in paras:
-            t = _clean_text(p)
-            if len(t) < 40:
-                continue
-            # Buang noise umum tombol/share/nav.
-            if re.search(r"(baca juga|share|komentar|tags?|iklan)", t, flags=re.IGNORECASE):
-                continue
-            if _is_noise_text(t):
-                continue
-            clean_paras.append(t)
-        if len(clean_paras) >= 2:
-            return "\n\n".join(clean_paras[:24])[:12000]
-    return ""
-
-
-def _extract_cryptowave_links(html: str, base_url: str) -> list[str]:
-    links = re.findall(r'href=["\']([^"\']+)["\']', html, flags=re.IGNORECASE)
-    out: list[str] = []
-    seen: set[str] = set()
-    for link in links:
-        if "${" in link or "`" in link:
-            continue
-        abs_url = urljoin(base_url, link)
-        parsed = urlparse(abs_url)
-        if parsed.netloc not in {"cryptowave.co.id", "www.cryptowave.co.id"}:
-            continue
-        if "/articles/" not in parsed.path:
-            continue
-        normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}".rstrip("/")
-        if normalized in seen:
-            continue
-        seen.add(normalized)
-        out.append(normalized)
-    return out
-
-
-def _fetch_cryptowave_article(url: str) -> dict | None:
-    try:
-        html = _fetch_html(url)
-    except Exception as err:
-        logger.warning("Gagal fetch artikel cryptowave %s: %s", url, err)
-        return None
-
-    title = _sanitize_text(_find_meta(html, "og:title"))
-    if not title:
-        m = re.search(r"<title>(.*?)</title>", html, flags=re.IGNORECASE | re.DOTALL)
-        title = _sanitize_text(_clean_text(m.group(1)) if m else "")
-    summary = (
-        _sanitize_text(_find_meta(html, "description"))
-        or _sanitize_text(_find_meta(html, "og:description"))
-        or title
-    )
-    body = _extract_cryptowave_body_text(html)
-    published_raw = _find_meta(html, "article:published_time")
-    image_url = (
-        _find_meta(html, "og:image")
-        or _find_meta(html, "twitter:image")
-        or _find_meta(html, "twitter:image:src")
-    )
-    if image_url:
-        image_url = urljoin(url, image_url)
-
-    if not title:
-        return None
-
-    return {
-        "judul": title[:255],
-        "sumber_url": url,
-        "gambar_url": image_url[:1024] if image_url else None,
-        "ringkasan": summary[:2000] or title[:255],
-        "konten": (body[:12000] if body else summary[:4000]) or title[:255],
-        "published_at": _parse_datetime(published_raw),
-    }
-
-
-def _fetch_cryptowave_items(base_url: str, limit: int = 20, max_pages: int = 4) -> list[dict]:
-    article_urls: list[str] = []
-    seen: set[str] = set()
-
-    for page in range(1, max_pages + 1):
-        page_url = base_url if page == 1 else f"{base_url.rstrip('/')}/?page={page}"
-        try:
-            html = _fetch_html(page_url)
-        except Exception as err:
-            logger.warning("Gagal fetch halaman cryptowave %s: %s", page_url, err)
-            continue
-
-        for link in _extract_cryptowave_links(html, base_url):
-            if link in seen:
-                continue
-            seen.add(link)
-            article_urls.append(link)
-            if len(article_urls) >= limit:
-                break
-        if len(article_urls) >= limit:
-            break
-
-    items: list[dict] = []
-    for article_url in article_urls[:limit]:
-        item = _fetch_cryptowave_article(article_url)
-        if item:
-            items.append(item)
-    items.sort(key=lambda x: x["published_at"], reverse=True)
-    return items
-
-
 def sync_berita_crypto(feeds: list[str], keep_latest: int = 20) -> dict:
     collected: list[dict] = []
-    provider = ""
-    if feeds and "cryptowave.co.id" in feeds[0]:
-        provider = "cryptowave"
-
-    if provider == "cryptowave":
-        collected.extend(_fetch_cryptowave_items(base_url=feeds[0], limit=keep_latest))
-    else:
-        for feed_url in feeds:
-            try:
-                collected.extend(_fetch_feed(feed_url))
-            except (URLError, ET.ParseError, TimeoutError) as err:
-                logger.warning("Gagal fetch feed %s: %s", feed_url, err)
-            except Exception as err:
-                logger.exception("Error tidak terduga saat fetch feed %s: %s", feed_url, err)
+    for feed_url in feeds:
+        try:
+            collected.extend(_fetch_feed(feed_url))
+        except (URLError, ET.ParseError, TimeoutError) as err:
+            logger.warning("Gagal fetch feed %s: %s", feed_url, err)
+        except Exception as err:
+            logger.exception("Error tidak terduga saat fetch feed %s: %s", feed_url, err)
 
     by_url: dict[str, dict] = {}
     for item in collected:
-        if item["sumber_url"] not in by_url:
-            by_url[item["sumber_url"]] = item
+        url = str(item.get("sumber_url") or "").strip()
+        if url and url not in by_url:
+            by_url[url] = item
 
     unique_items = [item for item in by_url.values() if str(item.get("judul") or "").strip()]
     unique_items.sort(key=lambda x: x["published_at"], reverse=True)
@@ -355,46 +254,44 @@ def sync_berita_crypto(feeds: list[str], keep_latest: int = 20) -> dict:
         exists = mongo.db.berita.find_one({"sumber_url": item["sumber_url"]})
         if exists:
             updates = {}
-            new_image = item.get("gambar_url")
-            if new_image and not exists.get("gambar_url"):
-                updates["gambar_url"] = new_image
-            new_summary = (item.get("ringkasan") or "").strip()
-            old_summary = (exists.get("ringkasan") or "").strip()
-            if new_summary and (
-                len(new_summary) > len(old_summary) or _is_noise_text(old_summary)
-            ):
-                updates["ringkasan"] = new_summary
-            new_content = (item.get("konten") or "").strip()
-            old_content = (exists.get("konten") or "").strip()
-            if new_content and (
-                len(new_content) > len(old_content) or _is_noise_text(old_content)
-            ):
-                updates["konten"] = new_content
-            new_published = item.get("published_at")
-            if new_published and not exists.get("published_at"):
-                updates["published_at"] = new_published
-            if updates:
-                mongo.db.berita.update_one({"_id": exists["_id"]}, {"$set": updates})
+            for field in ("judul", "sumber_nama", "gambar_url", "ringkasan", "published_at", "provider", "updated_at"):
+                new_value = item.get(field)
+                old_value = exists.get(field)
+                if new_value and new_value != old_value:
+                    updates[field] = new_value
+
+            unset_fields = {}
+            if exists.get("konten") is not None:
+                unset_fields["konten"] = ""
+            if exists.get("konten_blocks") is not None:
+                unset_fields["konten_blocks"] = ""
+
+            if updates or unset_fields:
+                update_doc: dict[str, dict] = {}
+                if updates:
+                    update_doc["$set"] = updates
+                if unset_fields:
+                    update_doc["$unset"] = unset_fields
+                mongo.db.berita.update_one({"_id": exists["_id"]}, update_doc)
                 updated += 1
             continue
-        if not item.get("slug"):
-            item["slug"] = _ensure_unique_berita_slug(
-                base_text=str(item.get("judul") or "berita"),
-                source_url=str(item.get("sumber_url") or ""),
-            )
+
+        doc = {k: v for k, v in item.items() if v not in (None, "")}
+        doc["slug"] = _ensure_unique_berita_slug(
+            base_text=str(doc.get("judul") or "berita"),
+            source_url=str(doc.get("sumber_url") or ""),
+        )
         try:
-            mongo.db.berita.insert_one(item)
+            mongo.db.berita.insert_one(doc)
             inserted += 1
         except DuplicateKeyError:
-            # Race-safe fallback if slug was taken between find and insert.
-            item["slug"] = _ensure_unique_berita_slug(
-                base_text=str(item.get("judul") or "berita"),
-                source_url=f"{item.get('sumber_url')}-{time.time_ns()}",
+            doc["slug"] = _ensure_unique_berita_slug(
+                base_text=str(doc.get("judul") or "berita"),
+                source_url=f"{doc.get('sumber_url')}-{time.time_ns()}",
             )
-            mongo.db.berita.insert_one(item)
+            mongo.db.berita.insert_one(doc)
             inserted += 1
 
-    # Keep only latest N rows.
     all_berita = list(mongo.db.berita.find().sort("published_at", -1))
     if len(all_berita) > keep_latest:
         ids_to_delete = [doc["_id"] for doc in all_berita[keep_latest:]]

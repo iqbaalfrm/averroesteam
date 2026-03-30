@@ -72,7 +72,7 @@ class BaseConfig:
         feed.strip()
         for feed in os.getenv(
             "NEWS_SCRAPER_FEEDS",
-            "https://cryptowave.co.id/",
+            "https://news.google.com/rss/search?q=crypto&hl=id&gl=ID&ceid=ID:id",
         ).split(",")
         if feed.strip()
     ]
