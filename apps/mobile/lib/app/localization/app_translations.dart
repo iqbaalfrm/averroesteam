@@ -16,6 +16,20 @@ class AppTranslations extends Translations {
           'learning_history': 'Riwayat Pembelajaran',
           'account_settings': 'Pengaturan Akun',
           'logout': 'Keluar',
+          'common_cancel': 'Batal',
+          'delete_account_title': 'Hapus Akun',
+          'delete_account_body':
+              'Tindakan ini akan menghapus akun Averroes Anda beserta data utama yang terkait dan tidak dapat dibatalkan.',
+          'delete_account_confirm_label':
+              'Ketik HAPUS untuk mengonfirmasi penghapusan akun.',
+          'delete_account_confirm_hint': 'Ketik HAPUS',
+          'delete_account_confirm_error':
+              'Konfirmasi tidak cocok. Ketik HAPUS.',
+          'delete_account_button': 'Hapus Akun',
+          'delete_account_loading': 'Menghapus Akun...',
+          'delete_account_caption':
+              'Jika akun dihapus, Anda harus mendaftar ulang untuk menggunakan fitur akun lagi.',
+          'account_delete_success': 'Akun berhasil dihapus',
           'app_version': 'Versi Aplikasi @version',
           'email_not_set': 'Email belum diatur',
           'admin_badge': 'ADMIN',
@@ -317,8 +331,34 @@ class AppTranslations extends Translations {
           'email_hint': 'fauzi@example.com',
           'password_label': 'Kata Sandi',
           'password_hint_8': 'Minimum 8 karakter',
-          'agree_terms':
-              'Saya setuju dengan Syarat & Ketentuan serta Kebijakan Privasi Averroes.',
+          'agree_terms': 'Saya setuju dengan syarat Averroes.',
+          'agree_terms_prefix': 'Saya setuju dengan ',
+          'agree_terms_middle': ' serta ',
+          'agree_terms_suffix': ' Averroes.',
+          'terms_conditions': 'Syarat & Ketentuan',
+          'policy_sheet_intro':
+              'Harap baca ringkasan kebijakan berikut sebelum melanjutkan pendaftaran.',
+          'terms_point_account':
+              'Akun digunakan untuk mengakses layanan edukasi, profil, dan fitur personal Averroes secara sah dan bertanggung jawab.',
+          'terms_point_data':
+              'Anda wajib memberikan data yang akurat, menjaga kerahasiaan akun, dan memperbarui informasi bila ada perubahan penting.',
+          'terms_point_content':
+              'Seluruh materi, artikel, dan tampilan di aplikasi disediakan untuk edukasi dan penggunaan pribadi, bukan untuk disalin atau disalahgunakan.',
+          'terms_point_conduct':
+              'Pengguna dilarang memakai platform untuk aktivitas yang melanggar hukum, manipulatif, menyesatkan, atau merugikan pengguna lain.',
+          'terms_point_updates':
+              'Averroes dapat memperbarui fitur, isi layanan, dan kebijakan sewaktu-waktu demi keamanan, kepatuhan, dan peningkatan layanan.',
+          'privacy_point_collection':
+              'Kami mengumpulkan data yang Anda berikan saat mendaftar, menggunakan aplikasi, dan berinteraksi dengan fitur yang tersedia.',
+          'privacy_point_usage':
+              'Data digunakan untuk autentikasi, personalisasi pengalaman belajar, dukungan akun, keamanan, dan peningkatan kualitas layanan.',
+          'privacy_point_security':
+              'Kami berupaya melindungi data dengan kontrol akses, penyimpanan yang wajar, dan proses keamanan yang relevan.',
+          'privacy_point_sharing':
+              'Data tidak dibagikan secara sembarangan dan hanya digunakan untuk kebutuhan operasional, integrasi resmi, atau kewajiban hukum yang berlaku.',
+          'privacy_point_control':
+              'Anda dapat meminta pembaruan data profil tertentu dan berhenti menggunakan layanan jika tidak lagi menyetujui kebijakan yang berlaku.',
+          'understand': 'Saya Mengerti',
           'register_button': 'Daftar',
           'already_have_account': 'Sudah punya akun? Masuk di sini',
           'supervised_by': 'Diawasi oleh OJK & Dewan Syariah Nasional',
@@ -332,7 +372,7 @@ class AppTranslations extends Translations {
           'otp_sent': 'OTP terkirim',
           'failed_send_otp': 'Gagal mengirim OTP',
           'verify_otp_title': 'Verifikasi Kode OTP',
-          'otp_sent_to': 'Kode verifikasi 6 digit telah dikirim ke ',
+          'otp_sent_to': 'Kode verifikasi telah dikirim ke ',
           'verify_button': 'Verifikasi',
           'not_receive_code': 'Belum menerima kode? ',
           'resend': 'Kirim ulang',
@@ -344,7 +384,7 @@ class AppTranslations extends Translations {
           'confirm_password': 'Konfirmasi Password',
           'reenter_new_password': 'Masukkan ulang password baru',
           'save_new_password': 'Simpan Password Baru',
-          'enter_6_digit_otp': 'Masukkan 6 digit kode OTP',
+          'enter_otp_code': 'Masukkan kode OTP',
           'otp_valid': 'Kode OTP valid! Silakan buat password baru.',
           'otp_invalid': 'Kode OTP tidak valid',
           'new_password_min': 'Password baru minimal 8 karakter',
@@ -464,6 +504,20 @@ class AppTranslations extends Translations {
           'learning_history': 'Learning History',
           'account_settings': 'Account Settings',
           'logout': 'Log Out',
+          'common_cancel': 'Cancel',
+          'delete_account_title': 'Delete Account',
+          'delete_account_body':
+              'This action permanently removes your Averroes account and its primary related data and cannot be undone.',
+          'delete_account_confirm_label':
+              'Type HAPUS to confirm account deletion.',
+          'delete_account_confirm_hint': 'Type HAPUS',
+          'delete_account_confirm_error':
+              'Confirmation does not match. Type HAPUS.',
+          'delete_account_button': 'Delete Account',
+          'delete_account_loading': 'Deleting Account...',
+          'delete_account_caption':
+              'If this account is deleted, you will need to sign up again to use account-based features.',
+          'account_delete_success': 'Account deleted successfully',
           'app_version': 'App Version @version',
           'email_not_set': 'Email not set',
           'admin_badge': 'ADMIN',
@@ -767,8 +821,34 @@ class AppTranslations extends Translations {
           'email_hint': 'fauzi@example.com',
           'password_label': 'Password',
           'password_hint_8': 'Minimum 8 characters',
-          'agree_terms':
-              'I agree to the Terms & Conditions and Privacy Policy of Averroes.',
+          'agree_terms': 'I agree to the Averroes terms.',
+          'agree_terms_prefix': 'I agree to the ',
+          'agree_terms_middle': ' and ',
+          'agree_terms_suffix': ' of Averroes.',
+          'terms_conditions': 'Terms & Conditions',
+          'policy_sheet_intro':
+              'Please review the following policy summary before continuing your registration.',
+          'terms_point_account':
+              'Your account is used to access Averroes educational services, profile features, and personalized experiences responsibly.',
+          'terms_point_data':
+              'You must provide accurate information, protect your account credentials, and update important data when it changes.',
+          'terms_point_content':
+              'All learning materials, articles, and app interfaces are provided for personal educational use and must not be misused.',
+          'terms_point_conduct':
+              'Users may not use the platform for unlawful, manipulative, misleading, or harmful activities toward other users.',
+          'terms_point_updates':
+              'Averroes may update features, services, and policies from time to time for security, compliance, and service improvement.',
+          'privacy_point_collection':
+              'We collect data that you submit during registration, app usage, and interactions with available features.',
+          'privacy_point_usage':
+              'Your data is used for authentication, learning personalization, account support, security, and service improvement.',
+          'privacy_point_security':
+              'We strive to protect your data through reasonable access control, storage practices, and relevant security measures.',
+          'privacy_point_sharing':
+              'Your data is not shared arbitrarily and is only used for operational needs, official integrations, or lawful obligations.',
+          'privacy_point_control':
+              'You may request certain profile updates and stop using the service if you no longer agree with the applicable policy.',
+          'understand': 'I Understand',
           'register_button': 'Register',
           'already_have_account': 'Already have an account? Sign in here',
           'supervised_by': 'Supervised by OJK & National Sharia Board',
@@ -782,7 +862,7 @@ class AppTranslations extends Translations {
           'otp_sent': 'OTP sent',
           'failed_send_otp': 'Failed to send OTP',
           'verify_otp_title': 'Verify OTP Code',
-          'otp_sent_to': 'A 6-digit verification code has been sent to ',
+          'otp_sent_to': 'A verification code has been sent to ',
           'verify_button': 'Verify',
           'not_receive_code': 'Haven\'t received the code? ',
           'resend': 'Resend',
@@ -794,7 +874,7 @@ class AppTranslations extends Translations {
           'confirm_password': 'Confirm Password',
           'reenter_new_password': 'Re-enter new password',
           'save_new_password': 'Save New Password',
-          'enter_6_digit_otp': 'Enter 6-digit OTP code',
+          'enter_otp_code': 'Enter OTP code',
           'otp_valid': 'Valid OTP code! Please create a new password.',
           'otp_invalid': 'Invalid OTP code',
           'new_password_min': 'New password must be at least 8 characters',
@@ -914,6 +994,18 @@ class AppTranslations extends Translations {
           'learning_history': 'سجل التعلم',
           'account_settings': 'إعدادات الحساب',
           'logout': 'تسجيل الخروج',
+          'common_cancel': 'إلغاء',
+          'delete_account_title': 'حذف الحساب',
+          'delete_account_body':
+              'سيؤدي هذا الإجراء إلى حذف حساب Averroes والبيانات الأساسية المرتبطة به نهائيًا ولا يمكن التراجع عنه.',
+          'delete_account_confirm_label': 'اكتب HAPUS لتأكيد حذف الحساب.',
+          'delete_account_confirm_hint': 'اكتب HAPUS',
+          'delete_account_confirm_error': 'التأكيد غير مطابق. اكتب HAPUS.',
+          'delete_account_button': 'حذف الحساب',
+          'delete_account_loading': 'جارٍ حذف الحساب...',
+          'delete_account_caption':
+              'إذا تم حذف هذا الحساب، فسيتعين عليك التسجيل مرة أخرى لاستخدام الميزات المرتبطة بالحساب.',
+          'account_delete_success': 'تم حذف الحساب بنجاح',
           'app_version': 'إصدار التطبيق @version',
           'email_not_set': 'البريد الإلكتروني غير مضبوط',
           'admin_badge': 'مشرف',
@@ -1210,8 +1302,34 @@ class AppTranslations extends Translations {
           'email_hint': 'fauzi@example.com',
           'password_label': 'كلمة المرور',
           'password_hint_8': '8 أحرف كحد أدنى',
-          'agree_terms':
-              'أوافق على الشروط والأحكام وسياسة الخصوصية الخاصة بـ Averroes.',
+          'agree_terms': 'I agree to the Averroes terms.',
+          'agree_terms_prefix': 'I agree to the ',
+          'agree_terms_middle': ' and ',
+          'agree_terms_suffix': ' of Averroes.',
+          'terms_conditions': 'Terms & Conditions',
+          'policy_sheet_intro':
+              'Please review the following policy summary before continuing your registration.',
+          'terms_point_account':
+              'Your account is used to access Averroes educational services, profile features, and personalized experiences responsibly.',
+          'terms_point_data':
+              'You must provide accurate information, protect your account credentials, and update important data when it changes.',
+          'terms_point_content':
+              'All learning materials, articles, and app interfaces are provided for personal educational use and must not be misused.',
+          'terms_point_conduct':
+              'Users may not use the platform for unlawful, manipulative, misleading, or harmful activities toward other users.',
+          'terms_point_updates':
+              'Averroes may update features, services, and policies from time to time for security, compliance, and service improvement.',
+          'privacy_point_collection':
+              'We collect data that you submit during registration, app usage, and interactions with available features.',
+          'privacy_point_usage':
+              'Your data is used for authentication, learning personalization, account support, security, and service improvement.',
+          'privacy_point_security':
+              'We strive to protect your data through reasonable access control, storage practices, and relevant security measures.',
+          'privacy_point_sharing':
+              'Your data is not shared arbitrarily and is only used for operational needs, official integrations, or lawful obligations.',
+          'privacy_point_control':
+              'You may request certain profile updates and stop using the service if you no longer agree with the applicable policy.',
+          'understand': 'I Understand',
           'register_button': 'تسجيل',
           'already_have_account': 'لدي حساب بالفعل؟ سجل الدخول هنا',
           'supervised_by':
@@ -1226,7 +1344,7 @@ class AppTranslations extends Translations {
           'otp_sent': 'تم إرسال OTP',
           'failed_send_otp': 'فشل إرسال OTP',
           'verify_otp_title': 'التحقق من رمز OTP',
-          'otp_sent_to': 'تم إرسال رمز تحقق مكون من 6 أرقام إلى ',
+          'otp_sent_to': 'تم إرسال رمز التحقق إلى ',
           'verify_button': 'تحقق',
           'not_receive_code': 'لم تتلق الرمز؟ ',
           'resend': 'إعادة إرسال',
@@ -1238,7 +1356,7 @@ class AppTranslations extends Translations {
           'confirm_password': 'تأكيد كلمة المرور',
           'reenter_new_password': 'أعد إدخال كلمة المرور الجديدة',
           'save_new_password': 'حفظ كلمة المرور الجديدة',
-          'enter_6_digit_otp': 'أدخل رمز OTP المكون من 6 أرقام',
+          'enter_otp_code': 'أدخل رمز OTP',
           'otp_valid': 'رمز OTP صالح! يرجى إنشاء كلمة مرور جديدة.',
           'otp_invalid': 'رمز OTP غير صالح',
           'new_password_min':

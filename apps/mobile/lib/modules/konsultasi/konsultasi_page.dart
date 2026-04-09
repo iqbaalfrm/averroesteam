@@ -2,11 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../app/config/app_config.dart';
 import '../../app/models/ahli_syariah_model.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
+import '../../app/services/supabase_native_service.dart';
 
 class HalamanKonsultasi extends StatefulWidget {
   const HalamanKonsultasi({super.key});
@@ -30,20 +33,53 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
   Future<void> _fetchAhli() async {
     setState(() => _isLoading = true);
     try {
-      final Response<dynamic> response = await _dio.get<dynamic>(
-        '/api/konsultasi/ahli',
-        queryParameters: <String, dynamic>{
-          if (_selectedKategori != 'Semua Ahli') 'kategori_id': _selectedKategori,
-        },
-      );
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final dynamic query = Supabase.instance.client
+            .from('sharia_experts')
+            .select(
+              'id,category_id,full_name,specialization,rating,total_review,years_experience,session_price,whatsapp_number,is_online,is_verified,photo_url,consultation_categories(name,external_id)',
+            )
+            .order('is_online', ascending: false)
+            .order('rating', ascending: false);
 
-      if (response.data != null && response.data['status'] == true) {
-        final List<dynamic> data = response.data['data'] as List<dynamic>;
+        final List<dynamic> data = await query;
+        final List<AhliSyariahModel> all = data
+            .whereType<Map>()
+            .map((Map e) => AhliSyariahModel.fromSupabase(
+                  Map<String, dynamic>.from(e),
+                ))
+            .toList();
+        final List<AhliSyariahModel> filtered =
+            _selectedKategori == 'Semua Ahli'
+                ? all
+                : all.where((AhliSyariahModel ahli) {
+                    final String kategori = ahli.kategoriId.toLowerCase();
+                    final String spesialis = ahli.spesialis.toLowerCase();
+                    final String selected = _selectedKategori.toLowerCase();
+                    return kategori.contains(selected) ||
+                        spesialis.contains(selected);
+                  }).toList();
         setState(() {
-          _ahliList = data
-              .map((dynamic e) => AhliSyariahModel.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _ahliList = filtered;
         });
+      } else {
+        final Response<dynamic> response = await _dio.get<dynamic>(
+          '/api/konsultasi/ahli',
+          queryParameters: <String, dynamic>{
+            if (_selectedKategori != 'Semua Ahli')
+              'kategori_id': _selectedKategori,
+          },
+        );
+
+        if (response.data != null && response.data['status'] == true) {
+          final List<dynamic> data = response.data['data'] as List<dynamic>;
+          setState(() {
+            _ahliList = data
+                .map((dynamic e) =>
+                    AhliSyariahModel.fromJson(e as Map<String, dynamic>))
+                .toList();
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching ahli: $e');
@@ -69,7 +105,7 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
         slivers: <Widget>[
           SliverAppBar(
             pinned: true,
-            backgroundColor: const Color(0xFFF8FAFC).withOpacity(0.8),
+            backgroundColor: const Color(0xFFF8FAFC).withValues(alpha: 0.8),
             elevation: 0,
             automaticallyImplyLeading: false,
             titleSpacing: 0,
@@ -230,7 +266,9 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   Text(
-                    'Biaya Sesi (Ijarah)',
+                    AppConfig.isSupabaseNativeEnabled
+                        ? 'Estimasi Biaya Sesi'
+                        : 'Biaya Sesi (Ijarah)',
                     style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B)),
                   ),
                   Text(
@@ -258,7 +296,9 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
                     ),
                   ),
                   child: Text(
-                    'Bayar Sekarang',
+                    AppConfig.isSupabaseNativeEnabled
+                        ? 'Ajukan Konsultasi'
+                        : 'Bayar Sekarang',
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -269,7 +309,9 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  'Pembayaran aman via Midtrans',
+                  AppConfig.isSupabaseNativeEnabled
+                      ? 'Permintaan akan disimpan dan dilanjutkan ke WhatsApp ustadz'
+                      : 'Pembayaran aman via Midtrans',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 10,
                     color: const Color(0xFF94A3B8),
@@ -310,6 +352,27 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
 
     setState(() => _isLoading = true);
     try {
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final String profileId = await SupabaseNativeService.ensureProfileId();
+        await Supabase.instance.client.from('consultation_sessions').insert(
+          <String, dynamic>{
+            'user_id': profileId,
+            'expert_id': ahli.id,
+            'status': 'requested',
+            'price': ahli.hargaPerSesi,
+            'extra_data': <String, dynamic>{
+              'source': 'mobile_supabase_native',
+              'expert_name': ahli.nama,
+              'whatsapp_number': ahli.noWhatsapp,
+            },
+          },
+        );
+        if (mounted) {
+          _showSuccessInstruction(ahli);
+        }
+        return;
+      }
+
       final Response<dynamic> response = await _dio.post<dynamic>(
         '/api/konsultasi/book',
         data: <String, dynamic>{
@@ -320,11 +383,10 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
       if (response.data != null && response.data['status'] == true) {
         final String redirectUrl = response.data['data']['redirect_url'] as String;
         final Uri uri = Uri.parse(redirectUrl);
-        
+
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
-          
-          // Setelah membuka payment, tampilkan dialog instruksi
+
           if (mounted) {
             _showSuccessInstruction(ahli);
           }
@@ -341,9 +403,16 @@ class _HalamanKonsultasiState extends State<HalamanKonsultasi> {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: Text('Menunggu Pembayaran', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800)),
+        title: Text(
+          AppConfig.isSupabaseNativeEnabled
+              ? 'Permintaan Konsultasi Tersimpan'
+              : 'Menunggu Pembayaran',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+        ),
         content: Text(
-          'Silakan selesaikan pembayaran di browser. Setelah sukses, Anda bisa kembali ke sini dan klik Hubungi Ustadz.',
+          AppConfig.isSupabaseNativeEnabled
+              ? 'Permintaan konsultasi sudah dicatat. Lanjutkan percakapan dengan ustadz melalui WhatsApp untuk atur jadwal dan tindak lanjut.'
+              : 'Silakan selesaikan pembayaran di browser. Setelah sukses, Anda bisa kembali ke sini dan klik Hubungi Ustadz.',
           style: GoogleFonts.plusJakartaSans(),
         ),
         actions: <Widget>[
@@ -395,9 +464,12 @@ class _MenuUtama extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<_MenuItem> menu = <_MenuItem>[
-      _MenuItem(icon: Symbols.chat_bubble, label: 'Chat Langsung'),
-      _MenuItem(icon: Symbols.calendar_month, label: 'Jadwal Konsultasi'),
-      _MenuItem(icon: Symbols.history, label: 'Riwayat Tanya Jawab'),
+      const _MenuItem(icon: Symbols.chat_bubble, label: 'Chat Langsung'),
+      const _MenuItem(
+        icon: Symbols.calendar_month,
+        label: 'Jadwal Konsultasi',
+      ),
+      const _MenuItem(icon: Symbols.history, label: 'Riwayat Tanya Jawab'),
     ];
 
     return Row(
@@ -700,7 +772,7 @@ class _KartuAman extends StatelessWidget {
             child: Icon(
               Symbols.verified_user,
               size: 80,
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
             ),
           ),
           Column(

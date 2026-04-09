@@ -1,10 +1,9 @@
 from datetime import datetime
 from bson import ObjectId
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
 
 from app.extensions import mongo
-from .common import current_user_id, response_error, response_success, format_doc
+from .common import auth_required, current_user_id, response_error, response_success, format_doc
 
 diskusi_bp = Blueprint("diskusi_api", __name__, url_prefix="/api/diskusi")
 
@@ -28,7 +27,7 @@ def _serialize_thread(row, include_replies=False):
 
 
 @diskusi_bp.get("")
-@jwt_required(optional=True)
+@auth_required(optional=True)
 def list_diskusi():
     q = (request.args.get("q") or "").strip()
     sort = (request.args.get("sort") or "terbaru").strip().lower()
@@ -104,7 +103,7 @@ def list_diskusi():
 
 
 @diskusi_bp.get("/<string:diskusi_id>")
-@jwt_required(optional=True)
+@auth_required(optional=True)
 def detail_diskusi(diskusi_id):
     try:
         row = mongo.db.diskusi.find_one({"_id": ObjectId(diskusi_id), "parent_id": None})
@@ -118,7 +117,7 @@ def detail_diskusi(diskusi_id):
 
 
 @diskusi_bp.post("")
-@jwt_required()
+@auth_required()
 def post_diskusi():
     user_id = current_user_id()
     payload = request.get_json() or {}
@@ -145,7 +144,7 @@ def post_diskusi():
 
 
 @diskusi_bp.post("/<string:diskusi_id>/balas")
-@jwt_required()
+@auth_required()
 def balas_diskusi(diskusi_id):
     user_id = current_user_id()
     payload = request.get_json() or {}

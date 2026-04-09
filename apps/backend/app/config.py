@@ -24,7 +24,6 @@ class BaseConfig:
     DEBUG = False
     TESTING = False
 
-
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", str(60 * 60 * 24)))
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", str(10 * 1024 * 1024)))
     NISHAB_DUMMY = float(os.getenv("NISHAB_DUMMY", "85000000"))
@@ -59,6 +58,23 @@ class BaseConfig:
     MIDTRANS_CLIENT_KEY = os.getenv("MIDTRANS_CLIENT_KEY", "SB-Mid-client-x-placeholder")
     MIDTRANS_IS_PRODUCTION = _as_bool(os.getenv("MIDTRANS_IS_PRODUCTION"), default=False)
     GOOGLE_OAUTH_CLIENT_IDS = os.getenv("GOOGLE_OAUTH_CLIENT_IDS", "")
+    SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+    SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "").strip()
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    SUPABASE_JWKS_URL = os.getenv("SUPABASE_JWKS_URL", "").strip()
+    SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "").strip()
+    SUPABASE_JWT_ISSUER = os.getenv("SUPABASE_JWT_ISSUER", "").strip()
+    SUPABASE_JWT_AUDIENCE = os.getenv("SUPABASE_JWT_AUDIENCE", "authenticated").strip()
+    SUPABASE_AUTH_ENABLED = _as_bool(os.getenv("SUPABASE_AUTH_ENABLED"), default=False)
+    SUPABASE_AUTO_SYNC_USERS = _as_bool(os.getenv("SUPABASE_AUTO_SYNC_USERS"), default=True)
+    LEGACY_JWT_ENABLED = _as_bool(os.getenv("LEGACY_JWT_ENABLED"), default=True)
+    AUTH_TRANSITION_ALLOW_LEGACY = _as_bool(
+        os.getenv("AUTH_TRANSITION_ALLOW_LEGACY"),
+        default=True,
+    )
+    PRIVY_APP_ID = os.getenv("PRIVY_APP_ID", "").strip()
+    PRIVY_APP_SECRET = os.getenv("PRIVY_APP_SECRET", "").strip()
+    PRIVY_CLIENT_ID = os.getenv("PRIVY_CLIENT_ID", "").strip()
 
     # Flask-Mail Configuration
     MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
@@ -90,6 +106,10 @@ class BaseConfig:
             "MONGODB_URI": os.getenv("MONGODB_URI"),
             "DB_NAME": os.getenv("DB_NAME"),
         }
+        if cls.SUPABASE_AUTH_ENABLED:
+            required["SUPABASE_URL"] = cls.SUPABASE_URL
+            if not (cls.SUPABASE_JWT_SECRET or cls.SUPABASE_JWKS_URL):
+                required["SUPABASE_JWKS_URL_OR_SECRET"] = None
         missing = [name for name, value in required.items() if not value]
         if missing:
             joined = ", ".join(missing)

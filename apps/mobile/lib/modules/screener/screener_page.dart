@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
 import '../../presentation/common/content_ui.dart';
 
@@ -17,6 +19,14 @@ class HalamanScreener extends StatefulWidget {
 
 class _HalamanScreenerState extends State<HalamanScreener> {
   final Dio _dio = ApiDio.create();
+  final Dio _marketDio = Dio(
+    BaseOptions(
+      baseUrl: 'https://api.coingecko.com/api/v3',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 25),
+      headers: const <String, dynamic>{'Accept': 'application/json'},
+    ),
+  );
   final TextEditingController _searchController = TextEditingController();
   final GetStorage _box = GetStorage();
   static const String _cacheTopKey = 'screener_cache_top100_v1';
@@ -47,6 +57,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
 
   @override
   void dispose() {
+    _marketDio.close();
     _searchController.dispose();
     super.dispose();
   }
@@ -67,6 +78,36 @@ class _HalamanScreenerState extends State<HalamanScreener> {
       query['status'] = _statusFilter;
     }
     query['top'] = 100;
+
+    if (AppConfig.isSupabaseNativeEnabled) {
+      try {
+        final List<Map<String, dynamic>> rows = await _fetchSupabaseScreener(
+          query: query,
+        );
+        final List<_ScreenerItem> parsed = rows
+            .map((Map<String, dynamic> row) => _ScreenerItem.fromJson(row))
+            .toList();
+        _box.write(_cacheTopKey, rows);
+        if (!mounted) return;
+        setState(() {
+          _items = parsed;
+          _usingCache = false;
+          _error = null;
+          _isLoading = false;
+        });
+        return;
+      } catch (_) {
+        final List<_ScreenerItem> fallback = _readTopCachedItems();
+        if (!mounted) return;
+        setState(() {
+          _items = fallback;
+          _usingCache = fallback.isNotEmpty;
+          _error = fallback.isEmpty ? 'screener_error_load'.tr : null;
+          _isLoading = false;
+        });
+        return;
+      }
+    }
 
     for (int attempt = 1; attempt <= 2; attempt++) {
       try {
@@ -156,6 +197,135 @@ class _HalamanScreenerState extends State<HalamanScreener> {
       }
     }
     return <dynamic>[];
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchSupabaseScreener({
+    required Map<String, dynamic> query,
+  }) async {
+    final int top = (query['top'] as int?) ?? 100;
+    final String q = (query['q'] as String?)?.trim() ?? '';
+    final String status =
+        (query['status'] as String?)?.trim().toLowerCase() ?? '';
+
+    PostgrestFilterBuilder<dynamic> screenerQuery =
+        Supabase.instance.client.from('screeners').select(
+              'id,coin_name,symbol,status,sharia_status,fiqh_explanation,scholar_reference,extra_data',
+            );
+
+    if (q.isNotEmpty) {
+      final String escaped = q.replaceAll(',', '').replaceAll('%', '');
+      screenerQuery = screenerQuery.or(
+        'coin_name.ilike.%$escaped%,symbol.ilike.%$escaped%',
+      );
+    }
+    if (status.isNotEmpty) {
+      screenerQuery = screenerQuery.eq('sharia_status', status);
+    }
+
+    final List<dynamic> screenerRows = await screenerQuery.order('coin_name');
+    final List<Map<String, dynamic>> baseRows = screenerRows
+        .whereType<Map>()
+        .map((Map row) => _ScreenerItem.fromSupabase(
+              Map<String, dynamic>.from(row),
+            ).toJson())
+        .toList();
+    if (baseRows.isEmpty) {
+      return const <Map<String, dynamic>>[];
+    }
+
+    final bool needsMarketFallback = baseRows.any((Map<String, dynamic> row) {
+      final String logoUrl = (row['logo_url'] as String?)?.trim() ?? '';
+      return logoUrl.isEmpty || row['peringkat_market_cap'] == null;
+    });
+    if (!needsMarketFallback) {
+      _sortScreenerRows(baseRows);
+      return baseRows;
+    }
+
+    final List<dynamic> marketRows = await _fetchCoinGeckoMarkets(top);
+    final Map<String, Map<String, dynamic>> symbolMap =
+        _buildCoinGeckoSymbolMap(marketRows);
+
+    final List<Map<String, dynamic>> enriched =
+        baseRows.map((Map<String, dynamic> row) {
+      final String symbol =
+          (row['simbol'] as String?)?.trim().toUpperCase() ?? '';
+      final Map<String, dynamic>? market = symbolMap[symbol];
+      if (market == null) {
+        return row;
+      }
+      return <String, dynamic>{
+        ...row,
+        'harga_usd': market['current_price'],
+        'market_cap': market['market_cap'],
+        'perubahan_24j': market['price_change_percentage_24h'],
+        'logo_url': market['image']?.toString() ?? row['logo_url'],
+        'peringkat_market_cap': (market['market_cap_rank'] as num?)?.toInt(),
+        'coingecko_id': market['id']?.toString() ?? '',
+      };
+    }).toList();
+
+    _sortScreenerRows(enriched);
+    return enriched;
+  }
+
+  Future<List<dynamic>> _fetchCoinGeckoMarkets(int top) async {
+    final Response<dynamic> response = await _marketDio.get<dynamic>(
+      '/coins/markets',
+      queryParameters: <String, dynamic>{
+        'vs_currency': 'usd',
+        'order': 'market_cap_desc',
+        'per_page': top.clamp(1, 250),
+        'page': 1,
+        'sparkline': false,
+        'locale': 'id',
+      },
+    );
+    final dynamic data = response.data;
+    return data is List ? data : const <dynamic>[];
+  }
+
+  Map<String, Map<String, dynamic>> _buildCoinGeckoSymbolMap(
+      List<dynamic> rows) {
+    final Map<String, Map<String, dynamic>> out =
+        <String, Map<String, dynamic>>{};
+    for (final dynamic row in rows) {
+      if (row is! Map) {
+        continue;
+      }
+      final Map<String, dynamic> item = Map<String, dynamic>.from(row);
+      final String symbol =
+          (item['symbol'] as String?)?.trim().toUpperCase() ?? '';
+      if (symbol.isEmpty) {
+        continue;
+      }
+      final Map<String, dynamic>? existing = out[symbol];
+      if (existing == null) {
+        out[symbol] = item;
+        continue;
+      }
+      final int currentRank =
+          (item['market_cap_rank'] as num?)?.toInt() ?? 999999;
+      final int existingRank =
+          (existing['market_cap_rank'] as num?)?.toInt() ?? 999999;
+      if (currentRank < existingRank) {
+        out[symbol] = item;
+      }
+    }
+    return out;
+  }
+
+  void _sortScreenerRows(List<Map<String, dynamic>> rows) {
+    rows.sort((Map<String, dynamic> a, Map<String, dynamic> b) {
+      final int rankA = (a['peringkat_market_cap'] as int?) ?? 999999;
+      final int rankB = (b['peringkat_market_cap'] as int?) ?? 999999;
+      if (rankA != rankB) {
+        return rankA.compareTo(rankB);
+      }
+      final String nameA = (a['nama_koin'] as String?)?.toLowerCase() ?? '';
+      final String nameB = (b['nama_koin'] as String?)?.toLowerCase() ?? '';
+      return nameA.compareTo(nameB);
+    });
   }
 
   @override
@@ -271,7 +441,7 @@ class _HalamanScreenerState extends State<HalamanScreener> {
                       onRetry: () => _fetchScreener(),
                     )
                   else if (_items.isEmpty)
-                    AppEmptyStateCard(
+                    const AppEmptyStateCard(
                       text:
                           'Belum ada aset yang cocok dengan filter yang kamu pilih.',
                     )
@@ -718,65 +888,47 @@ class _ScreenerItem {
       coingeckoId: (json['coingecko_id'] as String?)?.trim() ?? '',
     );
   }
-}
 
-class _ErrorCard extends StatelessWidget {
-  const _ErrorCard({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFFECACA)),
-      ),
-      child: Column(
-        children: <Widget>[
-          Text(
-            message,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFFB91C1C),
-            ),
-          ),
-          const SizedBox(height: 10),
-          OutlinedButton(
-            onPressed: onRetry,
-            child: Text('try_again'.tr),
-          ),
-        ],
-      ),
+  factory _ScreenerItem.fromSupabase(Map<String, dynamic> json) {
+    final Map<String, dynamic> extraData = json['extra_data'] is Map
+        ? Map<String, dynamic>.from(json['extra_data'] as Map)
+        : <String, dynamic>{};
+    return _ScreenerItem(
+      id: (json['id'] ?? '').toString(),
+      namaKoin: (json['coin_name'] as String?)?.trim() ?? '-',
+      simbol: (json['symbol'] as String?)?.trim() ?? '-',
+      statusSyariah: ((json['sharia_status'] ?? json['status']) as String?)
+              ?.trim()
+              .toLowerCase() ??
+          'proses',
+      penjelasanFiqh: (json['fiqh_explanation'] as String?)?.trim() ??
+          (extraData['penjelasan_fiqh'] as String?)?.trim() ??
+          '-',
+      referensiUlama: (json['scholar_reference'] as String?)?.trim() ?? '-',
+      hargaUsd: (extraData['harga_usd'] as num?)?.toDouble(),
+      marketCap: (extraData['market_cap'] as num?)?.toDouble(),
+      perubahan24j: (extraData['perubahan_24j'] as num?)?.toDouble(),
+      logoUrl: (extraData['logo_url'] as String?)?.trim() ?? '',
+      peringkatMarketCap: (extraData['peringkat_market_cap'] as num?)?.toInt(),
+      coingeckoId: (extraData['coingecko_id'] as String?)?.trim() ?? '',
     );
   }
-}
 
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Text(
-        'screener_empty'.tr,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: const Color(0xFF64748B),
-        ),
-      ),
-    );
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'id': id,
+      'nama_koin': namaKoin,
+      'simbol': simbol,
+      'status_syariah': statusSyariah,
+      'penjelasan_fiqh': penjelasanFiqh,
+      'referensi_ulama': referensiUlama,
+      'harga_usd': hargaUsd,
+      'market_cap': marketCap,
+      'perubahan_24j': perubahan24j,
+      'logo_url': logoUrl,
+      'peringkat_market_cap': peringkatMarketCap,
+      'coingecko_id': coingeckoId,
+    };
   }
 }
 

@@ -5,6 +5,8 @@ from bson import ObjectId
 from datetime import datetime
 import uuid
 
+from .common import auth_required, current_user_doc, current_user_id
+
 konsultasi_bp = Blueprint("konsultasi", __name__, url_prefix="/api/konsultasi")
 
 def _format_ahli(doc):
@@ -37,17 +39,14 @@ def get_kategori():
         "data": kategori
     })
 
-from flask_jwt_extended import jwt_required, get_jwt_identity
-
 @konsultasi_bp.post("/book")
-@jwt_required()
+@auth_required()
 def book_konsultasi():
     data = request.json
     ahli_id = data.get("ahli_id")
-    user_id = get_jwt_identity()
-    
-    # Ambil data user untuk Midtrans
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    user_id = current_user_id()
+    user = current_user_doc()
+
     if not user:
         return jsonify({"status": False, "message": "User tidak ditemukan"}), 404
 

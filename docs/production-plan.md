@@ -2,404 +2,436 @@
 
 ## Tujuan
 
-Dokumen ini adalah rencana deploy production untuk monorepo **Averroes** (Flutter mobile + Python/Flask backend) agar rilis lebih aman, terukur, dan mudah di-rollback.
+Dokumen ini adalah rencana deploy production untuk monorepo **Averroes** setelah keputusan arsitektur baru tim:
+
+- Database pindah dari **MongoDB** ke **Supabase PostgreSQL**
+- Auth utama pindah dari **JWT custom backend** ke **Supabase Auth**
+- Wallet onboarding dan wallet linking memakai **Privy**
+
+Tujuan akhirnya adalah rilis yang lebih aman, terukur, mudah dioperasikan, dan lebih siap untuk fitur wallet di mobile.
 
 ## Scope
 
-- `apps/backend` (Flask API + admin)
+- `apps/backend` (Flask API + admin + integrasi auth verification)
 - `apps/mobile` (Flutter app)
 - `packages/*` (shared Flutter packages)
-- Infrastruktur production (server, database, reverse proxy, storage, monitoring)
+- Supabase project:
+  - PostgreSQL
+  - Auth
+  - Storage/Realtimes jika dipakai
+- Privy:
+  - login/link wallet
+  - embedded wallet / wallet provisioning
+- Migrasi data dari MongoDB ke PostgreSQL
+- Monitoring, backup, rollback, dan cutover production
 
-## Asumsi Teknis Saat Ini
+## Keputusan Arsitektur Final
 
-- Backend: **Flask** + **Gunicorn** (`wsgi:app`)
-- Mobile: **Flutter**
-- Migration DB: `flask --app run.py db upgrade`
-- Environment config via `.env`
-- Backend mendukung DB production (`DATABASE_URL`) dan tidak disarankan pakai SQLite di production
+### 1. Identity dan session
 
-## Target Arsitektur Production (Recommended)
+- **Supabase Auth** menjadi sumber identitas utama user.
+- Login email/password, OTP, dan session aplikasi mengikuti Supabase Auth.
+- `auth.users.id` menjadi canonical user identity untuk seluruh sistem.
 
-- `Mobile App (Android/iOS)` -> HTTPS -> `Nginx/Caddy (Reverse Proxy)` -> `Gunicorn + Flask`
-- `Gunicorn + Flask` -> `Managed PostgreSQL` (recommended)
-- `Gunicorn + Flask` -> `Persistent Storage` untuk upload (disk ter-mount / object storage)
+### 2. Wallet dan Web3 onboarding
+
+- **Privy** dipakai untuk wallet provisioning, wallet linking, dan pengalaman Web3/mobile wallet yang lebih ringan.
+- Privy **bukan** sumber identitas utama aplikasi.
+- Privy user/wallet di-link ke user Supabase pada tabel aplikasi.
+
+### 3. Business API
+
+- **Flask backend tetap dipertahankan** untuk business logic, admin flow, integrasi existing, dan endpoint domain seperti edukasi, quiz, sertifikat, portofolio, zakat, pustaka, dan konsultasi.
+- Backend tidak lagi menerbitkan JWT aplikasi sendiri untuk mobile.
+- Backend memverifikasi access token dari Supabase Auth dan menggunakan `supabase_user_id` sebagai identity principal.
+
+### 4. Database
+
+- **Supabase PostgreSQL** menjadi source of truth data aplikasi.
+- MongoDB lama diperlakukan sebagai sumber migrasi, bukan target akhir production.
+- Storage file diusahakan pindah ke Supabase Storage atau object storage lain yang persistent.
+
+## Prinsip Integrasi Supabase Auth + Privy
+
+Supaya arsitekturnya tidak tumpang tindih, pembagiannya harus tegas:
+
+- Supabase Auth:
+  - register/login
+  - email verification
+  - password reset / OTP
+  - access token / refresh token
+  - session user aplikasi
+- Privy:
+  - embedded wallet
+  - wallet linking
+  - wallet metadata
+  - future on-chain identity UX
+- Flask backend:
+  - verifikasi Supabase token
+  - role/authorization aplikasi
+  - sinkronisasi profil user
+  - business rules domain
+- PostgreSQL:
+  - profile user
+  - relasi role
+  - data bisnis
+  - relasi ke wallet / Privy identity
+
+## Target Arsitektur Production
+
+- `Flutter Mobile App`
+  - `Supabase Auth SDK` untuk login/session
+  - `Privy SDK` untuk wallet
+- `Flutter Mobile App` -> HTTPS -> `Nginx/Caddy (Reverse Proxy)` -> `Gunicorn + Flask`
+- `Gunicorn + Flask` -> `Supabase PostgreSQL`
+- `Gunicorn + Flask` -> `Supabase Storage / object storage` untuk file
+- `Gunicorn + Flask` -> verifikasi `Supabase JWT`
+- `Gunicorn + Flask` -> sinkronisasi user profile dan wallet linkage
 - Logging aplikasi -> file/agent -> monitoring/log aggregation
+
+## Model Data Identitas (Recommended)
+
+Minimal siapkan tabel aplikasi berikut di PostgreSQL:
+
+- `profiles`
+  - `id uuid primary key` -> sama dengan `auth.users.id`
+  - `email`
+  - `nama`
+  - `role`
+  - `avatar_url`
+  - `is_active`
+  - `created_at`
+  - `updated_at`
+- `user_wallets`
+  - `id uuid primary key`
+  - `user_id uuid references profiles(id)`
+  - `privy_user_id`
+  - `wallet_address`
+  - `wallet_type`
+  - `is_primary`
+  - `created_at`
+- `auth_audit_logs` (opsional)
+  - event auth penting
+  - provider login
+  - linked wallet
+
+Prinsip penting:
+
+- `profiles.id = auth.users.id`
+- data domain aplikasi tidak lagi bergantung pada ObjectId Mongo
+- wallet disimpan sebagai relasi ke user aplikasi, bukan identitas utama
 
 ## Deliverables
 
-- Environment production siap (`.env` production terisi aman)
-- Database production + migrasi berhasil
-- Backend berjalan via `gunicorn` di belakang reverse proxy + HTTPS
-- Mobile app build release mengarah ke API production
-- Monitoring, backup, dan rollback plan terdokumentasi
+- Supabase project production siap
+- Schema PostgreSQL final terdokumentasi
+- Mapping MongoDB -> PostgreSQL terdokumentasi
+- Migrasi data awal berhasil diverifikasi
+- Supabase Auth aktif untuk login/register/reset password
+- Privy terintegrasi untuk wallet onboarding/linking
+- Flask backend memverifikasi Supabase token
+- Mobile app release mengarah ke auth flow baru
+- Monitoring, backup, rollback, dan cutover plan terdokumentasi
 - Smoke test dan UAT minimum lulus
+
+## Status Teknis Repo Saat Ini
+
+Temuan penting dari codebase saat ini:
+
+- Backend masih memakai **MongoDB** sebagai database utama
+- Backend masih memakai **JWT custom** via `Flask-JWT-Extended`
+- Banyak endpoint domain masih bergantung pada decorator auth backend sekarang
+- Mobile app masih login ke endpoint `/api/auth/*` milik Flask
+- Password reset, OTP register, guest login, dan profile update masih dikelola backend lama
+
+Implikasinya:
+
+- Ini bukan sekadar ganti connection string database
+- Ini adalah migrasi arsitektur data dan identity
+- Scope migrasi harus diphase dengan disiplin agar tidak merusak flow release mobile
 
 ## Checklist Readiness (Pre-Production)
 
 ### 1. Konfigurasi & Secrets
 
 - [ ] Set `APP_ENV=production`
-- [ ] Set `SECRET_KEY` (random kuat)
-- [ ] Set `JWT_SECRET_KEY` (random kuat)
-- [ ] Set `DATABASE_URL` ke PostgreSQL/MySQL production
-- [ ] Verifikasi `UPLOAD_FOLDER` ke lokasi persistent
+- [ ] Set `SUPABASE_URL`
+- [ ] Set `SUPABASE_ANON_KEY` untuk mobile
+- [ ] Set `SUPABASE_SERVICE_ROLE_KEY` hanya di backend/server
+- [ ] Set `SUPABASE_JWKS_URL` atau konfigurasi verifikasi JWT Supabase yang dipakai backend
+- [ ] Set `PRIVY_APP_ID`
+- [ ] Set `PRIVY_APP_SECRET` hanya di backend jika diperlukan
+- [ ] Set `PRIVY_CLIENT_ID`/config mobile sesuai SDK
+- [ ] Review redirect URL / deep link mobile auth
 - [ ] Review `.env` agar tidak ada kredensial dev/test
-- [ ] Simpan secrets di secret manager / vault / minimal environment server (bukan commit Git)
+- [ ] Simpan secrets di secret manager / vault / environment server, bukan commit Git
 
-### 2. Database
+### 2. Database & Migration
 
-- [ ] Buat database production (user terpisah, privilege minimum)
-- [ ] Jalankan migrasi: `flask --app run.py db upgrade`
-- [ ] Verifikasi struktur tabel dan data awal wajib
-- [ ] Siapkan backup harian + retensi backup
+- [ ] Desain schema PostgreSQL final untuk seluruh domain utama
+- [ ] Buat mapping koleksi MongoDB -> tabel PostgreSQL
+- [ ] Buat script migrasi yang idempotent
+- [ ] Migrasikan data user, edukasi, progress, quiz, sertifikat, portofolio, pustaka, diskusi, dan domain lain yang diperlukan
+- [ ] Verifikasi foreign key, unique constraint, dan indeks penting
+- [ ] Siapkan backup MongoDB sebelum cutover
+- [ ] Siapkan backup Supabase/Postgres harian + retensi backup
 - [ ] Uji restore backup ke environment staging/test
 
-### 3. Backend Readiness
+### 3. Auth & Identity Readiness
 
-- [ ] Install dependency: `pip install -r requirements.txt`
-- [ ] Jalankan backend production command:
-  - `gunicorn -w 3 -k gthread --threads 4 -b 0.0.0.0:5000 wsgi:app`
-- [ ] Pasang process manager (`systemd` / supervisor)
-- [ ] Batasi akses `/admin` (IP allowlist / VPN / auth kuat)
-- [ ] Pastikan seed dev tidak aktif (`APP_ENV=production`)
-- [ ] Konfigurasi CORS hanya untuk origin yang diperlukan
-- [ ] Set ukuran upload dan timeout sesuai kebutuhan
+- [ ] Putuskan provider login awal yang aktif di Supabase Auth
+- [ ] Migrasikan user existing ke Supabase Auth atau siapkan forced reset/password re-enrollment
+- [ ] Tentukan strategi email verification untuk user lama
+- [ ] Tentukan strategi guest user: dipertahankan, dihapus, atau diubah ke anonymous session
+- [ ] Tentukan strategi role (`user`, `admin`, dll) di tabel aplikasi
+- [ ] Implement link antara `profiles.id` dan `privy_user_id`
+- [ ] Tentukan kapan wallet otomatis dibuat: saat signup, saat first login, atau saat user masuk fitur wallet
 
-### 4. Reverse Proxy & Network
+### 4. Backend Readiness
 
-- [ ] Pasang `Nginx`/`Caddy`
-- [ ] Aktifkan HTTPS (TLS certificate valid)
-- [ ] Redirect HTTP -> HTTPS
-- [ ] Set header proxy (`X-Forwarded-*`)
-- [ ] Rate limiting dasar untuk endpoint sensitif (login/admin)
-- [ ] Aktifkan gzip/brotli (opsional)
+- [ ] Ganti middleware auth dari JWT custom ke verifikasi token Supabase
+- [ ] Hapus ketergantungan mobile pada endpoint `/api/auth/login`, `/register`, `/lupa-password` lama setelah flow baru stabil
+- [ ] Tambah helper `current_user` berbasis `supabase_user_id`
+- [ ] Pastikan role/authorization tidak hanya percaya claim client
+- [ ] Audit seluruh endpoint yang sebelumnya memakai `@jwt_required()`
+- [ ] Pastikan `SUPABASE_SERVICE_ROLE_KEY` tidak pernah bocor ke mobile
+- [ ] Review admin flow: tetap pakai session server-side atau dipindah bertahap
+- [ ] Set ukuran upload, timeout, dan storage target sesuai kebutuhan
 
 ### 5. Mobile App Release
 
-- [ ] Tentukan `API_BASE_URL` production di `.env`/build config Flutter
-- [ ] Build release Android (`apk`/`aab`) dan iOS (jika dipakai)
-- [ ] Verifikasi login, kelas, progress, quiz, sertifikat terhadap backend production/staging
-- [ ] Update versioning (`versionName/versionCode` / iOS build number)
+- [ ] Integrasikan Supabase Auth SDK di Flutter
+- [ ] Integrasikan Privy SDK di Flutter
+- [ ] Refactor login/register/reset password agar mengikuti Supabase flow
+- [ ] Refactor penyimpanan token/session agar tidak lagi bergantung pada JWT custom backend
+- [ ] Tambah flow wallet linking di onboarding atau profile
+- [ ] Verifikasi login, refresh session, logout, relink wallet, dan resume session
+- [ ] Build release Android/iOS mengarah ke Supabase project yang benar
 - [ ] UAT internal sebelum distribusi publik
 
 ### 6. Monitoring & Operasional
 
-- [ ] Logging backend terstruktur (minimal level, timestamp, endpoint, error)
+- [ ] Logging backend terstruktur untuk verifikasi auth, sync profile, dan wallet linking
 - [ ] Monitoring uptime endpoint healthcheck
-- [ ] Alert untuk error rate tinggi / service down / disk hampir penuh
-- [ ] Monitoring DB connections dan storage growth
+- [ ] Alert untuk error rate auth tinggi / service down / disk hampir penuh
+- [ ] Monitoring Supabase database connections, storage growth, dan auth errors
 - [ ] Catat SOP restart service dan insiden
+
+## Mapping Data MongoDB -> PostgreSQL (Draft Awal)
+
+Mapping final harus divalidasi sebelum implementasi script migrasi.
+
+| MongoDB Collection | PostgreSQL Table (Draft) | Catatan |
+|---|---|---|
+| `users` | `profiles` | `auth.users` pegang identity, `profiles` pegang data aplikasi |
+| `kelas` | `classes` | master kelas |
+| `modul` | `class_modules` | relasi ke `classes` |
+| `materi` | `class_materials` | relasi ke `class_modules` |
+| `materi_progress` | `material_progress` | relasi ke `profiles` dan `class_materials` |
+| `quiz` | `quizzes` | relasi ke `classes` |
+| `quiz_submissions` | `quiz_submissions` | relasi ke `profiles` dan `quizzes` |
+| `sertifikat` | `certificate_templates` | template sertifikat |
+| `sertifikat_user` | `user_certificates` | hasil generate user |
+| `portofolio` | `portfolios` | user-based |
+| `portofolio_riwayat` | `portfolio_history` | histori aksi |
+| `diskusi` | `discussion_threads` / `discussion_replies` | bisa dipisah atau single table parent-child |
+| `buku` | `books` | pustaka |
+| `kategori_buku` | `book_categories` | pustaka |
+| `kajian` | `kajian_items` | konten kajian |
+| `berita` | `news_items` | konten berita |
+| `screener` | `screeners` | data screener |
+| `sessions` | `consultation_sessions` | domain konsultasi |
 
 ## Langkah Implementasi Production (Runbook)
 
-### Phase 1 - Hardening & Validasi (H-7 s/d H-3)
+### Phase 0 - Scope Freeze & Audit (H-14 s/d H-10)
 
-1. Freeze perubahan besar fitur.
-2. Rapikan `.env.example` dan daftar variabel wajib.
-3. Validasi migrasi DB di staging.
-4. Uji flow kritikal:
-   - auth/login
-   - list/detail kelas
-   - progress materi
-   - submit quiz
-   - generate sertifikat
-5. Siapkan backup + restore test.
+1. Freeze perubahan besar fitur auth dan data model.
+2. Inventaris seluruh endpoint yang membaca/menulis MongoDB.
+3. Inventaris seluruh endpoint yang memakai auth JWT custom.
+4. Tetapkan domain mana yang wajib ikut cutover di gelombang pertama.
+5. Putuskan strategi migrasi user existing.
 
-### Phase 2 - Deploy Backend (H-2 s/d H-1)
+Output wajib:
 
-1. Provision server/VM atau platform deployment.
-2. Install Python runtime + dependency system yang dibutuhkan.
-3. Pull code release tag/branch.
-4. Set environment variables production.
-5. Jalankan migrasi:
-   - `flask --app run.py db upgrade`
-6. Jalankan Gunicorn via `systemd`.
-7. Pasang dan konfigurasi reverse proxy + HTTPS.
-8. Jalankan smoke test API dari luar server.
+- daftar collection Mongo yang aktif
+- daftar endpoint auth lama
+- keputusan guest user
+- keputusan user migration vs forced reset
 
-### Phase 3 - Release Mobile (Hari H)
+### Phase 1 - Schema & Auth Design (H-10 s/d H-7)
 
-1. Point mobile app ke API production.
-2. Build release candidate.
-3. UAT singkat dengan akun real/test production-safe.
-4. Publish ke internal testing / store release (sesuai kebutuhan tim).
-5. Monitor error dan feedback 24-48 jam pertama.
+1. Buat schema PostgreSQL final di Supabase.
+2. Tentukan constraint, indeks, dan relasi inti.
+3. Definisikan tabel `profiles` dan `user_wallets`.
+4. Finalisasi arsitektur:
+   - Supabase Auth = identity/session
+   - Privy = wallet/linking
+   - Flask = business API + auth verification
+5. Finalisasi strategi role dan admin authorization.
 
-### Phase 4 - Upgrade & Evaluasi per Fitur Mobile (H+1 s/d H+14)
+Output wajib:
 
-1. Kumpulkan data penggunaan fitur mobile (screen yang sering dibuka, flow yang sering dipakai, feedback user).
-2. Catat issue mobile per fitur:
-   - crash / freeze
-   - loading lambat
-   - error API / parsing data
-   - masalah navigasi / UX
-3. Evaluasi fitur mobile berdasarkan dampak dan stabilitas.
-4. Prioritaskan hotfix mobile per fitur (minor release), hindari refactor besar di fase stabilisasi.
-5. Rilis perbaikan bertahap dan lakukan smoke test pada screen/flow terkait.
-6. Dokumentasikan hasil evaluasi untuk backlog backend dan mobile phase berikutnya.
+- schema SQL final
+- mapping Mongo -> Postgres
+- auth sequence diagram
+
+### Phase 2 - Integrasi Auth Baru (H-7 s/d H-4)
+
+1. Integrasikan Supabase Auth di mobile.
+2. Integrasikan Privy di mobile.
+3. Buat mekanisme verifikasi token Supabase di Flask.
+4. Tambahkan helper sync profile:
+   - buat profile jika belum ada
+   - update metadata dasar bila perlu
+5. Tambahkan endpoint wallet linking jika flow butuh server acknowledgement.
+
+Flow target:
+
+- user login via Supabase Auth
+- mobile dapat session/token
+- mobile panggil Flask API dengan bearer token Supabase
+- backend verifikasi token
+- backend load/create profile user
+- mobile link/create wallet via Privy
+- wallet metadata tersimpan ke PostgreSQL
+
+### Phase 3 - Migrasi Data (H-4 s/d H-2)
+
+1. Backup penuh MongoDB.
+2. Jalankan migrasi ke PostgreSQL pada staging.
+3. Verifikasi jumlah record, relasi, dan sampel data.
+4. Fix mismatch data type, unique conflict, dan nullability issue.
+5. Ulangi migrasi hingga hasil staging stabil.
+
+Checklist validasi:
+
+- [ ] jumlah user masuk akal
+- [ ] progress belajar user cocok
+- [ ] quiz submission cocok
+- [ ] sertifikat user cocok
+- [ ] pustaka/kategori tidak putus relasi
+- [ ] data portofolio user cocok
+
+### Phase 4 - UAT & Hotfix (H-2 s/d H-1)
+
+1. Jalankan UAT dengan auth flow baru.
+2. Uji login, logout, refresh session, reset password, dan relink wallet.
+3. Uji flow inti:
+   - auth
+   - home
+   - edukasi
+   - progress
+   - quiz
+   - sertifikat
+   - profil
+   - fitur wallet terkait
+4. Catat bug by severity.
+5. Rilis hotfix seperlunya.
+
+### Phase 5 - Cutover Production (Hari H)
+
+1. Freeze write traffic ke MongoDB jika dibutuhkan.
+2. Jalankan migrasi final ke Supabase Postgres.
+3. Switch backend production ke Postgres/Supabase.
+4. Switch mobile release candidate ke auth flow baru.
+5. Jalankan smoke test dari luar server.
+6. Monitor 24-48 jam pertama dengan fokus auth dan data consistency.
 
 ## Smoke Test Minimum (Post-Deploy)
 
-- [ ] `GET` endpoint publik merespons `200`
-- [ ] Login JWT berhasil
+- [ ] Signup / login Supabase Auth berhasil
+- [ ] Session restore setelah app restart berhasil
+- [ ] Logout berhasil
+- [ ] Reset password / OTP flow berhasil
+- [ ] Link wallet via Privy berhasil
+- [ ] Endpoint protected Flask menerima token Supabase dengan benar
 - [ ] Akses data kelas berhasil
 - [ ] Menandai materi selesai berhasil
 - [ ] Submit quiz berhasil
-- [ ] Generate sertifikat berhasil (jika syarat terpenuhi)
-- [ ] Upload file (jika ada fitur upload) tersimpan di storage persistent
+- [ ] Generate sertifikat berhasil
+- [ ] Upload file tersimpan di storage persistent
 - [ ] Admin page dapat diakses hanya oleh pihak berwenang
 
-## Evaluasi Per Fitur Mobile (Template)
+## Flow Kritis UAT Mobile (Updated)
 
-Gunakan format ini setelah production berjalan agar upgrade mobile berikutnya berbasis data.
+- [ ] Register / login via Supabase Auth
+- [ ] Reset password / verifikasi email
+- [ ] Restore session saat app dibuka ulang
+- [ ] Link atau create wallet via Privy
+- [ ] Buka Beranda/Home
+- [ ] Masuk ke Kelas/Edukasi dan buka detail materi
+- [ ] Simpan progress belajar
+- [ ] Submit Quiz
+- [ ] Generate / lihat Sertifikat
+- [ ] Buka / edit Profil
 
-| Fitur/Screen Mobile | Status | Usage | Issue Utama | Prioritas | Aksi Upgrade |
-|---|---|---:|---|---|---|
-| Login/Register | TBD | TBD | TBD | High/Med/Low | Contoh: validasi form, error message, retry |
-| Beranda/Home | TBD | TBD | TBD | High/Med/Low | Contoh: loading skeleton, optimasi fetch |
-| Kelas & Materi | TBD | TBD | TBD | High/Med/Low | Contoh: cache list/detail, UX navigasi |
-| Progress Belajar | TBD | TBD | TBD | High/Med/Low | Contoh: sinkronisasi status, retry submit |
-| Quiz | TBD | TBD | TBD | High/Med/Low | Contoh: validasi submit, handling timeout |
-| Sertifikat | TBD | TBD | TBD | High/Med/Low | Contoh: state loading/gagal, download/share |
-| Profil | TBD | TBD | TBD | High/Med/Low | Contoh: edit profil, feedback sukses/gagal |
-| Notifikasi (jika aktif) | TBD | TBD | TBD | High/Med/Low | Contoh: refresh state, empty state |
+## Risiko Utama
 
-Kriteria evaluasi mobile yang disarankan:
+### Risiko teknis
 
-- Stabilitas: crash, freeze, error UI/state
-- UX: alur membingungkan, tombol tidak jelas, empty/error state
-- Performa: waktu buka app, waktu buka screen, loading API
-- Integrasi API: error parsing, timeout, retry, state tidak sinkron
-- Kompatibilitas device: ukuran layar, versi Android/iOS, permission
-- Nilai penggunaan: fitur paling sering dipakai dan paling berdampak
+- Migrasi user lama ke Supabase Auth bisa jadi bottleneck terbesar
+- Perubahan ObjectId Mongo ke UUID/int Postgres bisa memutus relasi jika mapping jelek
+- Endpoint existing sangat banyak yang mengasumsikan JWT custom
+- Dual auth semantics antara Supabase dan Privy bisa membingungkan jika boundary tidak disiplin
 
-## Checklist Evaluasi Mobile (H+1 s/d H+14)
+### Risiko produk
 
-- [ ] Kumpulkan feedback user internal/tester per screen
-- [ ] Catat crash/error dari log/testing manual
-- [ ] Urutkan top 5 issue mobile paling mengganggu
-- [ ] Pisahkan issue mobile vs issue backend/API
-- [ ] Rilis hotfix mobile prioritas tinggi
-- [ ] Verifikasi ulang flow kritikal setelah hotfix
-- [ ] Susun backlog improvement UX/performa untuk sprint berikutnya
+- User lama bisa gagal login jika migrasi password/account tidak jelas
+- Flow wallet bisa menambah friction onboarding jika dipaksa terlalu awal
+- Fitur non-kritikal bisa memperlambat cutover jika ikut dimigrasikan bersamaan
 
-## Eksekusi Per Phase (Mobile First)
+### Mitigasi
 
-Section ini dipakai untuk eksekusi aktual per phase. Update status dan hasilnya setiap selesai phase.
-
-### Phase 1 - Planning & Freeze (Mobile) [START HERE]
-
-Status: `Executed (Draft Scope - Need Team Confirmation)`
-
-Tujuan phase:
-
-- Menetapkan scope rilis mobile pertama
-- Freeze perubahan besar agar fokus stabilisasi
-- Menentukan flow kritikal yang wajib lolos UAT
-- Menyiapkan baseline konfigurasi release
-
-Temuan awal (berdasarkan repo saat ini):
-
-- Versi app saat ini di `apps/mobile/pubspec.yaml`: `0.1.0+1`
-- `API_BASE_URL` di `apps/mobile/.env.example` masih default emulator: `http://10.0.2.2:8080`
-- Konfigurasi API dibaca dari `.env` melalui `AppConfig.apiBaseUrl` di `apps/mobile/lib/app/config/app_config.dart`
-- Modul mobile cukup banyak (contoh utama): login/register, home, edukasi, quiz, sertifikat, profile, pasar, portofolio, zakat, chatbot
-- `apps/mobile/README.md` masih template default Flutter (belum ada panduan release/UAT mobile)
-
-Output wajib Phase 1 (status eksekusi saat ini):
-
-- [x] Tentukan target rilis mobile (draft: `internal testing / closed beta`)
-- [x] Pilih scope fitur rilis V1 mobile (draft scope di bawah)
-- [x] Tetapkan flow kritikal mobile untuk UAT (baseline + prioritas)
-- [ ] Freeze fitur besar (catat tanggal freeze)
-- [ ] Tentukan PIC mobile, PIC QA/UAT, PIC release approval
-- [x] Tentukan target versi release (draft: `0.1.1+2`)
-- [x] Tentukan endpoint API target untuk testing (draft: `staging`)
-
-Flow kritikal UAT mobile (prioritas):
-
-- [x] Login/Register
-- [x] Buka Beranda/Home (cek konten/fetch berita)
-- [x] Masuk ke Kelas/Edukasi dan buka detail materi
-- [x] Submit Quiz
-- [x] Generate/Lihat Sertifikat
-- [x] Buka/Edit Profil
-- [x] Lupa Password + Verifikasi OTP
-
-Scope rilis V1 mobile (rekomendasi eksekusi):
-
-Fitur wajib (release blocker jika gagal):
-
-- [x] Auth: `login`, `register`, `lupa password`, `verifikasi otp`
-- [x] Home/Beranda
-- [x] Edukasi: list kelas, detail kelas, progress, materi complete
-- [x] Quiz submit
-- [x] Sertifikat
-- [x] Profil dasar + logout
-
-Fitur menengah (boleh ada, bukan blocker V1):
-
-- [x] Screener
-- [x] Pasar
-- [x] Portofolio
-- [x] Notifikasi
-
-Fitur opsional / bisa ditunda jika mengganggu stabilisasi:
-
-- [x] Chatbot (API eksternal Groq)
-- [x] Reels
-- [x] Diskusi
-- [x] Psikolog / Konsultasi
-- [x] Kajian / Pustaka / Bantuan / Kebijakan Privasi
-
-Dasar teknis rekomendasi scope:
-
-- [x] Modul terhubung backend/API langsung terdeteksi pada `home`, `edukasi`, `login`, `register`, `lupa_password`, `screener`
-- [x] `chatbot` memakai API eksternal (`Groq`), dipisahkan dari release blocker V1
-- [x] Flow inti belajar (`auth -> edukasi -> quiz -> sertifikat`) dijadikan prioritas stabilisasi
-
-Catatan keputusan Phase 1 (draft awal, finalisasi tim):
-
-- Target rilis: `internal testing / closed beta`
-- Scope fitur wajib: `Auth, Home, Edukasi, Quiz, Sertifikat, Profil dasar`
-- Scope fitur ditunda: `Chatbot (opsional), fitur non-kritikal jika bug tinggi`
-- Tanggal freeze: `TBD`
-- Versi release: `0.1.1+2` (draft)
-- API target: `staging` (draft)
-- PIC mobile: `TBD`
-- PIC QA/UAT: `TBD`
-- PIC approval: `TBD`
-
-### Phase 2 - Readiness Audit Mobile
-
-Status: `In Progress (Audit + Baseline Fixes Applied)`
-
-Fokus:
-
-- Validasi config release (`API_BASE_URL`, secrets non-mobile, mode build)
-- Audit UX state (loading/error/empty) pada flow kritikal
-- Audit issue integrasi API (timeout/parsing/retry)
-- Susun daftar bug prioritas tinggi
-
-Temuan audit awal (repo current state):
-
-- [x] `API_BASE_URL` masih default emulator pada `apps/mobile/.env.example` (`http://10.0.2.2:8080`) -> perlu file/env release terpisah untuk staging/production
-- [x] Config API mobile sudah tersentral via `AppConfig.apiBaseUrl` (`apps/mobile/lib/app/config/app_config.dart`) -> bagus untuk switch environment
-- [x] `dotenv` load di `apps/mobile/lib/bootstrap.dart` sudah ada fallback log -> perlu validasi `.env` release tersedia saat build
-- [x] `GetStorage` init sudah ada di bootstrap -> auth persistence siap diuji
-- [x] Belum ada timeout `Dio` konsisten terdeteksi di mobile/network layer -> risiko loading menggantung
-- [x] `packages/network/lib/interceptors.dart` masih kosong -> belum ada logging/auth header/retry standar
-- [x] `apps/mobile/README.md` masih template default -> belum ada runbook QA/UAT/release mobile
-- [x] `chatbot` memakai API eksternal Groq -> perlu dipisahkan dari blocker release mobile utama
-
-Perbaikan baseline yang sudah diterapkan (Phase 2):
-
-- [x] Tambah helper `Dio` terpusat `apps/mobile/lib/app/services/api_dio.dart`
-- [x] Set timeout default (`connect/send/receive`) untuk request mobile
-- [x] Tambah interceptor ringan (attach auth token otomatis + debug logging non-release)
-- [x] Patch flow auth menggunakan client terpusat:
-  - `apps/mobile/lib/modules/login/login_page.dart`
-  - `apps/mobile/lib/modules/register/register_page.dart`
-  - `apps/mobile/lib/modules/lupa_password/lupa_password_page.dart`
-  - `apps/mobile/lib/modules/lupa_password/verifikasi_otp_page.dart`
-- [x] Patch `edukasi`, `home`, `screener` agar memakai client terpusat:
-  - `apps/mobile/lib/modules/edukasi/edukasi_api.dart`
-  - `apps/mobile/lib/modules/home/beranda_page.dart`
-  - `apps/mobile/lib/modules/screener/screener_page.dart`
-- [x] Tambah template env mobile:
-  - `apps/mobile/.env.staging.example`
-  - `apps/mobile/.env.production.example`
-- [x] `flutter analyze` pada file yang diubah: tidak ada error compile dari perubahan (hanya warning/info existing)
-
-Checklist eksekusi Phase 2 (mobile-first):
-
-- [x] Definisikan strategi environment mobile (`.env.staging`, `.env.production`, atau CI secrets) [template example dibuat]
-- [ ] Tetapkan `API_BASE_URL` staging untuk UAT dan production untuk release [menunggu domain/API final]
-- [ ] Audit screen kritikal: loading state / empty state / error state
-- [x] Audit timeout dan error handling `Dio` pada fitur wajib [baseline timeout + interceptor diterapkan]
-- [x] Audit sinkronisasi auth token untuk endpoint JWT (edukasi/progress/quiz/sertifikat) [auth header auto-attach + existing auth options masih ada]
-- [ ] Audit fallback UX saat backend down / timeout
-- [x] Dokumentasikan langkah build & UAT mobile di `apps/mobile/README.md` atau `docs/` [ditambahkan `apps/mobile/README.md` pada 26 Feb 2026]
-
-Output Phase 2 yang ditargetkan:
-
-- Daftar bug/risiko `High`, `Medium`, `Low`
-- Daftar perbaikan wajib sebelum UAT
-- Daftar improvement yang bisa ditunda pasca rilis
-
-### Phase 3 - UAT & Hotfix Mobile
-
-Status: `Pending`
-
-Fokus:
-
-- Jalankan UAT pada flow kritikal
-- Catat bug by severity
-- Rilis hotfix bertahap
-- Re-test flow terdampak
-
-### Phase 4 - Go Live Mobile
-
-Status: `Pending`
-
-Fokus:
-
-- Final build release
-- Publish ke channel distribusi
-- Monitoring awal 24-48 jam
-
-### Phase 5 - Upgrade & Evaluasi Fitur Mobile (Post Release)
-
-Status: `Pending`
-
-Fokus:
-
-- Kumpulkan feedback, issue, dan usage
-- Prioritaskan per fitur/screen
-- Jalankan minor improvement iteratif
+- Gunakan Supabase Auth sebagai satu-satunya auth aplikasi
+- Jadikan Privy wallet opsional pada fase awal jika perlu
+- Prioritaskan domain kritikal untuk wave pertama
+- Siapkan fallback/rollback yang jelas
 
 ## Rollback Plan
 
 ### Trigger Rollback
 
-- Error rate tinggi setelah deploy
-- Login/auth gagal massal
-- Migrasi menyebabkan query/error kritikal
+- Error rate auth tinggi setelah deploy
+- User existing gagal login massal
+- Migrasi data menyebabkan inkonsistensi kritikal
 - Endpoint utama tidak stabil > 15 menit
 
 ### Prosedur Rollback
 
-1. Rollback aplikasi ke release sebelumnya (tag/commit terakhir stabil).
-2. Restart service backend (`systemd`).
-3. Jika masalah dari migrasi DB:
-   - restore backup DB, atau
-   - jalankan migration downgrade (hanya jika sudah diuji)
-4. Verifikasi smoke test minimum.
-5. Catat insiden dan root cause sebelum redeploy.
+1. Nonaktifkan release mobile yang mengarah ke flow auth baru jika perlu.
+2. Rollback backend ke release sebelumnya.
+3. Arahkan traffic kembali ke stack lama jika cutover penuh belum aman.
+4. Gunakan backup database yang sesuai:
+   - MongoDB backup sebelum cutover
+   - Postgres backup/snapshot bila diperlukan
+5. Verifikasi smoke test minimum pada stack rollback.
+6. Catat insiden dan root cause sebelum redeploy.
 
 ## Rencana Tanggung Jawab (Isi Nama Tim)
 
-- PIC Backend: `TBD`
-- PIC Mobile: `TBD`
+- PIC Backend/Auth Verification: `TBD`
+- PIC Database Migration: `TBD`
+- PIC Mobile Auth/Privy: `TBD`
 - PIC Infra/Server: `TBD`
 - PIC QA/UAT: `TBD`
 - PIC Release Approval: `TBD`
 
 ## Timeline Singkat (Template)
 
-- H-7: Freeze fitur + review checklist
-- H-5: Staging test lengkap + backup/restore test
-- H-3: Finalisasi env production + hardening server
-- H-2: Deploy backend production + smoke test
-- H-1: UAT mobile release candidate
-- H: Release mobile + monitoring intensif
+- H-14: Freeze scope auth/data + audit
+- H-10: Final schema SQL + auth design
+- H-7: Integrasi Supabase Auth + Privy dimulai
+- H-4: Migrasi data staging + verifikasi
+- H-2: UAT auth/data end-to-end
+- H-1: Final hotfix + release candidate
+- H: Cutover production + monitoring intensif
 - H+1/H+2: Evaluasi awal post-release
-- H+3 s/d H+14: Upgrade & evaluasi fitur mobile (iteratif)
 
 ## Catatan Penting
 
-- Jangan gunakan `sqlite` untuk production.
-- Jangan jalankan backend production dengan `python run.py`.
-- Pastikan folder upload tidak hilang saat restart/redeploy.
-- Simpan secret di luar repository Git.
+- Jangan jalankan production dengan MongoDB sebagai target akhir jika keputusan tim sudah final pindah ke Supabase.
+- Jangan biarkan `SUPABASE_SERVICE_ROLE_KEY` masuk ke mobile app.
+- Jangan menjalankan dua sumber auth utama untuk session aplikasi.
+- Gunakan **Supabase Auth sebagai identity utama**, dan **Privy sebagai wallet layer**.
+- Pastikan seluruh secret disimpan di luar repository Git.

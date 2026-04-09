@@ -1,11 +1,10 @@
 from datetime import datetime
 
 from flask import Blueprint, make_response, request
-from flask_jwt_extended import jwt_required
 from bson import ObjectId
 
 from app.extensions import mongo
-from .common import current_user_id, response_error, response_success, format_doc
+from .common import auth_required, current_user_id, response_error, response_success, format_doc
 
 edukasi_bp = Blueprint("edukasi_api", __name__, url_prefix="/api")
 
@@ -142,7 +141,7 @@ def list_materi():
 
 
 @edukasi_bp.post("/quiz/submit")
-@jwt_required()
+@auth_required()
 def submit_quiz():
     from datetime import datetime
     user_id = current_user_id()
@@ -183,7 +182,7 @@ def submit_quiz():
 
 
 @edukasi_bp.post("/materi/complete")
-@jwt_required()
+@auth_required()
 def complete_materi():
     from datetime import datetime
     user_id = current_user_id()
@@ -218,7 +217,7 @@ def complete_materi():
 
 
 @edukasi_bp.get("/kelas/<string:kelas_id>/progress")
-@jwt_required()
+@auth_required()
 def progress_kelas(kelas_id):
     user_id = current_user_id()
     try:
@@ -234,7 +233,7 @@ def progress_kelas(kelas_id):
 
 
 @edukasi_bp.get("/kelas/last-learning")
-@jwt_required()
+@auth_required()
 def last_learning():
     user_id = current_user_id()
 
@@ -273,7 +272,7 @@ def last_learning():
 
 
 @edukasi_bp.post("/sertifikat/generate")
-@jwt_required()
+@auth_required()
 def generate_sertifikat():
     user_id = current_user_id()
     payload = request.get_json() or {}
@@ -329,7 +328,7 @@ def generate_sertifikat():
 
 
 @edukasi_bp.get("/sertifikat/saya")
-@jwt_required()
+@auth_required()
 def list_sertifikat_saya():
     user_id = current_user_id()
     rows = list(
@@ -339,7 +338,7 @@ def list_sertifikat_saya():
 
 
 @edukasi_bp.get("/sertifikat/download/<string:user_id>/<string:kelas_id>")
-@jwt_required()
+@auth_required()
 def download_sertifikat(user_id: str, kelas_id: str):
     current_user = current_user_id()
     if str(current_user) != user_id:
@@ -439,7 +438,7 @@ def download_sertifikat(user_id: str, kelas_id: str):
 
 
 @edukasi_bp.get("/sertifikat/view/<string:user_id>/<string:kelas_id>")
-@jwt_required()
+@auth_required()
 def view_sertifikat_json(user_id: str, kelas_id: str):
     """Return certificate data as JSON for the Flutter app preview."""
     current_user = current_user_id()
@@ -468,4 +467,3 @@ def view_sertifikat_json(user_id: str, kelas_id: str):
         "generated_at": str(row.get("generated_at", "")),
         "download_url": row.get("download_url", ""),
     })
-

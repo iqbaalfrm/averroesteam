@@ -3,10 +3,9 @@ from threading import Lock
 
 import requests
 from flask import Blueprint, current_app
-from flask_jwt_extended import jwt_required
 
 from app.extensions import mongo
-from .common import current_user_id, response_success
+from .common import auth_required, current_user_id, response_success
 
 zakat_bp = Blueprint("zakat_api", __name__, url_prefix="/api/zakat")
 
@@ -88,7 +87,7 @@ def _get_gold_price_payload() -> dict:
 
 
 @zakat_bp.get("/hitung")
-@jwt_required()
+@auth_required()
 def hitung_zakat():
     user_id = current_user_id()
     rows = list(mongo.db.portofolio.find({"user_id": user_id}))

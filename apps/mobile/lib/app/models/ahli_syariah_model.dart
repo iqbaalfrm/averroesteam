@@ -31,6 +31,38 @@ class AhliSyariahModel {
     );
   }
 
+  factory AhliSyariahModel.fromSupabase(Map<String, dynamic> json) {
+    int asInt(dynamic value) {
+      if (value is num) return value.toInt();
+      return int.tryParse('$value') ?? 0;
+    }
+
+    double asDouble(dynamic value) {
+      if (value is num) return value.toDouble();
+      return double.tryParse('$value') ?? 0;
+    }
+
+    final dynamic category = json['consultation_categories'];
+    return AhliSyariahModel(
+      id: (json['id'] ?? '').toString(),
+      nama: (json['full_name'] ?? '').toString(),
+      spesialis: (json['specialization'] ?? '').toString(),
+      kategoriId: (category is Map
+              ? (category['external_id'] ?? category['name'])
+              : json['category_id'])
+          ?.toString() ??
+          '',
+      rating: asDouble(json['rating']),
+      totalReview: asInt(json['total_review']),
+      pengalamanTahun: asInt(json['years_experience']),
+      fotoUrl: (json['photo_url'] ?? '').toString(),
+      noWhatsapp: (json['whatsapp_number'] ?? '').toString(),
+      isOnline: json['is_online'] == true,
+      isVerified: json['is_verified'] == true,
+      hargaPerSesi: asInt(json['session_price']),
+    );
+  }
+
   final String id;
   final String nama;
   final String spesialis;

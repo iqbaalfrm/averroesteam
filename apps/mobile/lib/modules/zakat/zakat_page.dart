@@ -5,6 +5,7 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart' as dio;
 
+import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
 import '../../presentation/common/content_ui.dart';
 
@@ -52,34 +53,36 @@ class _HalamanZakatState extends State<HalamanZakat> {
 
   Future<void> _load() async {
     try {
-      final dio = ApiDio.create(attachAuthToken: false);
-      final res = await dio.get<dynamic>('/api/zakat/nishab');
-      final raw = res.data;
-      if (raw is Map<String, dynamic>) {
-        final data = raw['data'];
-        if (data is Map) {
-          _nishab = ((data['nishab'] as num?)?.toDouble() ?? 0);
-          _nishabGrams = ((data['nishab_grams'] as num?)?.toDouble() ?? 85);
-          _hargaEmasPerGram =
-              ((data['harga_emas_per_gram'] as num?)?.toDouble() ?? 0);
-          if (_hargaEmasPerGram <= 0 && _nishab > 0 && _nishabGrams > 0) {
-            _hargaEmasPerGram = _nishab / _nishabGrams;
+      if (!AppConfig.isSupabaseNativeEnabled) {
+        final dio = ApiDio.create(attachAuthToken: false);
+        final res = await dio.get<dynamic>('/api/zakat/nishab');
+        final raw = res.data;
+        if (raw is Map<String, dynamic>) {
+          final data = raw['data'];
+          if (data is Map) {
+            _nishab = ((data['nishab'] as num?)?.toDouble() ?? 0);
+            _nishabGrams = ((data['nishab_grams'] as num?)?.toDouble() ?? 85);
+            _hargaEmasPerGram =
+                ((data['harga_emas_per_gram'] as num?)?.toDouble() ?? 0);
+            if (_hargaEmasPerGram <= 0 && _nishab > 0 && _nishabGrams > 0) {
+              _hargaEmasPerGram = _nishab / _nishabGrams;
+            }
+            _baznasUrl =
+                (data['baznas_url'] as String?)?.trim().isNotEmpty == true
+                    ? (data['baznas_url'] as String).trim()
+                    : _baznasUrl;
           }
-          _baznasUrl =
-              (data['baznas_url'] as String?)?.trim().isNotEmpty == true
-                  ? (data['baznas_url'] as String).trim()
-                  : _baznasUrl;
         }
       }
     } catch (_) {
       // Keep zero values as fallback.
+    } finally {
       if (_hargaEmasPerGram <= 0) {
         await _loadLiveGoldPriceFallback();
-        if (_nishab <= 0 && _hargaEmasPerGram > 0 && _nishabGrams > 0) {
-          _nishab = _hargaEmasPerGram * _nishabGrams;
-        }
       }
-    } finally {
+      if (_nishab <= 0 && _hargaEmasPerGram > 0 && _nishabGrams > 0) {
+        _nishab = _hargaEmasPerGram * _nishabGrams;
+      }
       _recalculate();
       if (mounted) setState(() => _loading = false);
     }

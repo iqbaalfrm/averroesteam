@@ -1,14 +1,12 @@
-import 'package:dio/dio.dart';
 import 'package:averroes_core/averroes_core.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/config/app_config.dart';
 import '../../app/routes/app_routes.dart';
-import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
@@ -24,9 +22,9 @@ class _HalamanLoginState extends State<HalamanLogin> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>['email', 'profile'],
+    clientId: AppConfig.googleIosClientId,
     serverClientId: AppConfig.googleWebClientId,
   );
 
@@ -48,15 +46,13 @@ class _HalamanLoginState extends State<HalamanLogin> {
     }
 
     await _runRequest(() async {
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/login',
-        data: <String, dynamic>{
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-        },
+      final AuthFlowResult result =
+          await AuthService.instance.signInWithEmailPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
-
-      await _handleAuthResponse(response);
+      _showMessage(result.message ?? 'login_success'.tr);
+      Get.offAllNamed(RuteAplikasi.beranda);
     });
   }
 
@@ -72,25 +68,29 @@ class _HalamanLoginState extends State<HalamanLogin> {
       }
       final GoogleSignInAuthentication auth = await account.authentication;
       final String? idToken = auth.idToken;
-      if (idToken == null || idToken.isEmpty) {
+      final String? accessToken = auth.accessToken;
+      if (idToken == null ||
+          idToken.isEmpty ||
+          accessToken == null ||
+          accessToken.isEmpty) {
         _showMessage('general_error'.tr, isError: true);
         return;
       }
 
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/google',
-        data: <String, dynamic>{'id_token': idToken},
+      final AuthFlowResult result = await AuthService.instance.signInWithGoogle(
+        idToken: idToken,
+        accessToken: accessToken,
       );
-
-      await _handleAuthResponse(response);
+      _showMessage(result.message ?? 'login_success'.tr);
+      Get.offAllNamed(RuteAplikasi.beranda);
     });
   }
 
   Future<void> _loginGuest() async {
     await _runRequest(() async {
-      final Response<dynamic> response =
-          await _dio.post<dynamic>('/api/auth/guest');
-      await _handleAuthResponse(response);
+      final AuthFlowResult result = await AuthService.instance.signInGuest();
+      _showMessage(result.message ?? 'login_success'.tr);
+      Get.offAllNamed(RuteAplikasi.beranda);
     });
   }
 
@@ -106,17 +106,12 @@ class _HalamanLoginState extends State<HalamanLogin> {
     if (_isLoading) {
       return;
     }
-        setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
     try {
       await action();
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message =
-          _extractMessage(data, fallback: 'network_error'.tr);
-      _showMessage(message, isError: true);
-      _maybeRouteToRegisterVerification(data);
-    } catch (_) {
-      _showMessage('general_error'.tr, isError: true);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''),
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -124,82 +119,10 @@ class _HalamanLoginState extends State<HalamanLogin> {
     }
   }
 
-  Future<void> _handleAuthResponse(Response<dynamic> response) async {
-    final dynamic data = response.data;
-    if (data is Map<String, dynamic> && _isSuccess(data)) {
-      final Map<String, dynamic>? innerData =
-          data['data'] as Map<String, dynamic>?;
-
-      if (innerData != null) {
-        final String? token = innerData['token'] as String?;
-        final Map<String, dynamic>? user =
-            innerData['user'] as Map<String, dynamic>?;
-
-        if (token != null && token.isNotEmpty) {
-          await AuthService.instance
-              .simpanAuth(token, user ?? <String, dynamic>{});
-          _showMessage(_extractMessage(data, fallback: 'login_success'.tr));
-          Get.offAllNamed(RuteAplikasi.beranda);
-          return;
-        }
-      }
-    }
-    _showMessage('general_error'.tr, isError: true);
-  }
-
-  bool _isSuccess(Map<String, dynamic> data) {
-    final dynamic status = data['status'];
-    if (status == true) {
-      return true;
-    }
-    if (status is String && status.toLowerCase() == 'success') {
-      return true;
-    }
-    return false;
-  }
-
-  String _extractMessage(dynamic data, {required String fallback}) {
-    if (data is Map<String, dynamic>) {
-      final String? pesan = data['pesan']?.toString();
-      if (pesan != null && pesan.isNotEmpty) {
-        return pesan;
-      }
-      final String? message = data['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        return message;
-      }
-    }
-    return fallback;
-  }
-
   void _showMessage(String message, {bool isError = false}) {
     AuthUiKit.showSnack(
       message: message,
       isError: isError,
-    );
-  }
-
-  void _maybeRouteToRegisterVerification(dynamic data) {
-    if (data is! Map<String, dynamic>) {
-      return;
-    }
-    final dynamic innerData = data['data'];
-    if (innerData is! Map<String, dynamic>) {
-      return;
-    }
-    if (innerData['requires_verification'] != true) {
-      return;
-    }
-    final String email = (innerData['email'] as String? ?? '').trim();
-    if (email.isEmpty) {
-      return;
-    }
-    Get.toNamed(
-      RuteAplikasi.verifikasiOtp,
-      arguments: <String, String>{
-        'email': email,
-        'mode': 'register',
-      },
     );
   }
 
@@ -369,8 +292,7 @@ class _EmailField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: TextInputType.emailAddress,
-          decoration:
-              AuthUiKit.inputDecoration(hintText: 'enter_email'.tr),
+          decoration: AuthUiKit.inputDecoration(hintText: 'enter_email'.tr),
           validator: (String? value) {
             final String input = value?.trim() ?? '';
             if (input.isEmpty) {

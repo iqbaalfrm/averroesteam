@@ -1,12 +1,11 @@
 import 'package:averroes_core/averroes_core.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
-import '../../app/services/api_dio.dart';
+import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
 
@@ -20,7 +19,6 @@ class HalamanLupaPassword extends StatefulWidget {
 class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
-  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
 
   bool _isLoading = false;
 
@@ -39,37 +37,19 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
     setState(() => _isLoading = true);
 
     try {
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/lupa-password',
-        data: <String, dynamic>{
+      await AuthService.instance.sendPasswordResetEmail(
+        _emailController.text.trim(),
+      );
+      _showMessage('otp_sent'.tr);
+      Get.toNamed(
+        RuteAplikasi.verifikasiOtp,
+        arguments: <String, String>{
           'email': _emailController.text.trim(),
         },
       );
-
-      final dynamic data = response.data;
-      if (data is Map<String, dynamic> && data['status'] == true) {
-        final String pesan = _extractMessage(data, fallback: 'otp_sent'.tr);
-        _showMessage(pesan);
-
-        Get.toNamed(
-          RuteAplikasi.verifikasiOtp,
-          arguments: <String, String>{
-            'email': _emailController.text.trim(),
-          },
-        );
-      } else {
-        _showMessage('failed_send_otp'.tr, isError: true);
-      }
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message = _extractMessage(
-        data,
-        fallback:
-            data is Map<String, dynamic> ? 'general_error'.tr : 'network_error'.tr,
-      );
-      _showMessage(message, isError: true);
-    } catch (_) {
-      _showMessage('general_error'.tr, isError: true);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''),
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -82,20 +62,6 @@ class _HalamanLupaPasswordState extends State<HalamanLupaPassword> {
       message: message,
       isError: isError,
     );
-  }
-
-  String _extractMessage(dynamic data, {required String fallback}) {
-    if (data is Map<String, dynamic>) {
-      final String? pesan = data['pesan']?.toString();
-      if (pesan != null && pesan.isNotEmpty) {
-        return pesan;
-      }
-      final String? message = data['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        return message;
-      }
-    }
-    return fallback;
   }
 
   @override

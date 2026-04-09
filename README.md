@@ -11,6 +11,7 @@ Fokus pada edukasi yang tenang, bukan ajakan investasi.
 |  |- admin-backend/  # Admin backend terpisah
 |  |- backend/        # Backend API utama (Flask)
 |  |- mobile/         # Aplikasi Flutter utama
+|  |- vps-news-sync/  # Worker VPS untuk sinkronisasi berita ke Supabase
 |  `- web/            # Frontend web (scaffold/opsional)
 |- packages/          # Shared Flutter packages
 |- docs/              # Planning, runbook, tracking
@@ -24,6 +25,7 @@ Fokus pada edukasi yang tenang, bukan ajakan investasi.
 ## Konvensi Struktur
 
 - `apps/` untuk aplikasi runnable (`backend`, `admin-backend`, `mobile`, `web`)
+- `apps/vps-news-sync/` untuk worker VPS yang tidak perlu ikut masuk jalur serverless utama
 - `packages/` untuk kode reusable (tema, network, shared models)
 - `docs/` untuk rencana, status, runbook, audit
 - `scripts/` untuk helper operasional/testing (mis. smoke test)
@@ -56,6 +58,21 @@ copy .env.example .env
 php artisan key:generate
 php artisan serve
 ```
+
+## Menjalankan Worker VPS News Sync
+
+```bash
+cd apps/vps-news-sync
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
+python news_sync_worker.py
+```
+
+Boundary arsitektur serverless vs VPS ada di:
+
+- `docs/serverless-vps-boundary.md`
 
 ## Tim
 

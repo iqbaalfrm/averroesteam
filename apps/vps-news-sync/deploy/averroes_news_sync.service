@@ -1,0 +1,14 @@
+[Unit]
+Description=Averroes VPS News Sync Worker
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/AverroesTeam/apps/vps-news-sync
+ExecStart=/var/www/AverroesTeam/apps/vps-news-sync/.venv/bin/python news_sync_worker.py --loop
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

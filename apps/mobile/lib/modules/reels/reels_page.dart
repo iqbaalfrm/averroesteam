@@ -12,6 +12,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
@@ -88,16 +89,30 @@ class _HalamanReelsState extends State<HalamanReels>
   Future<void> _loadReels() async {
     setState(() => _isLoading = true);
     try {
-      final response = await _dio.get<dynamic>(
-        '${AppConfig.apiBaseUrl}/api/reels',
-        options: Options(receiveTimeout: const Duration(seconds: 20)),
-      );
-      final List<dynamic> rows = _extractList(response.data);
-      final List<_ReelItem> parsed = rows
-          .whereType<Map<dynamic, dynamic>>()
-          .map((Map<dynamic, dynamic> r) =>
-              _ReelItem.fromJson(Map<String, dynamic>.from(r)))
-          .toList();
+      late final List<_ReelItem> parsed;
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<dynamic> rows = await Supabase.instance.client
+            .from('reels')
+            .select('id,category,title,arabic_quote,translation,source,audio_url')
+            .eq('is_active', true)
+            .order('sort_order')
+            .limit(50);
+        parsed = rows
+            .whereType<Map>()
+            .map((Map row) => _ReelItem.fromSupabase(Map<String, dynamic>.from(row)))
+            .toList();
+      } else {
+        final response = await _dio.get<dynamic>(
+          '/api/reels',
+          options: Options(receiveTimeout: const Duration(seconds: 20)),
+        );
+        final List<dynamic> rows = _extractList(response.data);
+        parsed = rows
+            .whereType<Map<dynamic, dynamic>>()
+            .map((Map<dynamic, dynamic> r) =>
+                _ReelItem.fromJson(Map<String, dynamic>.from(r)))
+            .toList();
+      }
       if (!mounted) return;
       setState(() {
         _items = parsed.isNotEmpty ? parsed : List<_ReelItem>.from(_fallback);
@@ -112,7 +127,6 @@ class _HalamanReelsState extends State<HalamanReels>
     }
     if (_items.isNotEmpty) _autoPlay(0);
   }
-
   List<dynamic> _extractList(dynamic raw) {
     if (raw is Map<String, dynamic>) {
       final dynamic d = raw['data'];
@@ -763,6 +777,18 @@ class _ReelItem {
       audioUrl: (json['audio_url'] as String?)?.trim() ?? '',
     );
   }
+
+  factory _ReelItem.fromSupabase(Map<String, dynamic> json) {
+    return _ReelItem(
+      id: (json['id'] ?? '').toString(),
+      kategori: (json['category'] as String?)?.trim() ?? '',
+      judul: (json['title'] as String?)?.trim() ?? '-',
+      kutipanArab: (json['arabic_quote'] as String?)?.trim() ?? '',
+      terjemah: (json['translation'] as String?)?.trim() ?? '',
+      sumber: (json['source'] as String?)?.trim() ?? '',
+      audioUrl: (json['audio_url'] as String?)?.trim() ?? '',
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -801,3 +827,9 @@ const List<_ReelItem> _fallback = <_ReelItem>[
     audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/5220.mp3',
   ),
 ];
+
+
+
+
+
+

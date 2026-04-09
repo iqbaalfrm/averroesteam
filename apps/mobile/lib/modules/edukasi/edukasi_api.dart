@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
+import '../../app/services/supabase_native_service.dart';
 
 class EdukasiApi {
   EdukasiApi({Dio? dio}) : _dio = dio ?? ApiDio.create();
@@ -19,6 +21,24 @@ class EdukasiApi {
   }
 
   Future<List<KelasEdukasi>> fetchKelas() async {
+    if (SupabaseNativeService.isEnabled) {
+      final List<dynamic> rows = await Supabase.instance.client
+          .from('classes')
+          .select('id,title,description,image_url')
+          .order('created_at', ascending: false);
+      return rows
+          .whereType<Map<dynamic, dynamic>>()
+          .map((Map<dynamic, dynamic> row) => KelasEdukasi.fromJson(
+                <String, dynamic>{
+                  'id': row['id'],
+                  'judul': row['title'],
+                  'deskripsi': row['description'],
+                  'gambar_url': row['image_url'],
+                },
+              ))
+          .toList();
+    }
+
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas',
     );
@@ -33,6 +53,14 @@ class EdukasiApi {
   }
 
   Future<KelasDetailEdukasi> fetchKelasDetail(String kelasId) async {
+    if (SupabaseNativeService.isEnabled) {
+      final dynamic raw = await Supabase.instance.client.rpc(
+        'get_class_detail',
+        params: <String, dynamic>{'p_class_id': kelasId},
+      );
+      return KelasDetailEdukasi.fromJson(_extractMapData(raw));
+    }
+
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas/$kelasId',
     );
@@ -41,6 +69,15 @@ class EdukasiApi {
   }
 
   Future<KelasProgressEdukasi> fetchKelasProgress(String kelasId) async {
+    if (SupabaseNativeService.isEnabled) {
+      await SupabaseNativeService.ensureProfile();
+      final dynamic raw = await Supabase.instance.client.rpc(
+        'get_class_progress',
+        params: <String, dynamic>{'p_class_id': kelasId},
+      );
+      return KelasProgressEdukasi.fromJson(_extractMapData(raw));
+    }
+
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas/$kelasId/progress',
       options: _authOptions(),
@@ -50,6 +87,12 @@ class EdukasiApi {
   }
 
   Future<LastLearningEdukasi> fetchLastLearning() async {
+    if (SupabaseNativeService.isEnabled) {
+      await SupabaseNativeService.ensureProfile();
+      final dynamic raw = await Supabase.instance.client.rpc('get_last_learning');
+      return LastLearningEdukasi.fromJson(_extractMapData(raw));
+    }
+
     final Response<dynamic> response = await _dio.get<dynamic>(
       '${AppConfig.apiBaseUrl}/api/kelas/last-learning',
       options: _authOptions(),
@@ -59,6 +102,15 @@ class EdukasiApi {
   }
 
   Future<void> completeMateri(String materiId) async {
+    if (SupabaseNativeService.isEnabled) {
+      await SupabaseNativeService.ensureProfile();
+      await Supabase.instance.client.rpc(
+        'complete_material',
+        params: <String, dynamic>{'p_material_id': materiId},
+      );
+      return;
+    }
+
     await _dio.post<dynamic>(
       '${AppConfig.apiBaseUrl}/api/materi/complete',
       data: <String, dynamic>{'materi_id': materiId},
@@ -70,6 +122,18 @@ class EdukasiApi {
     required String quizId,
     required String jawaban,
   }) async {
+    if (SupabaseNativeService.isEnabled) {
+      await SupabaseNativeService.ensureProfile();
+      final dynamic raw = await Supabase.instance.client.rpc(
+        'submit_quiz_answer',
+        params: <String, dynamic>{
+          'p_quiz_id': quizId,
+          'p_answer': jawaban,
+        },
+      );
+      return QuizSubmitResult.fromJson(_extractMapData(raw));
+    }
+
     final Response<dynamic> response = await _dio.post<dynamic>(
       '${AppConfig.apiBaseUrl}/api/quiz/submit',
       data: <String, dynamic>{'quiz_id': quizId, 'jawaban': jawaban},
@@ -79,6 +143,15 @@ class EdukasiApi {
   }
 
   Future<SertifikatResult> generateSertifikat(String kelasId) async {
+    if (SupabaseNativeService.isEnabled) {
+      await SupabaseNativeService.ensureProfile();
+      final dynamic raw = await Supabase.instance.client.rpc(
+        'generate_certificate',
+        params: <String, dynamic>{'p_class_id': kelasId},
+      );
+      return SertifikatResult.fromJson(_extractMapData(raw));
+    }
+
     final Response<dynamic> response = await _dio.post<dynamic>(
       '${AppConfig.apiBaseUrl}/api/sertifikat/generate',
       data: <String, dynamic>{'kelas_id': kelasId},
@@ -98,6 +171,25 @@ class EdukasiApi {
   }
 
   Map<String, dynamic> _extractMapData(dynamic rawResponse) {
+    if (rawResponse is Map<String, dynamic>) {
+      if (rawResponse.containsKey('id') ||
+          rawResponse.containsKey('kelas_id') ||
+          rawResponse.containsKey('judul') ||
+          rawResponse.containsKey('total_materi') ||
+          rawResponse.containsKey('quiz_id')) {
+        return rawResponse;
+      }
+    }
+    if (rawResponse is Map) {
+      final Map<String, dynamic> typed = Map<String, dynamic>.from(rawResponse);
+      if (typed.containsKey('id') ||
+          typed.containsKey('kelas_id') ||
+          typed.containsKey('judul') ||
+          typed.containsKey('total_materi') ||
+          typed.containsKey('quiz_id')) {
+        return typed;
+      }
+    }
     if (rawResponse is Map<String, dynamic>) {
       final dynamic data = rawResponse['data'];
       if (data is Map<String, dynamic>) {

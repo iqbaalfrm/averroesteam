@@ -19,6 +19,7 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.2.1
   google_sign_in: ^6.2.1
+  supabase_flutter: ^2.8.4
   material_symbols_icons: ^4.2808.1
   averroes_core:
     path: ../../packages/core
@@ -39,6 +40,7 @@ dependencies:
   webview_flutter_android: ^4.10.0
   webview_flutter_platform_interface: ^2.14.0
   webview_flutter_wkwebview: ^3.23.0
+  privy_flutter: ^0.6.0
 
 dev_dependencies:
   flutter_test:

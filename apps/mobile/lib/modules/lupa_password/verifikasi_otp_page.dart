@@ -1,15 +1,14 @@
 import 'dart:async';
 
 import 'package:averroes_core/averroes_core.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
+import '../../app/config/app_config.dart';
 import '../../app/routes/app_routes.dart';
-import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
@@ -22,20 +21,16 @@ class HalamanVerifikasiOTP extends StatefulWidget {
 }
 
 class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
-  final List<TextEditingController> _otpControllers =
-      List<TextEditingController>.generate(
-    6,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes =
-      List<FocusNode>.generate(6, (_) => FocusNode());
-  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
+  late final int _otpLength;
+  late final List<TextEditingController> _otpControllers;
+  late final List<FocusNode> _focusNodes;
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
   String _email = '';
   String _mode = 'reset';
+  String _password = '';
   bool _isVerifying = false;
   bool _isResetting = false;
   bool _otpVerified = false;
@@ -48,10 +43,17 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
   @override
   void initState() {
     super.initState();
+    _otpLength = AppConfig.otpLength;
+    _otpControllers = List<TextEditingController>.generate(
+      _otpLength,
+      (_) => TextEditingController(),
+    );
+    _focusNodes = List<FocusNode>.generate(_otpLength, (_) => FocusNode());
     final dynamic args = Get.arguments;
-    if (args is Map<String, String>) {
-      _email = args['email'] ?? '';
-      _mode = args['mode'] ?? 'reset';
+    if (args is Map) {
+      _email = args['email']?.toString() ?? '';
+      _mode = args['mode']?.toString() ?? 'reset';
+      _password = args['password']?.toString() ?? '';
     }
     _startCountdown();
   }
@@ -85,10 +87,12 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
   String get _otpValue =>
       _otpControllers.map((TextEditingController c) => c.text).join();
 
+  String get _otpInstructionText => 'enter_otp_code'.tr;
+
   Future<void> _verifikasiOTP() async {
     final String kode = _otpValue;
-    if (kode.length < 6) {
-      _showMessage('enter_6_digit_otp'.tr, isError: true);
+    if (kode.length < _otpLength) {
+      _showMessage(_otpInstructionText, isError: true);
       return;
     }
     if (_isVerifying) {
@@ -98,55 +102,26 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     setState(() => _isVerifying = true);
 
     try {
-      final String endpoint = _mode == 'register'
-          ? '/api/auth/verifikasi-otp-register'
-          : '/api/auth/verifikasi-otp';
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        endpoint,
-        data: <String, dynamic>{
-          'email': _email,
-          'kode': kode,
-        },
+      final AuthFlowResult result = await AuthService.instance.verifyOtp(
+        email: _email,
+        otp: kode,
+        mode: _mode,
+        password: _password,
       );
 
-      final dynamic data = response.data;
-      if (data is Map<String, dynamic> && _isSuccess(data)) {
-        if (_mode == 'register') {
-          final Map<String, dynamic>? innerData =
-              data['data'] as Map<String, dynamic>?;
-          final String? token = innerData?['token'] as String?;
-          final Map<String, dynamic>? user =
-              innerData?['user'] as Map<String, dynamic>?;
-          if (token != null && token.isNotEmpty) {
-            await AuthService.instance
-                .simpanAuth(token, user ?? <String, dynamic>{});
-            _showMessage(
-              _extractMessage(data, fallback: 'login_success'.tr),
-            );
-            Get.offAllNamed(RuteAplikasi.beranda);
-            return;
-          }
-          _showMessage('general_error'.tr, isError: true);
-        } else {
-          setState(() {
-            _otpVerified = true;
-            _verifiedKode = kode;
-          });
-          _showMessage('otp_valid'.tr);
-        }
+      if (_mode == 'register') {
+        _showMessage(result.message ?? 'login_success'.tr);
+        Get.offAllNamed(RuteAplikasi.beranda);
       } else {
-        _showMessage('otp_invalid'.tr, isError: true);
+        setState(() {
+          _otpVerified = true;
+          _verifiedKode = kode;
+        });
+        _showMessage(result.message ?? 'otp_valid'.tr);
       }
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message = _extractMessage(
-        data,
-        fallback:
-            data is Map<String, dynamic> ? 'general_error'.tr : 'network_error'.tr,
-      );
-      _showMessage(message, isError: true);
-    } catch (_) {
-      _showMessage('general_error'.tr, isError: true);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''),
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isVerifying = false);
@@ -173,34 +148,16 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     setState(() => _isResetting = true);
 
     try {
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/reset-password',
-        data: <String, dynamic>{
-          'email': _email,
-          'kode': _verifiedKode,
-          'password_baru': pw,
-        },
+      await AuthService.instance.updateRecoveredPassword(
+        email: _email,
+        otp: _verifiedKode,
+        newPassword: pw,
       );
-
-      final dynamic data = response.data;
-      if (data is Map<String, dynamic> && data['status'] == true) {
-        _showMessage(
-          _extractMessage(data, fallback: 'password_changed_success'.tr),
-        );
-        Get.offAllNamed(RuteAplikasi.login);
-      } else {
-        _showMessage('failed_change_password'.tr, isError: true);
-      }
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message = _extractMessage(
-        data,
-        fallback:
-            data is Map<String, dynamic> ? 'general_error'.tr : 'network_error'.tr,
-      );
-      _showMessage(message, isError: true);
-    } catch (_) {
-      _showMessage('general_error'.tr, isError: true);
+      _showMessage('password_changed_success'.tr);
+      Get.offAllNamed(RuteAplikasi.login);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''),
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isResetting = false);
@@ -214,12 +171,9 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
     }
 
     try {
-      final String endpoint = _mode == 'register'
-          ? '/api/auth/resend-otp-register'
-          : '/api/auth/lupa-password';
-      await _dio.post<dynamic>(
-        endpoint,
-        data: <String, dynamic>{'email': _email},
+      await AuthService.instance.resendOtp(
+        email: _email,
+        mode: _mode,
       );
       _showMessage('new_otp_sent'.tr);
       _startCountdown();
@@ -227,15 +181,11 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         c.clear();
       }
       _focusNodes[0].requestFocus();
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message = _extractMessage(
-        data,
-        fallback: 'failed_resend_otp'.tr,
+    } catch (error) {
+      _showMessage(
+        error.toString().replaceFirst('Exception: ', ''),
+        isError: true,
       );
-      _showMessage(message, isError: true);
-    } catch (_) {
-      _showMessage('failed_resend_otp'.tr, isError: true);
     }
   }
 
@@ -244,31 +194,6 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
       message: message,
       isError: isError,
     );
-  }
-
-  String _extractMessage(dynamic data, {required String fallback}) {
-    if (data is Map<String, dynamic>) {
-      final String? pesan = data['pesan']?.toString();
-      if (pesan != null && pesan.isNotEmpty) {
-        return pesan;
-      }
-      final String? message = data['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        return message;
-      }
-    }
-    return fallback;
-  }
-
-  bool _isSuccess(Map<String, dynamic> data) {
-    final dynamic status = data['status'];
-    if (status == true) {
-      return true;
-    }
-    if (status is String && status.toLowerCase() == 'success') {
-      return true;
-    }
-    return false;
   }
 
   @override
@@ -339,12 +264,12 @@ class _HalamanVerifikasiOTPState extends State<HalamanVerifikasiOTP> {
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List<Widget>.generate(6, (int i) {
+          children: List<Widget>.generate(_otpLength, (int i) {
             return _OtpField(
               controller: _otpControllers[i],
               focusNode: _focusNodes[i],
               onChanged: (String value) {
-                if (value.isNotEmpty && i < 5) {
+                if (value.isNotEmpty && i < _otpLength - 1) {
                   _focusNodes[i + 1].requestFocus();
                 }
                 if (value.isEmpty && i > 0) {
