@@ -9,6 +9,7 @@ import '../../app/config/app_config.dart';
 import '../../app/services/api_error_mapper.dart';
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
+import '../../app/services/supabase_native_service.dart';
 
 class HalamanSertifikat extends StatefulWidget {
   const HalamanSertifikat({super.key});
@@ -35,14 +36,53 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
       _error = null;
     });
     try {
-      final rs = await _dio.get<dynamic>('/api/sertifikat/saya');
-      final data = rs.data;
-      final rows = (data is Map ? data['data'] : null);
-      final list = rows is List ? rows : const [];
-      _items = list
-          .whereType<Map>()
-          .map((e) => _UserCertificate.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final String profileId = await SupabaseNativeService.ensureProfileId();
+        final List<dynamic> rows = await SupabaseNativeService.client
+            .from('user_certificates')
+            .select('id,class_id,certificate_name,certificate_number,score_percent,generated_at,download_url')
+            .eq('user_id', profileId)
+            .order('generated_at', ascending: false);
+        final List<String> classIds = rows
+            .whereType<Map>()
+            .map((Map row) => row['class_id']?.toString() ?? '')
+            .where((String id) => id.isNotEmpty)
+            .toSet()
+            .toList();
+        final Map<String, String> classTitles = <String, String>{};
+        if (classIds.isNotEmpty) {
+          final List<dynamic> classRows = await SupabaseNativeService.client
+              .from('classes')
+              .select('id,title')
+              .inFilter('id', classIds);
+          for (final dynamic row in classRows) {
+            if (row is! Map) {
+              continue;
+            }
+            final String id = row['id']?.toString() ?? '';
+            if (id.isEmpty) {
+              continue;
+            }
+            classTitles[id] = row['title']?.toString() ?? '-';
+          }
+        }
+        _items = rows
+            .whereType<Map>()
+            .map((Map row) => _UserCertificate.fromSupabase(
+                  Map<String, dynamic>.from(row),
+                  classTitles: classTitles,
+                ))
+            .toList();
+      } else {
+        final rs = await _dio.get<dynamic>('/api/sertifikat/saya');
+        final data = rs.data;
+        final rows = (data is Map ? data['data'] : null);
+        final list = rows is List ? rows : const [];
+        _items = list
+            .whereType<Map>()
+            .map((e) => _UserCertificate.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
     } on DioException catch (e) {
       _error = ApiErrorMapper.humanize(e, fallback: 'Gagal memuat sertifikat.');
     } catch (_) {
@@ -68,15 +108,18 @@ class _HalamanSertifikatState extends State<HalamanSertifikat> {
       );
       return;
     }
-    final String base = AppConfig.apiBaseUrl;
-    final String fullUrl = cert.downloadUrl!.startsWith('http')
-        ? cert.downloadUrl!
-        : '$base${cert.downloadUrl}';
+    final String fullUrl;
+    if (cert.downloadUrl!.startsWith('http') ||
+        AppConfig.isSupabaseNativeEnabled) {
+      fullUrl = cert.downloadUrl!;
+    } else {
+      fullUrl = '${AppConfig.apiBaseUrl}${cert.downloadUrl}';
+    }
 
     // Append auth token
     final String? token = AuthService.instance.token;
     final uri = Uri.parse(fullUrl);
-    
+
     if (token != null && token.isNotEmpty) {
       // Open in browser with auth; use WebView
       if (!mounted) return;
@@ -200,6 +243,35 @@ class _UserCertificate {
       generatedAt: parseNullable(json['generated_at']),
       downloadUrl: parseNullable(json['download_url']),
       kelasId: parseNullable(json['kelas_id']),
+      userId: parseNullable(json['user_id']),
+    );
+  }
+
+  factory _UserCertificate.fromSupabase(
+    Map<String, dynamic> json, {
+    required Map<String, String> classTitles,
+  }) {
+    int parseInt(dynamic v) {
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
+
+    String? parseNullable(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      return s.isEmpty ? null : s;
+    }
+
+    final String? classId = parseNullable(json['class_id']);
+    return _UserCertificate(
+      kelas: classTitles[classId ?? ''] ?? '-',
+      namaSertifikat: (json['certificate_name'] ?? '-').toString(),
+      nomor: (json['certificate_number'] ?? '-').toString(),
+      scorePercent: parseInt(json['score_percent']),
+      generatedAt: parseNullable(json['generated_at']),
+      downloadUrl: parseNullable(json['download_url']),
+      kelasId: classId,
       userId: parseNullable(json['user_id']),
     );
   }
@@ -794,5 +866,8 @@ class _EmptyCard extends StatelessWidget {
     );
   }
 }
+
+
+
 
 

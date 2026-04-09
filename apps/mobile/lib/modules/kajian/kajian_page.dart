@@ -4,8 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
+import '../../app/config/app_config.dart';
 import '../../app/services/api_dio.dart';
 import '../../presentation/common/content_ui.dart';
 
@@ -83,20 +85,40 @@ class _HalamanKajianState extends State<HalamanKajian> {
     });
 
     try {
-      final dio = ApiDio.create(attachAuthToken: false);
-      final response = await dio.get<dynamic>('/api/kajian');
-      final dynamic raw = response.data;
-
       final List<_KajianVideo> loadedVideos = <_KajianVideo>[];
-      if (raw is Map<String, dynamic>) {
-        final dynamic data = raw['data'];
-        if (data is List) {
-          for (final dynamic item in data) {
-            if (item is Map) {
-              final _KajianVideo? parsed =
-                  _KajianVideo.fromApi(Map<String, dynamic>.from(item));
-              if (parsed != null) {
-                loadedVideos.add(parsed);
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<dynamic> data = await Supabase.instance.client
+            .from('kajian_items')
+            .select(
+              'id,title,description,youtube_url,channel_name,category,duration_label',
+            )
+            .eq('is_active', true)
+            .order('sort_order')
+            .limit(20);
+        for (final dynamic item in data) {
+          if (item is! Map) {
+            continue;
+          }
+          final _KajianVideo? parsed =
+              _KajianVideo.fromSupabase(Map<String, dynamic>.from(item));
+          if (parsed != null) {
+            loadedVideos.add(parsed);
+          }
+        }
+      } else {
+        final dio = ApiDio.create(attachAuthToken: false);
+        final response = await dio.get<dynamic>('/api/kajian');
+        final dynamic raw = response.data;
+        if (raw is Map<String, dynamic>) {
+          final dynamic data = raw['data'];
+          if (data is List) {
+            for (final dynamic item in data) {
+              if (item is Map) {
+                final _KajianVideo? parsed =
+                    _KajianVideo.fromApi(Map<String, dynamic>.from(item));
+                if (parsed != null) {
+                  loadedVideos.add(parsed);
+                }
               }
             }
           }
@@ -658,6 +680,33 @@ class _KajianVideo {
     );
   }
 
+  static _KajianVideo? fromSupabase(Map<String, dynamic> json) {
+    final String youtubeUrl = (json['youtube_url'] as String? ?? '').trim();
+    final String? videoId = _extractYoutubeId(youtubeUrl);
+    if (videoId == null || videoId.isEmpty) {
+      return null;
+    }
+
+    return _KajianVideo(
+      id: videoId,
+      title: (json['title'] as String? ?? '').trim().isNotEmpty
+          ? (json['title'] as String).trim()
+          : 'Kajian Averroes',
+      channel: (json['channel_name'] as String? ?? '').trim().isNotEmpty
+          ? (json['channel_name'] as String).trim()
+          : 'Averroes',
+      duration: (json['duration_label'] as String? ?? '').trim().isNotEmpty
+          ? (json['duration_label'] as String).trim()
+          : 'Kajian',
+      category: (json['category'] as String? ?? '').trim().isNotEmpty
+          ? (json['category'] as String).trim()
+          : 'Kajian',
+      description: (json['description'] as String? ?? '').trim().isNotEmpty
+          ? (json['description'] as String).trim()
+          : 'Belum ada deskripsi kajian.',
+    );
+  }
+
   String get thumbnailUrl => 'https://img.youtube.com/vi/$id/hqdefault.jpg';
 
   static String? _extractYoutubeId(String url) {
@@ -695,3 +744,8 @@ class _KajianVideo {
     return null;
   }
 }
+
+
+
+
+

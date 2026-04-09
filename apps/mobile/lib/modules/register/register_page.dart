@@ -1,14 +1,19 @@
-import 'package:dio/dio.dart';
 import 'package:averroes_core/averroes_core.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 import '../../app/routes/app_routes.dart';
-import '../../app/services/api_dio.dart';
+import '../../app/services/auth_service.dart';
 import '../../presentation/common/app_logo_badge.dart';
 import '../../presentation/common/auth_ui_kit.dart';
+
+String _trOr(String key, String fallback) {
+  final String translated = key.tr;
+  return translated == key ? fallback : translated;
+}
 
 class HalamanRegister extends StatefulWidget {
   const HalamanRegister({super.key});
@@ -22,7 +27,6 @@ class _HalamanRegisterState extends State<HalamanRegister> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final Dio _dio = ApiDio.createAuth(attachAuthToken: false);
 
   bool _obscurePassword = true;
   bool _agreeTerms = false;
@@ -47,17 +51,49 @@ class _HalamanRegisterState extends State<HalamanRegister> {
     }
 
     await _runRequest(() async {
-      final Response<dynamic> response = await _dio.post<dynamic>(
-        '/api/auth/register',
-        data: <String, dynamic>{
-          'nama': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'password': _passwordController.text,
-        },
+      final AuthFlowResult result =
+          await AuthService.instance.signUpWithEmailPassword(
+        nama: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
-      await _handleRegisterResponse(response);
+      if (result.requiresVerification) {
+        _showMessage(
+          result.message ??
+              'Registrasi berhasil. Kode OTP telah dikirim ke email Anda',
+        );
+        Get.toNamed(
+          RuteAplikasi.verifikasiOtp,
+          arguments: <String, String>{
+            'email': _emailController.text.trim(),
+            'mode': 'register',
+            'password': _passwordController.text,
+          },
+        );
+        return;
+      }
+
+      _showMessage(result.message ?? 'login_success'.tr);
+      Get.offAllNamed(RuteAplikasi.beranda);
     });
+  }
+
+  void _showPolicySheet({
+    required String title,
+    required List<String> points,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return _PolicySheet(
+          title: title,
+          points: points,
+        );
+      },
+    );
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -75,72 +111,14 @@ class _HalamanRegisterState extends State<HalamanRegister> {
     setState(() => _isLoading = true);
     try {
       await action();
-    } on DioException catch (error) {
-      final dynamic data = error.response?.data;
-      final String message =
-          _extractMessage(data, fallback: 'network_error'.tr);
-      _showMessage(message, isError: true);
-    } catch (_) {
-      _showMessage('general_error'.tr, isError: true);
+    } catch (error) {
+      _showMessage(error.toString().replaceFirst('Exception: ', ''),
+          isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  Future<void> _handleRegisterResponse(Response<dynamic> response) async {
-    final dynamic data = response.data;
-    if (data is Map<String, dynamic> && _isSuccess(data)) {
-      final Map<String, dynamic>? innerData =
-          data['data'] as Map<String, dynamic>?;
-      final String email = ((innerData?['email'] as String?) ??
-              _emailController.text.trim())
-          .trim();
-      final bool requiresVerification =
-          innerData?['requires_verification'] == true;
-
-      if (requiresVerification && email.isNotEmpty) {
-        _showMessage(_extractMessage(
-          data,
-          fallback: 'Registrasi berhasil. Kode OTP telah dikirim ke email Anda',
-        ));
-        Get.toNamed(
-          RuteAplikasi.verifikasiOtp,
-          arguments: <String, String>{
-            'email': email,
-            'mode': 'register',
-          },
-        );
-        return;
-      }
-    }
-    _showMessage('general_error'.tr, isError: true);
-  }
-
-  bool _isSuccess(Map<String, dynamic> data) {
-    final dynamic status = data['status'];
-    if (status == true) {
-      return true;
-    }
-    if (status is String && status.toLowerCase() == 'success') {
-      return true;
-    }
-    return false;
-  }
-
-  String _extractMessage(dynamic data, {required String fallback}) {
-    if (data is Map<String, dynamic>) {
-      final String? pesan = data['pesan']?.toString();
-      if (pesan != null && pesan.isNotEmpty) {
-        return pesan;
-      }
-      final String? message = data['message']?.toString();
-      if (message != null && message.isNotEmpty) {
-        return message;
-      }
-    }
-    return fallback;
   }
 
   @override
@@ -208,6 +186,59 @@ class _HalamanRegisterState extends State<HalamanRegister> {
                         value: _agreeTerms,
                         onChanged: (bool? value) =>
                             setState(() => _agreeTerms = value ?? false),
+                        onOpenTerms: () => _showPolicySheet(
+                          title: _trOr(
+                            'terms_conditions',
+                            'Syarat & Ketentuan',
+                          ),
+                          points: <String>[
+                            _trOr(
+                              'terms_point_account',
+                              'Akun digunakan untuk mengakses layanan edukasi, profil, dan fitur personal Averroes secara sah dan bertanggung jawab.',
+                            ),
+                            _trOr(
+                              'terms_point_data',
+                              'Anda wajib memberikan data yang akurat, menjaga kerahasiaan akun, dan memperbarui informasi bila ada perubahan penting.',
+                            ),
+                            _trOr(
+                              'terms_point_content',
+                              'Seluruh materi, artikel, dan tampilan di aplikasi disediakan untuk edukasi dan penggunaan pribadi, bukan untuk disalin atau disalahgunakan.',
+                            ),
+                            _trOr(
+                              'terms_point_conduct',
+                              'Pengguna dilarang memakai platform untuk aktivitas yang melanggar hukum, manipulatif, menyesatkan, atau merugikan pengguna lain.',
+                            ),
+                            _trOr(
+                              'terms_point_updates',
+                              'Averroes dapat memperbarui fitur, isi layanan, dan kebijakan sewaktu-waktu demi keamanan, kepatuhan, dan peningkatan layanan.',
+                            ),
+                          ],
+                        ),
+                        onOpenPrivacy: () => _showPolicySheet(
+                          title: 'privacy_policy'.tr,
+                          points: <String>[
+                            _trOr(
+                              'privacy_point_collection',
+                              'Kami mengumpulkan data yang Anda berikan saat mendaftar, menggunakan aplikasi, dan berinteraksi dengan fitur yang tersedia.',
+                            ),
+                            _trOr(
+                              'privacy_point_usage',
+                              'Data digunakan untuk autentikasi, personalisasi pengalaman belajar, dukungan akun, keamanan, dan peningkatan kualitas layanan.',
+                            ),
+                            _trOr(
+                              'privacy_point_security',
+                              'Kami berupaya melindungi data dengan kontrol akses, penyimpanan yang wajar, dan proses keamanan yang relevan.',
+                            ),
+                            _trOr(
+                              'privacy_point_sharing',
+                              'Data tidak dibagikan secara sembarangan dan hanya digunakan untuk kebutuhan operasional, integrasi resmi, atau kewajiban hukum yang berlaku.',
+                            ),
+                            _trOr(
+                              'privacy_point_control',
+                              'Anda dapat meminta pembaruan data profil tertentu dan berhenti menggunakan layanan jika tidak lagi menyetujui kebijakan yang berlaku.',
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       _PrimaryButton(
@@ -386,10 +417,17 @@ class _PasswordBlock extends StatelessWidget {
 }
 
 class _TermsRow extends StatelessWidget {
-  const _TermsRow({required this.value, required this.onChanged});
+  const _TermsRow({
+    required this.value,
+    required this.onChanged,
+    required this.onOpenTerms,
+    required this.onOpenPrivacy,
+  });
 
   final bool value;
   final ValueChanged<bool?> onChanged;
+  final VoidCallback onOpenTerms;
+  final VoidCallback onOpenPrivacy;
 
   @override
   Widget build(BuildContext context) {
@@ -405,17 +443,196 @@ class _TermsRow extends StatelessWidget {
         Expanded(
           child: Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'agree_terms'.tr,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                height: 1.4,
-                color: AppColors.slate,
+            child: RichText(
+              text: TextSpan(
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: AppColors.slate,
+                ),
+                children: <InlineSpan>[
+                  TextSpan(
+                    text: _trOr(
+                      'agree_terms_prefix',
+                      'Saya setuju dengan ',
+                    ),
+                  ),
+                  TextSpan(
+                    text: _trOr(
+                      'terms_conditions',
+                      'Syarat & Ketentuan',
+                    ),
+                    style: const TextStyle(
+                      color: AppColors.emerald,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    recognizer: TapGestureRecognizer()..onTap = onOpenTerms,
+                  ),
+                  TextSpan(
+                    text: _trOr(
+                      'agree_terms_middle',
+                      ' serta ',
+                    ),
+                  ),
+                  TextSpan(
+                    text: 'privacy_policy'.tr,
+                    style: const TextStyle(
+                      color: AppColors.emerald,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    recognizer: TapGestureRecognizer()..onTap = onOpenPrivacy,
+                  ),
+                  TextSpan(
+                    text: _trOr(
+                      'agree_terms_suffix',
+                      ' Averroes.',
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PolicySheet extends StatelessWidget {
+  const _PolicySheet({
+    required this.title,
+    required this.points,
+  });
+
+  final String title;
+  final List<String> points;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.78,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Center(
+                child: Container(
+                  width: 52,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD8E5E2),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.slate,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Symbols.close,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _trOr(
+                  'policy_sheet_intro',
+                  'Harap baca ringkasan kebijakan berikut sebelum melanjutkan pendaftaran.',
+                ),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: AppColors.muted,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: points
+                        .map(
+                          (String point) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  margin:
+                                      const EdgeInsets.only(top: 6, right: 10),
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.emerald,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    point,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      height: 1.55,
+                                      color: AppColors.slate,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(_trOr('understand', 'Saya Mengerti')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

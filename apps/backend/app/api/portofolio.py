@@ -5,10 +5,9 @@ from datetime import datetime
 from bson import ObjectId
 
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
 
 from app.extensions import mongo
-from .common import current_user_id, response_error, response_success, format_doc
+from .common import auth_required, current_user_id, response_error, response_success, format_doc
 
 portofolio_bp = Blueprint("portofolio_api", __name__, url_prefix="/api/portofolio")
 
@@ -30,7 +29,7 @@ def _log_riwayat(*, user_id: str, aksi: str, row: dict):
 
 
 @portofolio_bp.get("")
-@jwt_required()
+@auth_required()
 def list_portofolio():
     user_id = current_user_id()
     rows = list(mongo.db.portofolio.find({"user_id": user_id}).sort("_id", -1))
@@ -47,7 +46,7 @@ def list_portofolio():
 
 
 @portofolio_bp.get("/riwayat")
-@jwt_required()
+@auth_required()
 def list_riwayat_portofolio():
     user_id = current_user_id()
     rows = list(mongo.db.portofolio_riwayat.find({"user_id": user_id}).sort([("created_at", -1), ("_id", -1)]).limit(100))
@@ -55,7 +54,7 @@ def list_riwayat_portofolio():
 
 
 @portofolio_bp.get("/crypto/search")
-@jwt_required()
+@auth_required()
 def search_crypto_coingecko():
     q = (request.args.get("q") or "").strip()
     if len(q) < 2:
@@ -88,7 +87,7 @@ def search_crypto_coingecko():
 
 
 @portofolio_bp.post("")
-@jwt_required()
+@auth_required()
 def create_portofolio():
     user_id = current_user_id()
     payload = request.get_json() or {}
@@ -118,7 +117,7 @@ def create_portofolio():
 
 
 @portofolio_bp.put("/<string:item_id>")
-@jwt_required()
+@auth_required()
 def update_portofolio(item_id):
     user_id = current_user_id()
     try:
@@ -150,7 +149,7 @@ def update_portofolio(item_id):
 
 
 @portofolio_bp.delete("/<string:item_id>")
-@jwt_required()
+@auth_required()
 def delete_portofolio(item_id):
     user_id = current_user_id()
     try:

@@ -7,7 +7,6 @@ from datetime import datetime
 from bson import ObjectId
 
 from flask import Blueprint, current_app, request, url_for
-from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 
 from app.extensions import mongo
 from app.services.storage import (
@@ -17,7 +16,14 @@ from app.services.storage import (
     send_local_object,
 )
 
-from .common import admin_required, response_error, response_success, format_doc
+from .common import (
+    admin_required,
+    auth_required,
+    current_user_id,
+    response_error,
+    response_success,
+    format_doc,
+)
 
 pustaka_bp = Blueprint("pustaka_api", __name__, url_prefix="/api/buku")
 pustaka_admin_bp = Blueprint("pustaka_admin_api", __name__, url_prefix="/api/admin/buku")
@@ -457,6 +463,7 @@ def cover_buku(buku_id: str):
 
 
 @pustaka_bp.post("/<string:buku_id>/access")
+@auth_required(optional=True)
 def access_buku(buku_id: str):
     fallback = _find_fallback_book(buku_id=buku_id)
     if fallback and mongo.db.buku.count_documents({"status": "published"}) == 0:
@@ -505,8 +512,7 @@ def access_buku(buku_id: str):
     if not file_key:
         return response_error("File buku tidak tersedia", 400)
 
-    verify_jwt_in_request(optional=True)
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     if row.get("akses") in {"premium", "internal"} and not user_id:
         return response_error("Login diperlukan untuk mengakses buku ini", 401)
 
@@ -597,7 +603,7 @@ def admin_create_buku():
         return response_error("Kategori tidak ditemukan", 404)
 
     now = _now_utc()
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     
     buku = {
         "judul": data["judul"],
@@ -664,7 +670,7 @@ def admin_update_buku(buku_id: str):
     if "judul" in data and ("slug" not in data or not data.get("slug")) and not row.get("slug"):
         row["slug"] = _ensure_unique_book_slug(row["judul"], ignore_id=str(row["_id"]))
         
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     row["updated_by"] = str(user_id) if user_id else row.get("updated_by")
     row["updated_at"] = _now_utc()
     
@@ -692,7 +698,7 @@ def admin_update_status_buku(buku_id: str):
         return response_error("Status tidak valid", 400)
         
     row["status"] = status
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     row["updated_by"] = str(user_id) if user_id else row.get("updated_by")
     row["updated_at"] = _now_utc()
     
@@ -725,7 +731,7 @@ def admin_delete_buku(buku_id: str):
         
     row["status"] = "archived"
     row["updated_at"] = _now_utc()
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     row["updated_by"] = str(user_id) if user_id else row.get("updated_by")
     
     mongo.db.buku.update_one({"_id": row["_id"]}, {"$set": row})
@@ -760,7 +766,7 @@ def admin_upload_buku_file(buku_id: str):
         row["file_pdf"] = stored.key
         
     row["updated_at"] = _now_utc()
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     row["updated_by"] = str(user_id) if user_id else row.get("updated_by")
     
     ok, publish_err = _apply_publish_state(row)
@@ -795,7 +801,7 @@ def admin_upload_buku_cover(buku_id: str):
 
     row["cover_key"] = stored.key
     row["updated_at"] = _now_utc()
-    user_id = get_jwt_identity()
+    user_id = current_user_id()
     row["updated_by"] = str(user_id) if user_id else row.get("updated_by")
     
     mongo.db.buku.update_one({"_id": row["_id"]}, {"$set": row})

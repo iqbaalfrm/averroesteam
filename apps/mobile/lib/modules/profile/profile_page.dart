@@ -7,6 +7,8 @@ import 'package:material_symbols_icons/material_symbols_icons.dart';
 import '../../app/localization/app_locale_service.dart';
 import '../../app/routes/app_routes.dart';
 import '../../app/services/auth_service.dart';
+import '../../app/services/privy_wallet_service.dart';
+import 'privy_wallet_sheet.dart';
 import 'profile_api.dart';
 
 class HalamanProfil extends StatefulWidget {
@@ -22,6 +24,7 @@ class _HalamanProfilState extends State<HalamanProfil> {
   ProfileLearningSummary _learning = const ProfileLearningSummary.empty();
   late final AppLocaleService _localeService;
   bool _loading = false;
+  bool _isDeletingAccount = false;
 
   @override
   void initState() {
@@ -118,13 +121,170 @@ class _HalamanProfilState extends State<HalamanProfil> {
     );
   }
 
+  Future<void> _openPrivyWallet() async {
+    if (!AuthService.instance.adalahUserTerdaftar) {
+      _showSnack('Wallet Privy hanya tersedia untuk akun terdaftar');
+      return;
+    }
+
+    final String email = (_user?.email ?? '').trim();
+    if (email.isEmpty) {
+      _showSnack('Email akun belum tersedia. Lengkapi profil dulu');
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      showDragHandle: true,
+      builder: (_) => PrivyWalletSheet(email: email),
+    );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _logoutAndReturnToLogin() async {
+    await PrivyWalletService.instance.logout(silent: true);
+    await AuthService.instance.logout();
+    if (!mounted) {
+      return;
+    }
+    Get.offAllNamed(RuteAplikasi.login);
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    if (_isDeletingAccount || !AuthService.instance.adalahUserTerdaftar) {
+      return;
+    }
+
+    final bool confirmed = await _showDeleteAccountDialog();
+    if (!confirmed) {
+      return;
+    }
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      await _api.deleteAccount();
+      await _logoutAndReturnToLogin();
+      if (!mounted) {
+        return;
+      }
+      _showSnack('account_delete_success'.tr);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _showSnack(
+        error.toString().replaceFirst('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeletingAccount = false);
+      }
+    }
+  }
+
+  Future<bool> _showDeleteAccountDialog() async {
+    final TextEditingController controller = TextEditingController();
+    String? errorText;
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: Text(
+                'delete_account_title'.tr,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.slate,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'delete_account_body'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.muted,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    'delete_account_confirm_label'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.slate,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: controller,
+                    decoration: InputDecoration(
+                      hintText: 'delete_account_confirm_hint'.tr,
+                      errorText: errorText,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text('common_cancel'.tr),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
+                  onPressed: () {
+                    if (controller.text.trim().toUpperCase() != 'HAPUS') {
+                      setDialogState(() {
+                        errorText = 'delete_account_confirm_error'.tr;
+                      });
+                      return;
+                    }
+                    Navigator.of(dialogContext).pop(true);
+                  },
+                  child: Text('delete_account_button'.tr),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    controller.dispose();
+    return confirmed == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
     final nama = (_user?.nama.trim().isNotEmpty ?? false)
         ? _user!.nama
         : AuthService.instance.namaUser;
-    final role = (_user?.role ?? AuthService.instance.role ?? 'user').toLowerCase();
+    final role =
+        (_user?.role ?? AuthService.instance.role ?? 'user').toLowerCase();
     final email = (_user?.email?.trim().isNotEmpty ?? false)
         ? _user!.email!
         : 'email_not_set'.tr;
@@ -179,7 +339,6 @@ class _HalamanProfilState extends State<HalamanProfil> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                   child: Column(
                     children: [
-
                       _SectionHeader(
                         title: 'my_certificates'.tr,
                         action: 'see_all'.tr,
@@ -197,22 +356,43 @@ class _HalamanProfilState extends State<HalamanProfil> {
                       _PengaturanList(
                         onEdit: _openEdit,
                         onLanguage: _chooseLanguage,
+                        onWallet: _openPrivyWallet,
                         currentLanguage: _localeService.currentLanguageLabel,
                       ),
                       const SizedBox(height: 14),
                       CustomButton(
                         text: 'logout'.tr,
                         type: ButtonType.outline,
-                        onPressed: () async {
-                          await AuthService.instance.logout();
-                          if (!mounted) return;
-                          Get.offAllNamed(RuteAplikasi.login);
-                        },
+                        onPressed: _logoutAndReturnToLogin,
                         customColor: AppColors.error,
                       ),
+                      if (AuthService.instance.adalahUserTerdaftar) ...[
+                        const SizedBox(height: 10),
+                        CustomButton(
+                          text: _isDeletingAccount
+                              ? 'delete_account_loading'.tr
+                              : 'delete_account_button'.tr,
+                          type: ButtonType.outline,
+                          onPressed:
+                              _isDeletingAccount ? null : _confirmDeleteAccount,
+                          customColor: AppColors.error,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'delete_account_caption'.tr,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppColors.muted,
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       Text(
-                        'app_version'.trParams(<String, String>{'version': '1.0.0'}),
+                        'app_version'
+                            .trParams(<String, String>{'version': '1.0.0'}),
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           color: AppColors.muted,
@@ -324,7 +504,8 @@ class _HeroSection extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppColors.emeraldBright,
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.background, width: 3),
+                          border:
+                              Border.all(color: AppColors.background, width: 3),
                           boxShadow: const [
                             BoxShadow(
                               color: Color(0x3313ECB9),
@@ -333,7 +514,8 @@ class _HeroSection extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(Symbols.edit, size: 18, color: AppColors.slate),
+                        child: const Icon(Symbols.edit,
+                            size: 18, color: AppColors.slate),
                       ),
                     ),
                   ),
@@ -353,7 +535,8 @@ class _HeroSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
                       color: AppColors.emeraldSoft,
                       borderRadius: BorderRadius.circular(999),
@@ -397,7 +580,8 @@ class _HeroSection extends StatelessWidget {
   }
 
   String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
     if (parts.isEmpty) return 'U';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -450,7 +634,8 @@ class _SertifikatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Use dynamic to guard against hot-reload null on new fields
     final int certCount = (learning as dynamic).totalSertifikat as int? ?? 0;
-    final String? lastCertJudul = (learning as dynamic).lastSertifikatJudul as String?;
+    final String? lastCertJudul =
+        (learning as dynamic).lastSertifikatJudul as String?;
     final hasCert = certCount > 0;
     final ready = learning.certificateEligible;
 
@@ -460,11 +645,13 @@ class _SertifikatCard extends StatelessWidget {
 
     if (hasCert) {
       primaryText = lastCertJudul ?? 'certificate_collection'.tr;
-      secondaryText = 'you_have_certificates'.trParams(<String, String>{'count': '$certCount'});
+      secondaryText = 'you_have_certificates'
+          .trParams(<String, String>{'count': '$certCount'});
       tertiaryText = 'view_all_collections'.tr;
     } else if (ready) {
       primaryText = learning.kelasJudul;
-      secondaryText = 'score_percent'.trParams(<String, String>{'score': '${learning.scorePercent}'});
+      secondaryText = 'score_percent'
+          .trParams(<String, String>{'score': '${learning.scorePercent}'});
       tertiaryText = 'ready_to_claim_certificate'.tr;
     }
 
@@ -484,7 +671,8 @@ class _SertifikatCard extends StatelessWidget {
                 colors: [AppColors.emeraldSoft, AppColors.mint],
               ),
             ),
-            child: const Icon(Symbols.workspace_premium, size: 30, color: AppColors.emerald),
+            child: const Icon(Symbols.workspace_premium,
+                size: 30, color: AppColors.emerald),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -495,12 +683,14 @@ class _SertifikatCard extends StatelessWidget {
                   primaryText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   secondaryText,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted),
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12, color: AppColors.muted),
                 ),
                 const SizedBox(height: 6),
                 Row(
@@ -513,7 +703,8 @@ class _SertifikatCard extends StatelessWidget {
                     const SizedBox(width: 5),
                     Text(
                       tertiaryText,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: AppColors.muted),
+                      style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11, color: AppColors.muted),
                     ),
                   ],
                 ),
@@ -556,7 +747,8 @@ class _RiwayatCard extends StatelessWidget {
                   color: AppColors.emeraldBright.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Symbols.school, color: AppColors.success, size: 22),
+                child: const Icon(Symbols.school,
+                    color: AppColors.success, size: 22),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -567,22 +759,29 @@ class _RiwayatCard extends StatelessWidget {
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
-                    Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted)),
+                    Text(subtitle,
+                        style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12, color: AppColors.muted)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.emeraldBright,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   'continue'.tr,
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.slate),
                 ),
               ),
             ],
@@ -594,15 +793,22 @@ class _RiwayatCard extends StatelessWidget {
               value: progress,
               minHeight: 8,
               backgroundColor: AppColors.line.withValues(alpha: 0.5),
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.emerald),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppColors.emerald),
             ),
           ),
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('progress'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: AppColors.muted)),
-              Text('${learning.progressMateriPercent}%', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.muted)),
+              Text('progress'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12, color: AppColors.muted)),
+              Text('${learning.progressMateriPercent}%',
+                  style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.muted)),
             ],
           ),
         ],
@@ -615,11 +821,13 @@ class _PengaturanList extends StatelessWidget {
   const _PengaturanList({
     required this.onEdit,
     required this.onLanguage,
+    required this.onWallet,
     required this.currentLanguage,
   });
 
   final VoidCallback onEdit;
   final VoidCallback onLanguage;
+  final VoidCallback onWallet;
   final String currentLanguage;
 
   @override
@@ -629,13 +837,23 @@ class _PengaturanList extends StatelessWidget {
       hasShadow: true,
       child: Column(
         children: [
-          _SettingRow(icon: Symbols.person_outline, label: 'edit_profile'.tr, onTap: onEdit),
+          _SettingRow(
+              icon: Symbols.person_outline,
+              label: 'edit_profile'.tr,
+              onTap: onEdit),
           const Divider(height: 1, color: AppColors.line),
           _SettingRow(
             icon: Symbols.translate,
             label: 'language'.tr,
             subtitle: currentLanguage,
             onTap: onLanguage,
+          ),
+          const Divider(height: 1, color: AppColors.line),
+          _SettingRow(
+            icon: Symbols.account_balance_wallet,
+            label: 'Wallet Privy',
+            subtitle: 'Hubungkan dan sinkronkan wallet ke akun kamu',
+            onTap: onWallet,
           ),
           const Divider(height: 1, color: AppColors.line),
           _SettingRow(
@@ -679,7 +897,8 @@ class _SettingRow extends StatelessWidget {
             Container(
               width: 40,
               height: 40,
-              decoration: const BoxDecoration(color: AppColors.cloud, shape: BoxShape.circle),
+              decoration: const BoxDecoration(
+                  color: AppColors.cloud, shape: BoxShape.circle),
               child: Icon(icon, color: AppColors.muted, size: 20),
             ),
             const SizedBox(width: 10),
@@ -689,7 +908,10 @@ class _SettingRow extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.slate),
+                    style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.slate),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 3),
@@ -807,4 +1029,3 @@ class _DotPatternPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

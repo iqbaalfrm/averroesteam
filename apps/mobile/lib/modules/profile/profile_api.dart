@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/services/api_dio.dart';
 import '../../app/services/auth_service.dart';
+import '../../app/services/supabase_native_service.dart';
 
 int _asInt(dynamic value, {int fallback = 0}) {
   if (value is num) return value.toInt();
@@ -68,7 +70,8 @@ class ProfileApi {
     }
   }
 
-  Future<Response<dynamic>> _putWithFallback(String path, {dynamic data}) async {
+  Future<Response<dynamic>> _putWithFallback(String path,
+      {dynamic data}) async {
     try {
       return await _dio().put(path, data: data);
     } on DioException catch (e) {
@@ -79,7 +82,27 @@ class ProfileApi {
     }
   }
 
+  Future<Response<dynamic>> _deleteWithFallback(String path) async {
+    try {
+      return await _dio().delete(path);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 && !path.startsWith('/api/')) {
+        return _dio().delete('/api$path');
+      }
+      rethrow;
+    }
+  }
+
   Future<ProfileUser> fetchMe() async {
+    if (SupabaseNativeService.isEnabled) {
+      final Map<String, dynamic> user =
+          await SupabaseNativeService.ensureProfile();
+      final Map<String, dynamic> shaped =
+          SupabaseNativeService.toLegacyProfileShape(user);
+      await AuthService.instance.simpanUser(shaped);
+      return ProfileUser.fromJson(shaped);
+    }
+
     final rs = await _getWithFallback('/auth/me');
     final data = rs.data;
     final payload = data is Map ? data['data'] : null;
@@ -96,6 +119,28 @@ class ProfileApi {
     required String nama,
     required String email,
   }) async {
+    if (SupabaseNativeService.isEnabled) {
+      final String authUserId = SupabaseNativeService.requireAuthUserId();
+      final List<dynamic> rows = await Supabase.instance.client
+          .from('profiles')
+          .update(<String, dynamic>{
+            'full_name': nama.trim(),
+            'email': email.trim(),
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('auth_user_id', authUserId)
+          .select();
+      if (rows.isEmpty || rows.first is! Map) {
+        throw Exception('Gagal memperbarui profil');
+      }
+      final Map<String, dynamic> shaped =
+          SupabaseNativeService.toLegacyProfileShape(
+        Map<String, dynamic>.from(rows.first as Map),
+      );
+      await AuthService.instance.simpanUser(shaped);
+      return ProfileUser.fromJson(shaped);
+    }
+
     final rs = await _putWithFallback(
       '/auth/me',
       data: <String, dynamic>{
@@ -114,10 +159,81 @@ class ProfileApi {
     return parsed;
   }
 
+  Future<void> deleteAccount() async {
+    if (SupabaseNativeService.isEnabled) {
+      final dynamic response = await Supabase.instance.client.functions.invoke(
+        'delete-account',
+        body: const <String, dynamic>{},
+      );
+      final dynamic data = response.data;
+      if (data is Map) {
+        final Map<String, dynamic> payload = Map<String, dynamic>.from(data);
+        if (payload['success'] == true) {
+          return;
+        }
+        throw Exception(
+          _asString(payload['message'], fallback: 'Gagal menghapus akun'),
+        );
+      }
+      throw Exception('Respons hapus akun tidak valid');
+    }
+
+    await _deleteWithFallback('/auth/me');
+  }
+
   Future<ProfileLearningSummary> fetchLearningSummary() async {
+    if (SupabaseNativeService.isEnabled) {
+      try {
+        final Map<String, dynamic> lastMap = _extractSupabaseMap(
+          await Supabase.instance.client.rpc('get_last_learning'),
+        );
+        final String kelasId = _asString(lastMap['kelas_id']);
+        final String profileId = await SupabaseNativeService.ensureProfileId();
+
+        Map<String, dynamic> progressMap = const <String, dynamic>{};
+        if (kelasId.isNotEmpty) {
+          progressMap = _extractSupabaseMap(
+            await Supabase.instance.client.rpc(
+              'get_class_progress',
+              params: <String, dynamic>{'p_class_id': kelasId},
+            ),
+          );
+        }
+
+        final List<dynamic> certRows = await Supabase.instance.client
+            .from('user_certificates')
+            .select('id,certificate_name')
+            .eq('user_id', profileId)
+            .order('generated_at', ascending: false);
+
+        String? latestCert;
+        if (certRows.isNotEmpty && certRows.first is Map) {
+          latestCert = (certRows.first as Map)['certificate_name']?.toString();
+        }
+
+        return ProfileLearningSummary(
+          kelasId: kelasId,
+          kelasJudul: _asString(lastMap['kelas_judul'], fallback: 'Kelas'),
+          completedMateri: _asInt(progressMap['completed_materi']),
+          totalMateri: _asInt(progressMap['total_materi']),
+          progressMateriPercent: _asInt(progressMap['progress_materi_percent']),
+          certificateEligible: _asBool(progressMap['is_eligible_certificate']),
+          scorePercent: _asInt(progressMap['score_percent']),
+          lastMateriJudul:
+              _asString(lastMap['last_materi_judul'], fallback: ''),
+          nextMateriIndex: _asInt(lastMap['next_materi_index'], fallback: 1),
+          totalSertifikat: certRows.length,
+          lastSertifikatJudul: latestCert,
+        );
+      } catch (_) {
+        return const ProfileLearningSummary.empty();
+      }
+    }
+
     try {
       final kelasRs = await _getWithFallback('/api/kelas');
-      final kelasData = kelasRs.data is Map ? (kelasRs.data as Map)['data'] : null;
+      final kelasData =
+          kelasRs.data is Map ? (kelasRs.data as Map)['data'] : null;
       final kelasItems = kelasData is List ? kelasData : const [];
       if (kelasItems.isEmpty) {
         return const ProfileLearningSummary.empty();
@@ -125,19 +241,24 @@ class ProfileApi {
 
       final firstKelas = kelasItems.first;
       final kelasId = firstKelas is Map ? _asString(firstKelas['id']) : '';
-      final kelasJudul = firstKelas is Map ? (firstKelas['judul'] ?? 'Kelas').toString() : 'Kelas';
+      final kelasJudul = firstKelas is Map
+          ? (firstKelas['judul'] ?? 'Kelas').toString()
+          : 'Kelas';
 
       Map progressMap = const {};
       try {
-        final progressRs = await _getWithFallback('/api/kelas/$kelasId/progress');
-        final progressData = progressRs.data is Map ? (progressRs.data as Map)['data'] : null;
+        final progressRs =
+            await _getWithFallback('/api/kelas/$kelasId/progress');
+        final progressData =
+            progressRs.data is Map ? (progressRs.data as Map)['data'] : null;
         progressMap = progressData is Map ? progressData : const {};
       } catch (_) {}
 
       Map lastMap = const {};
       try {
         final lastRs = await _getWithFallback('/api/kelas/last-learning');
-        final lastData = lastRs.data is Map ? (lastRs.data as Map)['data'] : null;
+        final lastData =
+            lastRs.data is Map ? (lastRs.data as Map)['data'] : null;
         lastMap = lastData is Map ? lastData : const {};
       } catch (_) {}
 
@@ -149,18 +270,21 @@ class ProfileApi {
 
       final lastTitleRaw = lastMap['last_materi_judul'];
       final lastTitle = lastTitleRaw is String ? lastTitleRaw.trim() : null;
-      final nextIndex = _asInt(lastMap['next_materi_index'], fallback: completedMateri + 1);
+      final nextIndex =
+          _asInt(lastMap['next_materi_index'], fallback: completedMateri + 1);
 
       int certCount = 0;
       String? latestCert;
       try {
         final certRs = await _getWithFallback('/api/sertifikat/saya');
-        final certData = certRs.data is Map ? (certRs.data as Map)['data'] : null;
+        final certData =
+            certRs.data is Map ? (certRs.data as Map)['data'] : null;
         final certItems = certData is List ? certData : const [];
         certCount = certItems.length;
         if (certItems.isNotEmpty && certItems.first is Map) {
           final first = certItems.first as Map;
-          latestCert = (first['nama_sertifikat'] ?? first['kelas'] ?? '').toString();
+          latestCert =
+              (first['nama_sertifikat'] ?? first['kelas'] ?? '').toString();
         }
       } catch (_) {}
 
@@ -172,7 +296,8 @@ class ProfileApi {
         progressMateriPercent: progressPercent,
         certificateEligible: isEligible,
         scorePercent: scorePercent,
-        lastMateriJudul: (lastTitle == null || lastTitle.isEmpty) ? null : lastTitle,
+        lastMateriJudul:
+            (lastTitle == null || lastTitle.isEmpty) ? null : lastTitle,
         nextMateriIndex: nextIndex,
         totalSertifikat: certCount,
         lastSertifikatJudul: latestCert,
@@ -180,6 +305,16 @@ class ProfileApi {
     } catch (_) {
       return const ProfileLearningSummary.empty();
     }
+  }
+
+  Map<String, dynamic> _extractSupabaseMap(dynamic raw) {
+    if (raw is Map<String, dynamic>) {
+      return raw;
+    }
+    if (raw is Map) {
+      return raw.cast<String, dynamic>();
+    }
+    return <String, dynamic>{};
   }
 }
 

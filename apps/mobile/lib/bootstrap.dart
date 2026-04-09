@@ -8,6 +8,8 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import 'app/app.dart';
+import 'app/services/auth_service.dart';
+import 'app/services/privy_wallet_service.dart';
 import 'app/services/shalat_notification_service.dart';
 
 Future<void> bootstrap() async {
@@ -18,6 +20,18 @@ Future<void> bootstrap() async {
     await dotenv.load(fileName: '.env');
   } catch (error) {
     debugPrint('dotenv load gagal: $error');
+  }
+  try {
+    await AuthService.instance.initialize();
+  } catch (error) {
+    debugPrint('init auth service gagal: $error');
+  }
+  try {
+    await PrivyWalletService.instance.initialize(
+      tokenProvider: () async => AuthService.instance.token,
+    );
+  } catch (error) {
+    debugPrint('init privy wallet service gagal: $error');
   }
   try {
     await ShalatNotificationService.instance.initialize();

@@ -19,7 +19,13 @@ enum _Sort { cap, chg }
 enum _ChartRange { h24, d7, m1, m3, ytd, y1 }
 
 class _HalamanPasarState extends State<HalamanPasar> {
-  final Dio dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+  final Dio dio = Dio(
+    BaseOptions(
+      baseUrl: AppConfig.isSupabaseNativeEnabled
+          ? 'https://api.binance.com'
+          : AppConfig.apiBaseUrl,
+    ),
+  );
   final ScrollController scroll = ScrollController();
   final TextEditingController search = TextEditingController();
   final GetStorage box = GetStorage();
@@ -77,9 +83,33 @@ class _HalamanPasarState extends State<HalamanPasar> {
 
   Future<void> _loadGlobal() async {
     try {
-      final r = await dio.get('/api/pasar/global');
-      final data = (r.data as Map?)?['data'] as Map?;
-      global24h = _d(data?['market_cap_change_percentage_24h_usd']);
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<dynamic> rows =
+            await _fetchBinanceTickerRows(dio: dio);
+        final double usdtIdr = await _fetchUsdtIdrRate(dio: dio);
+        final List<Map<String, dynamic>> items = rows
+            .whereType<Map>()
+            .map((Map row) => _normalizeBinanceMarketRow(
+                  Map<String, dynamic>.from(row),
+                  usdtIdr,
+                ))
+            .where((Map<String, dynamic> row) => row.isNotEmpty)
+            .toList()
+          ..sort((a, b) => (_d(b['market_cap']) ?? 0)
+              .compareTo(_d(a['market_cap']) ?? 0));
+        final List<Map<String, dynamic>> sample = items.take(120).toList();
+        global24h = sample.isEmpty
+            ? 0
+            : sample
+                    .map((Map<String, dynamic> row) =>
+                        _d(row['price_change_percentage_24h']) ?? 0)
+                    .reduce((a, b) => a + b) /
+                sample.length;
+      } else {
+        final r = await dio.get('/api/pasar/global');
+        final data = (r.data as Map?)?['data'] as Map?;
+        global24h = _d(data?['market_cap_change_percentage_24h_usd']);
+      }
       if (mounted) setState(() {});
     } catch (_) {}
   }
@@ -89,19 +119,40 @@ class _HalamanPasarState extends State<HalamanPasar> {
     if (!reset && mounted) setState(() => loadingMore = true);
     final int p = reset ? 1 : page;
     try {
-      final r = await dio
-          .get('/api/pasar/markets', queryParameters: <String, dynamic>{
-        'vs_currency': 'idr',
-        'order': 'market_cap_desc',
-        'per_page': 100,
-        'page': p,
-      });
-      final rows =
-          ((r.data as Map?)?['data'] as List?)?.cast<dynamic>() ?? <dynamic>[];
-      final list = rows
-          .whereType<Map>()
-          .map((e) => _Coin.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      late final List<_Coin> list;
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<dynamic> rows = await _fetchBinanceTickerRows(dio: dio);
+        final double usdtIdr = await _fetchUsdtIdrRate(dio: dio);
+        final List<Map<String, dynamic>> items = rows
+            .whereType<Map>()
+            .map((Map row) => _normalizeBinanceMarketRow(
+                  Map<String, dynamic>.from(row),
+                  usdtIdr,
+                ))
+            .where((Map<String, dynamic> row) => row.isNotEmpty)
+            .toList()
+          ..sort((a, b) =>
+              (_d(b['market_cap']) ?? 0).compareTo(_d(a['market_cap']) ?? 0));
+        final int start = (p - 1) * 100;
+        final int end = math.min(start + 100, items.length);
+        final List<Map<String, dynamic>> pageItems =
+            start >= items.length ? <Map<String, dynamic>>[] : items.sublist(start, end);
+        list = pageItems.map(_Coin.fromJson).toList();
+      } else {
+        final r = await dio
+            .get('/api/pasar/markets', queryParameters: <String, dynamic>{
+          'vs_currency': 'idr',
+          'order': 'market_cap_desc',
+          'per_page': 100,
+          'page': p,
+        });
+        final rows =
+            ((r.data as Map?)?['data'] as List?)?.cast<dynamic>() ?? <dynamic>[];
+        list = rows
+            .whereType<Map>()
+            .map((e) => _Coin.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      }
       if (!mounted) return;
       setState(() {
         if (reset) {
@@ -463,7 +514,13 @@ class _CoinDetailPage extends StatefulWidget {
 }
 
 class _CoinDetailPageState extends State<_CoinDetailPage> {
-  final Dio dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+  final Dio dio = Dio(
+    BaseOptions(
+      baseUrl: AppConfig.isSupabaseNativeEnabled
+          ? 'https://api.binance.com'
+          : AppConfig.apiBaseUrl,
+    ),
+  );
   bool loading = true;
   bool loadingChart = false;
   String? error;
@@ -489,25 +546,49 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
       error = null;
     });
     try {
-      final rs = await Future.wait<Response<dynamic>>([
-        dio.get('/api/pasar/detail', queryParameters: {
-          'symbol': widget.coin.symbol.toUpperCase(),
-        }),
-        dio.get('/api/pasar/chart', queryParameters: {
-          'symbol': widget.coin.symbol.toUpperCase(),
-          'days': _chartDays(chartRange),
-        }),
-      ]);
-      final detailRaw = (rs[0].data as Map?)?['data'];
-      d = _Detail.fromJson(detailRaw is Map
-          ? Map<String, dynamic>.from(detailRaw)
-          : <String, dynamic>{});
-      final raw = (rs[1].data as Map?)?['data'];
-      chart = <double>[];
-      if (raw is List) {
-        for (final p in raw) {
-          final v = _d(p);
-          if (v != null) chart.add(v);
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final String symbol = widget.coin.symbol.toUpperCase();
+        final double usdtIdr = await _fetchUsdtIdrRate(dio: dio);
+        final rs = await Future.wait<Response<dynamic>>([
+          dio.get('/api/v3/ticker/24hr', queryParameters: <String, dynamic>{
+            'symbol': '${symbol}USDT',
+          }),
+          dio.get('/api/v3/klines', queryParameters: _buildBinanceChartParams(
+            symbol: symbol,
+            days: _chartDays(chartRange),
+          )),
+        ]);
+        d = _Detail.fromJson(
+          _buildBinanceDetailPayload(
+            symbol: symbol,
+            ticker: rs[0].data is Map<String, dynamic>
+                ? rs[0].data as Map<String, dynamic>
+                : Map<String, dynamic>.from(rs[0].data as Map),
+            usdtIdr: usdtIdr,
+          ),
+        );
+        chart = _extractBinanceChartPrices(rs[1].data, usdtIdr);
+      } else {
+        final rs = await Future.wait<Response<dynamic>>([
+          dio.get('/api/pasar/detail', queryParameters: {
+            'symbol': widget.coin.symbol.toUpperCase(),
+          }),
+          dio.get('/api/pasar/chart', queryParameters: {
+            'symbol': widget.coin.symbol.toUpperCase(),
+            'days': _chartDays(chartRange),
+          }),
+        ]);
+        final detailRaw = (rs[0].data as Map?)?['data'];
+        d = _Detail.fromJson(detailRaw is Map
+            ? Map<String, dynamic>.from(detailRaw)
+            : <String, dynamic>{});
+        final raw = (rs[1].data as Map?)?['data'];
+        chart = <double>[];
+        if (raw is List) {
+          for (final p in raw) {
+            final v = _d(p);
+            if (v != null) chart.add(v);
+          }
         }
       }
     } on DioException catch (e) {
@@ -579,16 +660,29 @@ class _CoinDetailPageState extends State<_CoinDetailPage> {
     if (loadingChart) return;
     if (mounted) setState(() => loadingChart = true);
     try {
-      final rs = await dio.get('/api/pasar/chart', queryParameters: {
-        'symbol': widget.coin.symbol.toUpperCase(),
-        'days': _chartDays(chartRange),
-      });
-      final raw = (rs.data as Map?)?['data'];
-      final next = <double>[];
-      if (raw is List) {
-        for (final p in raw) {
-          final v = _d(p);
-          if (v != null) next.add(v);
+      late final List<double> next;
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final double usdtIdr = await _fetchUsdtIdrRate(dio: dio);
+        final rs = await dio.get(
+          '/api/v3/klines',
+          queryParameters: _buildBinanceChartParams(
+            symbol: widget.coin.symbol.toUpperCase(),
+            days: _chartDays(chartRange),
+          ),
+        );
+        next = _extractBinanceChartPrices(rs.data, usdtIdr);
+      } else {
+        final rs = await dio.get('/api/pasar/chart', queryParameters: {
+          'symbol': widget.coin.symbol.toUpperCase(),
+          'days': _chartDays(chartRange),
+        });
+        final raw = (rs.data as Map?)?['data'];
+        next = <double>[];
+        if (raw is List) {
+          for (final p in raw) {
+            final v = _d(p);
+            if (v != null) next.add(v);
+          }
         }
       }
       if (!mounted) return;
@@ -1023,3 +1117,128 @@ String _strip(String s) => s
     .replaceAll('&amp;', '&')
     .replaceAll(RegExp(r'\\s+'), ' ')
     .trim();
+
+Future<List<dynamic>> _fetchBinanceTickerRows({required Dio dio}) async {
+  final Response<dynamic> response = await dio.get<dynamic>('/api/v3/ticker/24hr');
+  final dynamic data = response.data;
+  return data is List ? data : const <dynamic>[];
+}
+
+Future<double> _fetchUsdtIdrRate({required Dio dio}) async {
+  final Response<dynamic> response = await dio.get<dynamic>(
+    '/api/v3/ticker/price',
+    queryParameters: const <String, dynamic>{'symbol': 'USDTIDR'},
+  );
+  final dynamic raw = response.data;
+  if (raw is Map) {
+    final double value = _d(raw['price']) ?? 0;
+    if (value > 0) {
+      return value;
+    }
+  }
+  return 16000;
+}
+
+Map<String, dynamic> _normalizeBinanceMarketRow(
+  Map<String, dynamic> row,
+  double usdtIdr,
+) {
+  final String pair = (row['symbol'] ?? '').toString().trim().toUpperCase();
+  if (!pair.endsWith('USDT')) {
+    return const <String, dynamic>{};
+  }
+  final String base = pair.substring(0, pair.length - 4);
+  if (base.isEmpty ||
+      base.contains('UP') ||
+      base.contains('DOWN') ||
+      base.contains('BULL') ||
+      base.contains('BEAR')) {
+    return const <String, dynamic>{};
+  }
+
+  final double last = (_d(row['lastPrice']) ?? 0) * usdtIdr;
+  final double high = (_d(row['highPrice']) ?? 0) * usdtIdr;
+  final double low = (_d(row['lowPrice']) ?? 0) * usdtIdr;
+  final double quoteVolume = (_d(row['quoteVolume']) ?? 0) * usdtIdr;
+
+  return <String, dynamic>{
+    'id': base.toLowerCase(),
+    'name': base,
+    'symbol': base.toLowerCase(),
+    'image':
+        'https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${base.toLowerCase()}.png',
+    'current_price': last,
+    'price_change_percentage_24h': _d(row['priceChangePercent']),
+    'market_cap_rank': null,
+    'market_cap': quoteVolume,
+    'total_volume': _d(row['volume']),
+    'high_24h': high,
+    'low_24h': low,
+  };
+}
+
+Map<String, dynamic> _buildBinanceDetailPayload({
+  required String symbol,
+  required Map<String, dynamic> ticker,
+  required double usdtIdr,
+}) {
+  final double last = (_d(ticker['lastPrice']) ?? 0) * usdtIdr;
+  final double high = (_d(ticker['highPrice']) ?? 0) * usdtIdr;
+  final double low = (_d(ticker['lowPrice']) ?? 0) * usdtIdr;
+  final double quoteVolume = (_d(ticker['quoteVolume']) ?? 0) * usdtIdr;
+  return <String, dynamic>{
+    'price': last,
+    'chg24': _d(ticker['priceChangePercent']),
+    'cap': quoteVolume,
+    'vol': quoteVolume,
+    'h24': high,
+    'l24': low,
+    'ath': high,
+    'atl': low,
+    'desc': '$symbol diperdagangkan di Binance spot pair ${symbol}USDT.',
+    'home': 'https://www.binance.com/en/markets',
+  };
+}
+
+Map<String, dynamic> _buildBinanceChartParams({
+  required String symbol,
+  required int days,
+}) {
+  late final String interval;
+  late final int limit;
+  if (days <= 1) {
+    interval = '5m';
+    limit = 288;
+  } else if (days <= 7) {
+    interval = '1h';
+    limit = math.min(24 * days, 1000);
+  } else if (days <= 31) {
+    interval = '4h';
+    limit = math.min(6 * days, 1000);
+  } else {
+    interval = '1d';
+    limit = math.min(days, 1000);
+  }
+  return <String, dynamic>{
+    'symbol': '${symbol.toUpperCase()}USDT',
+    'interval': interval,
+    'limit': limit,
+  };
+}
+
+List<double> _extractBinanceChartPrices(dynamic raw, double usdtIdr) {
+  if (raw is! List) {
+    return const <double>[];
+  }
+  final List<double> prices = <double>[];
+  for (final dynamic item in raw) {
+    if (item is! List || item.length < 5) {
+      continue;
+    }
+    final double close = (_d(item[4]) ?? 0) * usdtIdr;
+    if (close > 0) {
+      prices.add(close);
+    }
+  }
+  return prices;
+}

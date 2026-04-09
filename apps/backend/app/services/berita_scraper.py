@@ -2,6 +2,7 @@ import logging
 import re
 import threading
 import time
+import uuid
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from html import unescape
@@ -10,11 +11,13 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
+import requests
 from app.extensions import mongo
 from pymongo.errors import DuplicateKeyError
 
 
 logger = logging.getLogger(__name__)
+_PAGE_IMAGE_CACHE: dict[str, str] = {}
 
 _NOISE_PATTERNS = [
     r"about help center",
@@ -44,6 +47,12 @@ def _ensure_unique_berita_slug(base_text: str, source_url: str) -> str:
         slug = f"{base}-{i}"
         i += 1
     return slug
+
+
+def _supabase_news_slug(title: str, source_url: str) -> str:
+    base = _slugify(title)[:80]
+    digest = uuid.uuid5(uuid.NAMESPACE_URL, source_url).hex[:10]
+    return f"{base}-{digest}".strip("-")
 
 
 def _parse_datetime(value: str | None) -> datetime:
@@ -137,6 +146,43 @@ def _extract_feed_image(node: ET.Element | None) -> str:
     return ""
 
 
+def _extract_page_image(url: str, timeout_seconds: int = 20) -> str:
+    normalized_url = (url or "").strip()
+    if not normalized_url:
+        return ""
+    cached = _PAGE_IMAGE_CACHE.get(normalized_url)
+    if cached is not None:
+        return cached
+
+    try:
+        response = requests.get(
+            normalized_url,
+            timeout=timeout_seconds,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; AverroesBot/1.0)"},
+        )
+        response.raise_for_status()
+        html = response.text or ""
+        patterns = [
+            r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']',
+            r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)["\']',
+            r'<meta[^>]+content=["\']([^"\']+)["\'][^>]+name=["\']twitter:image["\']',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, html, flags=re.IGNORECASE)
+            if not match:
+                continue
+            image_url = unescape(match.group(1).strip())
+            if image_url.startswith("http://") or image_url.startswith("https://"):
+                _PAGE_IMAGE_CACHE[normalized_url] = image_url[:1024]
+                return _PAGE_IMAGE_CACHE[normalized_url]
+    except Exception as err:
+        logger.debug("Gagal ambil og:image %s: %s", normalized_url, err)
+
+    _PAGE_IMAGE_CACHE[normalized_url] = ""
+    return ""
+
+
 def _extract_summary(description: str, title: str, source_name: str) -> str:
     summary = _sanitize_text(description)
     if not summary:
@@ -165,7 +211,7 @@ def _iter_entries(root: ET.Element) -> list[dict]:
             description = _get_text(item, ("description", "summary", "content"))
             published = _get_text(item, ("pubDate", "published", "updated"))
             source_name = _sanitize_text(_find_first_text_by_local_tag(item, "source"))
-            image_url = _extract_feed_image(item)
+            image_url = _extract_feed_image(item) or _extract_page_image(link)
 
             if not title or not link:
                 continue
@@ -199,7 +245,7 @@ def _iter_entries(root: ET.Element) -> list[dict]:
             ("{http://www.w3.org/2005/Atom}published", "{http://www.w3.org/2005/Atom}updated"),
         )
         source_name = _sanitize_text(_find_first_text_by_local_tag(item, "source"))
-        image_url = _extract_feed_image(item)
+        image_url = _extract_feed_image(item) or _extract_page_image(link)
 
         if not title or not link:
             continue
@@ -228,6 +274,57 @@ def _fetch_feed(url: str, timeout_seconds: int = 20) -> list[dict]:
     return _iter_entries(root)
 
 
+def _sync_news_items_to_supabase(items: list[dict]) -> int:
+    from flask import current_app
+
+    supabase_url = str(current_app.config.get("SUPABASE_URL") or "").strip().rstrip("/")
+    service_role_key = str(current_app.config.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not supabase_url or not service_role_key or not items:
+        return 0
+
+    payload: list[dict] = []
+    for item in items:
+        source_url = str(item.get("sumber_url") or "").strip()
+        title = str(item.get("judul") or "").strip()
+        if not source_url or not title:
+            continue
+        payload.append(
+            {
+                "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"news:{source_url}")),
+                "legacy_mongo_id": f"news:{uuid.uuid5(uuid.NAMESPACE_URL, source_url)}",
+                "title": title[:255],
+                "slug": _supabase_news_slug(title, source_url),
+                "summary": str(item.get("ringkasan") or "").strip()[:400],
+                "content": "",
+                "source_url": source_url[:1024],
+                "source_name": (str(item.get("sumber_nama") or "").strip() or None),
+                "image_url": (str(item.get("gambar_url") or "").strip() or None),
+                "provider": (str(item.get("provider") or "").strip() or "rss")[:64],
+                "published_at": item.get("published_at").isoformat()
+                if isinstance(item.get("published_at"), datetime)
+                else None,
+            }
+        )
+
+    if not payload:
+        return 0
+
+    response = requests.post(
+        f"{supabase_url}/rest/v1/news_items",
+        headers={
+            "apikey": service_role_key,
+            "Authorization": f"Bearer {service_role_key}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+        params={"on_conflict": "source_url"},
+        json=payload,
+        timeout=30,
+    )
+    response.raise_for_status()
+    return len(payload)
+
+
 def sync_berita_crypto(feeds: list[str], keep_latest: int = 20) -> dict:
     collected: list[dict] = []
     for feed_url in feeds:
@@ -247,6 +344,7 @@ def sync_berita_crypto(feeds: list[str], keep_latest: int = 20) -> dict:
     unique_items = [item for item in by_url.values() if str(item.get("judul") or "").strip()]
     unique_items.sort(key=lambda x: x["published_at"], reverse=True)
     selected = unique_items[:keep_latest]
+    supabase_synced = 0
 
     inserted = 0
     updated = 0
@@ -297,11 +395,17 @@ def sync_berita_crypto(feeds: list[str], keep_latest: int = 20) -> dict:
         ids_to_delete = [doc["_id"] for doc in all_berita[keep_latest:]]
         mongo.db.berita.delete_many({"_id": {"$in": ids_to_delete}})
 
+    try:
+        supabase_synced = _sync_news_items_to_supabase(selected)
+    except Exception as err:
+        logger.exception("Sinkronisasi news_items ke Supabase gagal: %s", err)
+
     return {
         "fetched": len(unique_items),
         "inserted": inserted,
         "updated": updated,
         "kept": min(len(all_berita), keep_latest),
+        "supabase_synced": supabase_synced,
     }
 
 

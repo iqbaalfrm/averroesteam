@@ -8,6 +8,7 @@ import 'package:get/get.dart' hide Response;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:averroes_core/averroes_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/config/app_config.dart';
@@ -42,6 +43,32 @@ String _extractNewsSummary(Map<String, dynamic> item) {
     return '';
   }
   return ringkasan;
+}
+
+Future<List<Map<String, dynamic>>> _fetchSupabaseNewsItems({
+  required int perPage,
+}) async {
+  final List<dynamic> rows = await Supabase.instance.client
+      .from('news_items')
+      .select(
+          'id,title,summary,content,source_url,source_name,image_url,provider,published_at')
+      .order('published_at', ascending: false)
+      .limit(perPage);
+
+  return rows.whereType<Map>().map((Map row) {
+    final Map<String, dynamic> item = <String, dynamic>{
+      'id': row['id']?.toString() ?? '',
+      'judul': row['title']?.toString() ?? '-',
+      'ringkasan': row['summary']?.toString() ?? '',
+      'konten': row['content']?.toString() ?? '',
+      'source_url': row['source_url']?.toString() ?? '',
+      'source_name': row['source_name']?.toString(),
+      'image_url': row['image_url']?.toString(),
+      'provider': row['provider']?.toString(),
+      'published_at': row['published_at']?.toString(),
+    };
+    return item;
+  }).toList();
 }
 
 String _formatPublishedAt(String raw) {
@@ -86,7 +113,34 @@ String _extractNewsSource(Map<String, dynamic> item) {
   if (sumberNama.isNotEmpty) {
     return sumberNama;
   }
+  final String sourceName = (item['source_name'] as String?)?.trim() ?? '';
+  if (sourceName.isNotEmpty) {
+    return sourceName;
+  }
+  final String judul = (item['judul'] as String?)?.trim() ?? '';
+  if (judul.contains(' - ')) {
+    final String suffix = judul.split(' - ').last.trim();
+    if (suffix.isNotEmpty && suffix.length <= 64) {
+      return suffix;
+    }
+  }
   return (item['penulis'] as String?)?.trim() ?? '';
+}
+
+String _extractNewsSourceUrl(Map<String, dynamic> item) {
+  return ((item['source_url'] ?? item['sumber_url']) as String?)?.trim() ?? '';
+}
+
+Future<bool> _openNewsSourceUrl(Map<String, dynamic> item) async {
+  final String sourceUrl = _extractNewsSourceUrl(item);
+  if (sourceUrl.isEmpty) {
+    return false;
+  }
+  final Uri? uri = Uri.tryParse(sourceUrl);
+  if (uri == null) {
+    return false;
+  }
+  return launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -1177,6 +1231,16 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
         _errorMessage = null;
       });
 
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<Map<String, dynamic>> rows =
+            await _fetchSupabaseNewsItems(perPage: 5);
+        setState(() {
+          _beritaList = rows;
+          _isLoading = false;
+        });
+        return;
+      }
+
       final Dio dio = ApiDio.create(attachAuthToken: false);
       final Response<dynamic> response = await dio.get<dynamic>(
         '${AppConfig.apiBaseUrl}/api/berita?per_page=5',
@@ -1227,6 +1291,9 @@ class _BagianBeritaTerbaruState extends State<_BagianBeritaTerbaru> {
   }
 
   Future<void> _bukaDetailBerita(Map<String, dynamic> item) async {
+    if (await _openNewsSourceUrl(item)) {
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _HalamanDetailBerita(item: item),
@@ -1597,9 +1664,18 @@ class _HalamanDaftarBeritaTerbaruState
       _error = null;
     });
     try {
+      if (AppConfig.isSupabaseNativeEnabled) {
+        final List<Map<String, dynamic>> rows =
+            await _fetchSupabaseNewsItems(perPage: 20);
+        setState(() {
+          _items = rows;
+          _loading = false;
+        });
+        return;
+      }
       final Dio dio = ApiDio.create(attachAuthToken: false);
       final Response<dynamic> response = await dio.get<dynamic>(
-        '${AppConfig.apiBaseUrl}/api/berita?per_page=20',
+        '/api/berita?per_page=20',
       );
       final raw = response.data is String
           ? jsonDecode(response.data as String) as Map<String, dynamic>
@@ -1624,6 +1700,9 @@ class _HalamanDaftarBeritaTerbaruState
   }
 
   Future<void> _openDetail(Map<String, dynamic> item) async {
+    if (await _openNewsSourceUrl(item)) {
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _HalamanDetailBerita(item: item),
@@ -1738,7 +1817,8 @@ class _HalamanDaftarBeritaTerbaruState
                                             ),
                                           ),
                                         ),
-                                      if (sumber.isNotEmpty && tanggal.isNotEmpty)
+                                      if (sumber.isNotEmpty &&
+                                          tanggal.isNotEmpty)
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 6),
@@ -1802,7 +1882,7 @@ class _HalamanDetailBeritaState extends State<_HalamanDetailBerita> {
     final String ringkasan = _extractNewsSummary(item);
     final String tanggal = _extractNewsDate(item);
     final String sumberNama = _extractNewsSource(item);
-    final String sumberUrl = (item['sumber_url'] as String?)?.trim() ?? '';
+    final String sumberUrl = _extractNewsSourceUrl(item);
     final String gambarUrl = ((item['gambar_url'] ??
                 item['thumbnail'] ??
                 item['image_url'] ??

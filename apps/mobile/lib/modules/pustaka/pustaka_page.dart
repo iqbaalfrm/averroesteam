@@ -211,8 +211,6 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
                         _load(kategoriSlug: slug, resetKategori: true),
                   ),
                   const SizedBox(height: 24),
-                  _BannerUnggulan(),
-                  const SizedBox(height: 24),
                   _JudulBagian(
                     judul: 'pustaka_newest_col'.tr,
                     aksi: 'pustaka_see_all'.tr,

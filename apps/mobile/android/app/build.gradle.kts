@@ -34,7 +34,7 @@ android {
         applicationId = "id.averroes.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = 28
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -45,7 +45,7 @@ android {
             if (keystorePropertiesFile.exists()) {
                 val storeFilePath = keystoreProperties["storeFile"]?.toString()
                 if (!storeFilePath.isNullOrBlank()) {
-                    storeFile = file(storeFilePath)
+                    storeFile = rootProject.file(storeFilePath)
                 }
                 storePassword = keystoreProperties["storePassword"]?.toString()
                 keyAlias = keystoreProperties["keyAlias"]?.toString()

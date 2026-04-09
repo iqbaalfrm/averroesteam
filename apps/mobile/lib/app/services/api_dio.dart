@@ -7,6 +7,9 @@ import 'auth_service.dart';
 class ApiDio {
   const ApiDio._();
 
+  static const String _nativeBackendDisabledMessage =
+      'Backend HTTP dimatikan saat SUPABASE_NATIVE_ENABLED=true';
+
   static Dio create({bool attachAuthToken = true}) {
     return _buildDio(AppConfig.apiBaseUrl, attachAuthToken);
   }
@@ -30,6 +33,30 @@ class ApiDio {
         },
       ),
     );
+
+    if (AppConfig.isSupabaseNativeEnabled) {
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest:
+              (RequestOptions options, RequestInterceptorHandler handler) {
+            if (!kReleaseMode) {
+              debugPrint(
+                '[API][BLOCKED] ${options.method} ${options.baseUrl}${options.path}',
+              );
+            }
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.cancel,
+                error: _nativeBackendDisabledMessage,
+                message: _nativeBackendDisabledMessage,
+              ),
+            );
+          },
+        ),
+      );
+      return dio;
+    }
 
     dio.interceptors.add(
       InterceptorsWrapper(

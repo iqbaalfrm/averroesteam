@@ -9,7 +9,16 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import mongo, mail
 
-from .common import format_doc, response_error, response_success
+from .common import (
+    auth_required,
+    current_auth_source,
+    current_user_doc,
+    current_user_id,
+    current_user_supabase_id,
+    format_doc,
+    response_error,
+    response_success,
+)
 
 auth_bp = Blueprint("auth_api", __name__, url_prefix="/api/auth")
 
@@ -163,6 +172,69 @@ def _auth_payload(user: dict) -> dict:
         "token": token,
         "user": format_doc(user, "password_hash"),
     }
+
+
+def _serialize_wallet(wallet: dict) -> dict:
+    payload = format_doc(wallet)
+    payload.pop("user_id", None)
+    return payload
+
+
+def _wallets_for_user(user_id: str) -> list[dict]:
+    rows = list(
+        mongo.db.user_wallets.find({"user_id": user_id}).sort(
+            [("is_primary", -1), ("created_at", -1), ("_id", -1)]
+        )
+    )
+    return [_serialize_wallet(row) for row in rows]
+
+
+def _auth_me_payload(user: dict) -> dict:
+    local_user_id = str(user["_id"])
+    payload = {
+        "user": format_doc(user, "password_hash"),
+        "auth_source": current_auth_source(),
+        "supabase_user_id": current_user_supabase_id() or user.get("supabase_user_id"),
+        "wallets": _wallets_for_user(local_user_id),
+    }
+    return payload
+
+
+def _user_identity_variants(user_id: str) -> list:
+    variants = [user_id]
+    if ObjectId.is_valid(user_id):
+        try:
+            variants.append(ObjectId(user_id))
+        except Exception:
+            pass
+    return variants
+
+
+def _purge_legacy_user_account(user: dict, user_id: str) -> None:
+    user_variants = _user_identity_variants(user_id)
+    now = datetime.utcnow()
+
+    mongo.db.user_wallets.delete_many({"user_id": {"$in": user_variants}})
+    mongo.db.portofolio.delete_many({"user_id": {"$in": user_variants}})
+    mongo.db.portofolio_riwayat.delete_many({"user_id": {"$in": user_variants}})
+    mongo.db.materi_progress.delete_many({"user_id": {"$in": user_variants}})
+    mongo.db.quiz_submissions.delete_many({"user_id": {"$in": user_variants}})
+    mongo.db.sertifikat_user.delete_many({"user_id": {"$in": user_variants}})
+
+    mongo.db.diskusi.update_many(
+        {"user_id": {"$in": user_variants}},
+        {"$set": {"user_id": None, "updated_at": now}},
+    )
+    mongo.db.sessions.update_many(
+        {"user_id": {"$in": user_variants}},
+        {"$set": {"user_id": None, "updated_at": now}},
+    )
+
+    email = str(user.get("email") or "").strip().lower()
+    if email:
+        mongo.db.password_reset_otp.delete_many({"email": email})
+
+    mongo.db.users.delete_one({"_id": user["_id"]})
 
 
 def _get_google_client_ids():
@@ -458,33 +530,35 @@ def google_login():
     return response_success("Login Google berhasil", _auth_payload(user))
 
 
+@auth_bp.get("/sync")
+@auth_required()
+def sync_me():
+    user = current_user_doc()
+    if not user:
+        return response_error("User tidak ditemukan", 404)
+    return response_success(
+        "Session berhasil disinkronkan",
+        _auth_me_payload(user),
+    )
+
+
 @auth_bp.get("/me")
-@jwt_required()
+@auth_required()
 def me():
-    from flask_jwt_extended import get_jwt_identity
-
-    user_id = get_jwt_identity()
-    if user_id is None:
-        return response_error("Unauthorized", 401)
-
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    user = current_user_doc()
     if not user:
         return response_error("User tidak ditemukan", 404)
     return response_success(
         "Profil berhasil diambil",
-        {"user": format_doc(user, "password_hash")},
+        _auth_me_payload(user),
     )
 
 
 @auth_bp.put("/me")
-@jwt_required()
+@auth_required()
 def update_me():
-    from flask_jwt_extended import get_jwt_identity
-
-    user_id = get_jwt_identity()
-    if user_id is None:
-        return response_error("Unauthorized", 401)
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    user_id = current_user_id()
+    user = current_user_doc()
     if not user:
         return response_error("User tidak ditemukan", 404)
 
@@ -497,7 +571,7 @@ def update_me():
 
     if email:
         exists = mongo.db.users.find_one(
-            {"email": email, "_id": {"$ne": ObjectId(user_id)}}
+            {"email": email, "_id": {"$ne": user["_id"]}}
         )
         if exists:
             return response_error("Email sudah digunakan user lain", 400)
@@ -509,12 +583,109 @@ def update_me():
         "email": email,
         "updated_at": datetime.utcnow(),
     }
-    mongo.db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+    mongo.db.users.update_one({"_id": user["_id"]}, {"$set": update_data})
 
     user.update(update_data)
     return response_success(
         "Profil berhasil diperbarui",
-        {"user": format_doc(user, "password_hash")},
+        _auth_me_payload(user),
+    )
+
+
+@auth_bp.delete("/me")
+@auth_required()
+def delete_me():
+    user_id = current_user_id()
+    user = current_user_doc()
+    if not user_id or not user:
+        return response_error("User tidak ditemukan", 404)
+
+    role = str(user.get("role") or "").strip().lower()
+    if role == "admin":
+        return response_error("Akun admin tidak bisa dihapus lewat aplikasi", 403)
+
+    _purge_legacy_user_account(user, user_id)
+    return response_success(
+        "Akun berhasil dihapus",
+        {"deleted": True, "user_id": user_id},
+    )
+
+
+@auth_bp.get("/wallets")
+@auth_required()
+def list_wallets():
+    user_id = current_user_id()
+    if user_id is None:
+        return response_error("Unauthorized", 401)
+    return response_success("Berhasil mengambil wallet user", _wallets_for_user(user_id))
+
+
+@auth_bp.post("/wallets/link")
+@auth_required()
+def link_wallet():
+    user = current_user_doc()
+    user_id = current_user_id()
+    if not user or user_id is None:
+        return response_error("User tidak ditemukan", 404)
+
+    payload = request.get_json() or {}
+    wallet_address = str(payload.get("wallet_address") or "").strip()
+    privy_user_id = str(payload.get("privy_user_id") or "").strip()
+    wallet_type = str(payload.get("wallet_type") or "embedded").strip().lower()
+    wallet_client = str(payload.get("wallet_client") or "privy").strip().lower()
+    chain_type = str(payload.get("chain_type") or "evm").strip().lower()
+    is_primary = bool(payload.get("is_primary", True))
+
+    if not wallet_address:
+        return response_error("wallet_address wajib diisi", 400)
+
+    now = datetime.utcnow()
+    if is_primary:
+        mongo.db.user_wallets.update_many(
+            {"user_id": user_id},
+            {"$set": {"is_primary": False, "updated_at": now}},
+        )
+
+    query = {"user_id": user_id, "wallet_address": wallet_address.lower()}
+    update_data = {
+        "user_id": user_id,
+        "supabase_user_id": current_user_supabase_id() or user.get("supabase_user_id"),
+        "privy_user_id": privy_user_id or None,
+        "wallet_address": wallet_address.lower(),
+        "wallet_type": wallet_type,
+        "wallet_client": wallet_client,
+        "chain_type": chain_type,
+        "is_primary": is_primary,
+        "updated_at": now,
+    }
+
+    existing = mongo.db.user_wallets.find_one(query)
+    if existing:
+        mongo.db.user_wallets.update_one({"_id": existing["_id"]}, {"$set": update_data})
+        wallet = mongo.db.user_wallets.find_one({"_id": existing["_id"]})
+    else:
+        update_data["created_at"] = now
+        result = mongo.db.user_wallets.insert_one(update_data)
+        wallet = mongo.db.user_wallets.find_one({"_id": result.inserted_id})
+
+    mongo.db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "privy_user_id": privy_user_id or user.get("privy_user_id"),
+                "wallet_address": wallet_address.lower(),
+                "updated_at": now,
+            }
+        },
+    )
+
+    return response_success(
+        "Wallet berhasil ditautkan",
+        {
+            "wallet": _serialize_wallet(wallet or update_data),
+            "wallets": _wallets_for_user(user_id),
+        },
+        201,
     )
 
 

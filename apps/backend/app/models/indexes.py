@@ -3,6 +3,7 @@ from pymongo.database import Database
 
 def setup_indexes(db: Database):
     db.users.create_index([("email", ASCENDING)], unique=True, sparse=True)
+    db.users.create_index([("supabase_user_id", ASCENDING)], unique=True, sparse=True)
     db.password_reset_otp.create_index([("email", ASCENDING)])
     db.password_reset_otp.create_index([("email", ASCENDING), ("purpose", ASCENDING)])
     berita_indexes = db.berita.index_information()
@@ -20,3 +21,5 @@ def setup_indexes(db: Database):
     db.diskusi.create_index([("created_at", DESCENDING)])
     db.screener.create_index([("simbol", ASCENDING)], unique=True)
     db.buku.create_index([("slug", ASCENDING)], unique=True)
+    db.user_wallets.create_index([("user_id", ASCENDING), ("wallet_address", ASCENDING)], unique=True)
+    db.user_wallets.create_index([("privy_user_id", ASCENDING)], sparse=True)
