@@ -70,9 +70,7 @@ copy .env.example .env
 python news_sync_worker.py
 ```
 
-Boundary arsitektur serverless vs VPS ada di:
-
-- `docs/serverless-vps-boundary.md`
+Boundary arsitektur aplikasi dan worker telah dijelaskan selengkapnya di dalam `docs/averroes.md`.
 
 ## Tim
 
