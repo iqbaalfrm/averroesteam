@@ -1721,139 +1721,190 @@ class _HalamanDaftarBeritaTerbaruState
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: _StateCard(
+                  icon: Symbols.newspaper,
+                  message: 'Kami sedang menyiapkan kabar terbaru untuk kamu.',
+                  backgroundColor: Colors.white,
+                  borderColor: Color(0xFFE2E8F0),
+                  foregroundColor: Color(0xFF475569),
+                ),
+              ),
+            )
           : _error != null
               ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 8),
-                      TextButton(
-                          onPressed: _fetch, child: const Text('Coba lagi')),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _items.length,
-                  itemBuilder: (context, i) {
-                    final item = _items[i];
-                    final judul = (item['judul'] as String?) ?? '';
-                    final ringkasan = _extractNewsSummary(item);
-                    final tanggal = _extractNewsDate(item);
-                    final sumber = _extractNewsSource(item);
-                    final gambarUrl = ((item['gambar_url'] ??
-                            item['thumbnail'] ??
-                            item['image_url'] ??
-                            item['urlToImage']) as String?) ??
-                        '';
-                    return GestureDetector(
-                      onTap: () => _openDetail(item),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0xFFF1F5F9)),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: gambarUrl.isNotEmpty
-                                  ? Image.network(
-                                      gambarUrl,
-                                      width: 72,
-                                      height: 72,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _newsThumbFallback(),
-                                    )
-                                  : _newsThumbFallback(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: _StateCard(
+                      icon: Symbols.cloud_off,
+                      message: _error!,
+                      backgroundColor: Color(0xFFFEF2F2),
+                      borderColor: Color(0xFFFECACA),
+                      foregroundColor: Color(0xFFB91C1C),
+                      action: GestureDetector(
+                        onTap: _fetch,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'try_again'.tr,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    judul,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  if (ringkasan.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      ringkasan,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        color: const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: <Widget>[
-                                      if (sumber.isNotEmpty)
-                                        Flexible(
-                                          child: Text(
-                                            sumber,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF64748B),
-                                            ),
-                                          ),
-                                        ),
-                                      if (sumber.isNotEmpty &&
-                                          tanggal.isNotEmpty)
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 6),
-                                          child: Container(
-                                            width: 3,
-                                            height: 3,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFFCBD5E1),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        ),
-                                      if (tanggal.isNotEmpty)
-                                        Flexible(
-                                          child: Text(
-                                            tanggal,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 10,
-                                              color: const Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                )
+              : _items.isEmpty
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: _StateCard(
+                          icon: Symbols.newspaper,
+                          message: 'Belum ada berita baru saat ini.',
+                          backgroundColor: Colors.white,
+                          borderColor: Color(0xFFE2E8F0),
+                          foregroundColor: Color(0xFF475569),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _items.length,
+                      itemBuilder: (context, i) {
+                        final item = _items[i];
+                        final judul = (item['judul'] as String?) ?? '';
+                        final ringkasan = _extractNewsSummary(item);
+                        final tanggal = _extractNewsDate(item);
+                        final sumber = _extractNewsSource(item);
+                        final gambarUrl = ((item['gambar_url'] ??
+                                item['thumbnail'] ??
+                                item['image_url'] ??
+                                item['urlToImage']) as String?) ??
+                            '';
+                        return GestureDetector(
+                          onTap: () => _openDetail(item),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border:
+                                  Border.all(color: const Color(0xFFF1F5F9)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: gambarUrl.isNotEmpty
+                                      ? Image.network(
+                                          gambarUrl,
+                                          width: 72,
+                                          height: 72,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              _newsThumbFallback(),
+                                        )
+                                      : _newsThumbFallback(),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        judul,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      if (ringkasan.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          ringkasan,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 10,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: <Widget>[
+                                          if (sumber.isNotEmpty)
+                                            Flexible(
+                                              child: Text(
+                                                sumber,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      const Color(0xFF64748B),
+                                                ),
+                                              ),
+                                            ),
+                                          if (sumber.isNotEmpty &&
+                                              tanggal.isNotEmpty)
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6),
+                                              child: Container(
+                                                width: 3,
+                                                height: 3,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFFCBD5E1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ),
+                                          if (tanggal.isNotEmpty)
+                                            Flexible(
+                                              child: Text(
+                                                tanggal,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                  fontSize: 10,
+                                                  color:
+                                                      const Color(0xFF94A3B8),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
     );
   }
 

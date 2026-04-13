@@ -1,0 +1,32 @@
+services:
+  # 1. Backend API (Web Service)
+  - type: web
+    name: averroes-backend
+    env: python
+    buildCommand: "pip install -r apps/backend/requirements.txt"
+    startCommand: "cd apps/backend && gunicorn wsgi:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+
+  # 2. News Sync Worker (Background Worker)
+  - type: worker
+    name: averroes-news-sync
+    env: python
+    buildCommand: "pip install -r apps/vps-news-sync/requirements.txt"
+    startCommand: "cd apps/vps-news-sync && python news_sync_worker.py --loop"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: NEWS_SYNC_INTERVAL_SECONDS
+        value: "3600" # Sync setiap 1 jam

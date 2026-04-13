@@ -558,8 +558,8 @@ Core backend libraries:
 
 Database:
 
-- **MongoDB**
-- **PyMongo**
+- **Supabase (PostgreSQL)**
+- **psycopg** (untuk koneksi dari Flask/Python)
 
 Payment and auth integrations:
 
@@ -653,10 +653,11 @@ Catatan:
 Arsitektur tinggi Averroes:
 
 1. **Mobile Flutter App** menjadi channel utama user.
-2. Mobile mengakses **Flask API Backend**.
-3. Backend menyimpan dan membaca data dari **MongoDB**.
-4. Tim internal mengelola konten lewat **Admin Panel Flask**.
-5. Backend/mobile mengonsumsi beberapa **API eksternal** untuk enrichment:
+2. Data, Auth, dan Edge Functions berjalan sepenuhnya di **Supabase (PostgreSQL)**.
+3. Sebagian fitur (API Eksternal, Admin Panel) berjalan di **Flask API Backend** (di-deploy ke Render).
+4. Pencarian berita (News Sync) berjalan sebagai **Background Worker Python** (di-deploy ke Render).
+5. Dokumen publik (Privacy Policy, Landing Page) di-hosting menggunakan **Vercel** atau GitHub Pages.
+6. Backend/mobile mengonsumsi beberapa **API eksternal** untuk enrichment:
    - market
    - jadwal shalat
    - chatbot

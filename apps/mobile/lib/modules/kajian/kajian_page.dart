@@ -94,7 +94,8 @@ class _HalamanKajianState extends State<HalamanKajian> {
             )
             .eq('is_active', true)
             .order('sort_order')
-            .limit(20);
+            .limit(20)
+            .timeout(const Duration(seconds: 8));
         for (final dynamic item in data) {
           if (item is! Map) {
             continue;
@@ -107,7 +108,9 @@ class _HalamanKajianState extends State<HalamanKajian> {
         }
       } else {
         final dio = ApiDio.create(attachAuthToken: false);
-        final response = await dio.get<dynamic>('/api/kajian');
+        final response = await dio
+            .get<dynamic>('/api/kajian')
+            .timeout(const Duration(seconds: 8));
         final dynamic raw = response.data;
         if (raw is Map<String, dynamic>) {
           final dynamic data = raw['data'];
@@ -166,7 +169,9 @@ class _HalamanKajianState extends State<HalamanKajian> {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
-          title: Text('Kajian Averroes', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800)),
+          title: Text('Kajian Averroes',
+              style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18, fontWeight: FontWeight.w800)),
           backgroundColor: const Color(0xFFF8FAFC),
           elevation: 0,
         ),
@@ -177,7 +182,7 @@ class _HalamanKajianState extends State<HalamanKajian> {
               icon: Symbols.desktop_windows,
               title: 'Platform Tidak Didukung',
               message:
-                  'Pemutar video belum mendukung Windows Desktop secara bawaan. Jalankan lewat Android Emulator atau iOS untuk preview penuh.',
+                  'Halaman kajian paling optimal dibuka dari Android atau iPhone. Untuk preview desktop, gunakan emulator.',
             ),
           ),
         ),
@@ -251,7 +256,7 @@ class _HalamanKajianState extends State<HalamanKajian> {
     if (_loading) {
       return const AppLoadingStateCard(
         title: 'Memuat Kajian',
-        message: 'Daftar video kajian sedang diambil dari backend.',
+        message: 'Kami sedang menyiapkan daftar kajian untuk kamu.',
       );
     }
 
@@ -260,7 +265,7 @@ class _HalamanKajianState extends State<HalamanKajian> {
         icon: Symbols.smart_display,
         title: 'Belum Ada Kajian',
         message:
-            'Input data kajian dulu lewat panel admin dengan judul, deskripsi, dan link YouTube.',
+            'Belum ada video kajian yang tayang saat ini. Coba lagi beberapa saat lagi.',
       );
     }
 
@@ -744,8 +749,3 @@ class _KajianVideo {
     return null;
   }
 }
-
-
-
-
-

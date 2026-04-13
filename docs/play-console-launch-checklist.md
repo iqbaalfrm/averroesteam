@@ -11,28 +11,28 @@ Status teknis repo per 9 April 2026:
 
 ## Wajib sebelum submit production
 
-- Host `docs/privacy-policy.html` ke URL HTTPS publik.
+- Host `docs/privacy-policy.html` ke URL HTTPS publik yang stabil.
 - Jika memakai GitHub Pages repo ini, kandidat URL-nya:
   - `https://iqbaalfrm.github.io/averroesteam/privacy-policy.html`
 - Isi field Privacy Policy di Play Console dengan URL publik tersebut.
-- Siapkan akun reviewer atau instruksi App Access untuk OTP/login.
-- Lengkapi form Data safety sesuai integrasi nyata:
+- Siapkan akun reviewer atau instruksi App Access yang ringkas untuk alur OTP/login.
+- Lengkapi form Data safety sesuai data yang benar-benar dipakai aplikasi:
   - account data: nama, email
   - app activity: progress belajar, kuis, sertifikat
   - optional integrations: notification settings, wallet linking, chatbot
-- Verifikasi edge function Supabase production sudah deploy:
+- Pastikan edge function Supabase production berikut sudah aktif:
   - `auth-send-otp`
   - `custom-auth-reset-password`
   - `delete-account`
-- Verifikasi migration Supabase production sudah terpasang.
-- Jika berita mau tampil dengan gambar publisher asli dan link artikel asli, deploy worker VPS:
+- Pastikan migration Supabase production terbaru sudah terpasang.
+- Jika berita ingin menampilkan gambar publisher asli dan membuka artikel asli, deploy worker VPS:
   - `apps/vps-news-sync`
   - isi `.env` worker dengan `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY`
   - jalankan `python news_sync_worker.py` atau mode `systemd --loop`
-- Pastikan provider Auth Supabase yang dipakai production sudah aktif:
+- Pastikan provider Auth Supabase untuk production sudah aktif:
   - Anonymous sign-ins untuk login tamu
   - Google provider jika tombol Google login ingin ditampilkan
-- Pastikan secret edge function production sudah terisi:
+- Pastikan secret edge function production sudah lengkap:
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
   - `APP_BRAND_NAME`
@@ -56,7 +56,7 @@ supabase secrets set --env-file supabase/.env.functions.example
 Catatan:
 
 - Isi `supabase/.env.functions.example` dengan value production asli sebelum `supabase secrets set`.
-- Migration terbaru juga memperbaiki insert native untuk `portfolio_items`, `discussion_posts`, dan `consultation_sessions`, jadi `supabase db push` wajib dijalankan sebelum smoke test mobile.
+- Migration terbaru juga memperbaiki alur insert native untuk `portfolio_items`, `discussion_posts`, dan `consultation_sessions`, jadi `supabase db push` wajib dijalankan sebelum smoke test mobile.
 
 Contoh publish Privacy Policy dengan GitHub Pages:
 
@@ -73,9 +73,9 @@ Lalu aktifkan GitHub Pages untuk branch yang memuat folder `docs/`.
 - App name:
   - `Averroes`
 - Short description:
-  - Isi maksimal 80 karakter.
+  - Tulis ringkas, jelas, dan hindari klaim berlebihan.
 - Full description:
-  - Isi maksimal 4000 karakter.
+  - Fokus pada manfaat utama aplikasi, bukan istilah internal stack.
 - App icon:
   - Gunakan 512 x 512 PNG.
   - Candidate source: `apps/mobile/web/icons/Icon-512.png`
@@ -83,7 +83,7 @@ Lalu aktifkan GitHub Pages untuk branch yang memuat folder `docs/`.
   - Siapkan minimal 2.
   - Disarankan: Login, Beranda, Screener, Kajian, Zakat, Pustaka.
 - Feature graphic:
-  - Siapkan 1024 x 500 PNG.
+  - Siapkan 1024 x 500 PNG dengan judul pendek dan visual yang tidak terlalu padat.
 - Contact details:
   - Email support aktif.
   - Website jika ada.

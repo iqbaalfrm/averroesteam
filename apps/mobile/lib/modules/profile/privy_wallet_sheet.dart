@@ -29,7 +29,6 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
   bool _syncingWallet = false;
   bool _otpSent = false;
   bool _isPrivyAuthenticated = false;
-  String? _privyUserId;
   String? _statusMessage;
   List<Map<String, dynamic>> _wallets = const <Map<String, dynamic>>[];
 
@@ -53,13 +52,11 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
       if (AppConfig.isPrivyConfigured) {
         final user = await PrivyWalletService.instance.getUser();
         _isPrivyAuthenticated = user != null;
-        _privyUserId = user?.id;
         if (_isPrivyAuthenticated && syncWallets) {
           await PrivyWalletService.instance.syncCurrentUserWallets();
         }
       } else {
         _isPrivyAuthenticated = false;
-        _privyUserId = null;
       }
       final List<Map<String, dynamic>> wallets =
           await WalletLinkService.instance.listWallets();
@@ -90,7 +87,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
     final String email = _emailController.text.trim();
     if (!_isValidEmail(email)) {
       setState(() {
-        _statusMessage = 'Email akun belum valid untuk Privy';
+        _statusMessage =
+            'Email akun belum siap dipakai untuk menghubungkan wallet';
       });
       return;
     }
@@ -102,7 +100,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
       }
       setState(() {
         _otpSent = true;
-        _statusMessage = 'Kode verifikasi Privy sudah dikirim ke email kamu';
+        _statusMessage = 'Kode verifikasi sudah dikirim ke email kamu';
       });
     } catch (error) {
       if (!mounted) {
@@ -134,10 +132,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
       }
       setState(() {
         _isPrivyAuthenticated = user != null;
-        _privyUserId = user?.id;
         _wallets = wallets;
-        _statusMessage =
-            'Wallet Privy berhasil dihubungkan dari akun Averroes ini';
+        _statusMessage = 'Wallet berhasil dihubungkan ke akun ini';
       });
     } catch (error) {
       if (!mounted) {
@@ -160,7 +156,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
     final String code = _otpController.text.trim();
     if (code.isEmpty) {
       setState(() {
-        _statusMessage = 'Masukkan kode verifikasi Privy terlebih dahulu';
+        _statusMessage = 'Masukkan kode verifikasi terlebih dahulu';
       });
       return;
     }
@@ -177,12 +173,10 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
       final user = await PrivyWalletService.instance.getUser();
       setState(() {
         _isPrivyAuthenticated = user != null;
-        _privyUserId = user?.id;
         _wallets = wallets;
         _otpSent = false;
         _otpController.clear();
-        _statusMessage =
-            'Akun Privy terhubung dan wallet berhasil disinkronkan';
+        _statusMessage = 'Wallet berhasil dihubungkan dan siap dipakai';
       });
     } catch (error) {
       if (!mounted) {
@@ -212,8 +206,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
       setState(() {
         _wallets = wallets;
         _statusMessage = wallets.isEmpty
-            ? 'Belum ada wallet yang bisa disinkronkan'
-            : 'Wallet Privy berhasil diperbarui ke Supabase';
+            ? 'Belum ada wallet yang tersedia untuk akun ini'
+            : 'Data wallet berhasil diperbarui';
       });
     } catch (error) {
       if (!mounted) {
@@ -233,8 +227,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
   Widget build(BuildContext context) {
     final bool hasWallets = _wallets.isNotEmpty;
     final String subtitle = _isPrivyAuthenticated
-        ? 'Privy sudah terhubung ke akun ini'
-        : 'Hubungkan wallet Privy langsung dari sesi akun Averroes ini';
+        ? 'Wallet akunmu sudah terhubung dan bisa diperbarui kapan saja'
+        : 'Hubungkan wallet agar alamat dompetmu tersimpan rapi di profil';
 
     return SafeArea(
       child: Padding(
@@ -244,7 +238,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                'Wallet Privy',
+                'Wallet',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
@@ -265,9 +259,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                 _InfoCard(
                   icon: Symbols.error_outline,
                   color: AppColors.warning,
-                  title: 'Privy belum siap',
-                  message:
-                      'Isi PRIVY_APP_ID dan PRIVY_CLIENT_ID yang benar di env mobile dulu.',
+                  title: 'Wallet belum tersedia',
+                  message: 'Fitur wallet belum dibuka untuk build ini.',
                 ),
               ] else ...<Widget>[
                 _InfoCard(
@@ -278,11 +271,11 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                       ? AppColors.emerald
                       : AppColors.emeraldBright,
                   title: _isPrivyAuthenticated
-                      ? 'Akun Privy terhubung'
-                      : 'Hubungkan akun Privy',
+                      ? 'Wallet sudah terhubung'
+                      : 'Hubungkan wallet',
                   message: _isPrivyAuthenticated
-                      ? 'Privy user id: ${_shortId(_privyUserId)}'
-                      : 'Privy bisa login otomatis dari sesi Supabase tanpa OTP tambahan.',
+                      ? 'Sesi wallet aktif untuk akun ini.'
+                      : 'Kamu bisa menghubungkan wallet langsung dari akun yang sedang dipakai.',
                 ),
               ],
               const SizedBox(height: 14),
@@ -313,8 +306,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                       const SizedBox(height: 14),
                       CustomButton(
                         text: _syncingWallet
-                            ? 'Menghubungkan Privy...'
-                            : 'Hubungkan dari Akun Ini',
+                            ? 'Menghubungkan wallet...'
+                            : 'Hubungkan otomatis',
                         onPressed:
                             (_syncingWallet || !AppConfig.isPrivyConfigured)
                                 ? null
@@ -322,7 +315,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Kalau custom auth Privy belum diset di dashboard, kamu masih bisa pakai kode email manual di bawah.',
+                        'Kalau sambungan otomatis belum berhasil, gunakan kode verifikasi email di bawah.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           height: 1.5,
@@ -331,9 +324,13 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                       ),
                       const SizedBox(height: 14),
                       CustomButton(
-                        text: _sendingCode ? 'Mengirim kode...' : 'Kirim Kode Privy',
+                        text: _sendingCode
+                            ? 'Mengirim kode...'
+                            : 'Kirim kode email',
                         onPressed:
-                            (_sendingCode || !AppConfig.isPrivyConfigured) ? null : _sendCode,
+                            (_sendingCode || !AppConfig.isPrivyConfigured)
+                                ? null
+                                : _sendCode,
                       ),
                     ],
                     if (_otpSent && !_isPrivyAuthenticated) ...<Widget>[
@@ -343,7 +340,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
-                          labelText: 'Kode Privy',
+                          labelText: 'Kode verifikasi',
                           prefixIcon: Icon(Symbols.password),
                         ),
                       ),
@@ -351,18 +348,17 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                       CustomButton(
                         text: _verifyingCode
                             ? 'Memverifikasi...'
-                            : 'Verifikasi dan Buat Wallet',
-                        onPressed: _verifyingCode ? null : _verifyAndCreateWallet,
+                            : 'Verifikasi dan hubungkan',
+                        onPressed:
+                            _verifyingCode ? null : _verifyAndCreateWallet,
                       ),
                     ],
                     if (_isPrivyAuthenticated) ...<Widget>[
                       const SizedBox(height: 14),
                       CustomButton(
                         text: _syncingWallet
-                            ? 'Menyinkronkan wallet...'
-                            : (hasWallets
-                                ? 'Sinkronkan Ulang Wallet'
-                                : 'Buat Wallet Privy'),
+                            ? 'Memperbarui wallet...'
+                            : (hasWallets ? 'Perbarui wallet' : 'Buat wallet'),
                         onPressed: _syncingWallet ? null : _syncWallets,
                       ),
                     ],
@@ -383,7 +379,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                   ),
                 ),
               Text(
-                'Wallet tersinkron',
+                'Wallet terhubung',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -392,7 +388,8 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
               ),
               const SizedBox(height: 10),
               if (_loading)
-                const Center(child: Padding(
+                const Center(
+                    child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: CircularProgressIndicator(),
                 ))
@@ -402,7 +399,7 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
                   color: AppColors.muted,
                   title: 'Belum ada wallet',
                   message:
-                      'Setelah Privy terverifikasi, wallet yang dibuat akan otomatis masuk ke Supabase.',
+                      'Setelah wallet berhasil dihubungkan, alamatnya akan muncul di sini.',
                 )
               else
                 Column(
@@ -425,15 +422,22 @@ class _PrivyWalletSheetState extends State<PrivyWalletSheet> {
   bool _isValidEmail(String value) =>
       value.contains('@') && value.contains('.');
 
-  String _cleanError(Object error) =>
-      error.toString().replaceFirst('Exception: ', '').trim();
-
-  String _shortId(String? value) {
-    final String raw = (value ?? '').trim();
-    if (raw.length <= 12) {
-      return raw.isEmpty ? '-' : raw;
+  String _cleanError(Object error) {
+    final String raw = error.toString().replaceFirst('Exception: ', '').trim();
+    final String lower = raw.toLowerCase();
+    if (lower.contains('network') || lower.contains('timeout')) {
+      return 'Koneksi sedang bermasalah. Coba lagi sebentar.';
     }
-    return '${raw.substring(0, 6)}...${raw.substring(raw.length - 4)}';
+    if (lower.contains('invalid') && lower.contains('code')) {
+      return 'Kode verifikasi belum sesuai.';
+    }
+    if (lower.contains('privy')) {
+      return 'Wallet belum bisa dihubungkan saat ini.';
+    }
+    if (lower.contains('supabase')) {
+      return 'Data wallet belum bisa diperbarui saat ini.';
+    }
+    return raw;
   }
 }
 
@@ -558,7 +562,7 @@ class _WalletCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          'Primary',
+                          'Utama',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -571,7 +575,7 @@ class _WalletCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$walletClient • $walletType • $chainType',
+                  '${_labelWalletClient(walletClient)} • ${_labelWalletType(walletType)} • ${chainType.toUpperCase()}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -591,5 +595,24 @@ class _WalletCard extends StatelessWidget {
       return address;
     }
     return '${address.substring(0, 6)}...${address.substring(address.length - 4)}';
+  }
+
+  String _labelWalletClient(String value) {
+    final String normalized = value.trim().toLowerCase();
+    if (normalized == 'privy') {
+      return 'Averroes Wallet';
+    }
+    return value;
+  }
+
+  String _labelWalletType(String value) {
+    final String normalized = value.trim().toLowerCase();
+    if (normalized == 'embedded') {
+      return 'Embedded';
+    }
+    if (normalized == 'wallet') {
+      return 'Wallet';
+    }
+    return value;
   }
 }

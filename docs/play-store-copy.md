@@ -6,29 +6,28 @@
 
 ## Short description
 
-`Belajar aset kripto syariah, fiqh muamalah, zakat, dan pustaka islami.`
+`Belajar aset kripto syariah, kajian muamalah, zakat, dan pustaka digital.`
 
 ## Full description
 
-`Averroes adalah aplikasi edukasi aset kripto syariah dan fiqh muamalah digital untuk membantu pengguna belajar dengan lebih terarah, tenang, dan bertanggung jawab.
+`Averroes adalah ruang belajar untuk memahami aset kripto syariah, fiqh muamalah digital, dan kebiasaan finansial yang lebih tenang.
 
-Di dalam Averroes, kamu bisa mempelajari konsep dasar aset digital syariah, melihat screener status syariah aset kripto, mengikuti materi edukasi, menonton kajian, menghitung zakat, membaca pustaka digital, dan memakai chatbot pembelajaran.
+Di dalam Averroes, kamu bisa membaca materi terstruktur, menonton kajian, memantau progres belajar, melihat screener syariah aset kripto, menghitung zakat, dan membuka pustaka digital dalam satu aplikasi.
 
 Fitur utama:
 
-- Screener Syariah untuk membantu memahami status aset kripto berdasarkan pendekatan edukatif.
-- Kelas edukasi dengan materi, progres belajar, kuis, dan sertifikat.
-- Kajian video yang dapat diputar langsung di dalam aplikasi.
+- Screener Syariah untuk membantu membaca status aset kripto secara edukatif.
+- Kelas belajar dengan materi, progres, kuis, dan sertifikat.
+- Kajian video yang bisa diputar langsung di aplikasi.
 - Kalkulator zakat untuk estimasi awal zakat maal.
-- Pustaka digital untuk membaca referensi pilihan.
-- Chatbot Averroes untuk tanya jawab edukatif.
+- Pustaka digital berisi bacaan pilihan.
 - Profil belajar untuk memantau progres dan sertifikat.
 
 Averroes dirancang untuk:
 
-- pengguna yang ingin memahami aset kripto syariah
+- pengguna yang ingin memahami aset kripto syariah secara lebih jernih
 - pembelajar fiqh muamalah digital
-- pengguna yang ingin eksplorasi materi islami modern dalam satu aplikasi
+- pengguna yang ingin merapikan proses belajar dalam satu aplikasi
 
 Catatan penting:
 
@@ -36,11 +35,11 @@ Catatan penting:
 - Informasi dalam aplikasi tidak dimaksudkan sebagai fatwa resmi atau nasihat keuangan personal.
 - Beberapa fitur memerlukan akun agar progres belajar dapat disimpan.
 
-Belajar lebih tertata, lebih jernih, dan lebih relevan dengan ekosistem digital bersama Averroes.`
+Averroes dirancang agar proses belajar terasa lebih rapi, lebih relevan, dan lebih dekat dengan kebutuhan pengguna Muslim di ekosistem digital hari ini.`
 
 ## Reviewer app access
 
-`Aplikasi dapat dibuka tanpa login untuk sebagian fitur. Untuk fitur akun, reviewer dapat memakai flow register/login email. Jika build production memakai OTP email, siapkan alamat email reviewer atau akun demo untuk tim review.`
+`Sebagian fitur dapat dibuka tanpa login. Untuk fitur akun, reviewer dapat memakai alur daftar atau masuk dengan email. Jika build production memakai kode verifikasi email, siapkan alamat email reviewer atau akun demo agar proses review berjalan lancar.`
 
 ## Suggested screenshot order
 

@@ -327,7 +327,7 @@ class _HalamanPustakaState extends State<HalamanPustaka> {
             ? 'Internal'
             : 'Gratis';
     if (size.isEmpty) return access;
-    return '$size · $access';
+    return '$size • $access';
   }
 
   String _formatBytes(int? bytes) {
@@ -1043,7 +1043,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Gagal memuat detail buku';
+        _error = 'Detail buku belum bisa dimuat sekarang.';
         _loading = false;
       });
     }
@@ -1066,7 +1066,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
         final launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
         if (!launched && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak bisa membuka preview Drive')),
+            const SnackBar(content: Text('Preview belum bisa dibuka saat ini')),
           );
         }
         return;
@@ -1091,13 +1091,13 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
       );
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak bisa membuka file buku')),
+          const SnackBar(content: Text('File buku belum bisa dibuka saat ini')),
         );
       }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal membuka akses buku')),
+        const SnackBar(content: Text('Akses buku belum bisa dibuka sekarang')),
       );
     } finally {
       if (mounted) setState(() => _opening = false);
@@ -1153,7 +1153,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                 child: AppLoadingStateCard(
                   title: 'Memuat Detail Buku',
                   message:
-                      'Informasi buku dan akses bacanya sedang disiapkan.',
+                      'Kami sedang menyiapkan informasi buku dan akses bacanya.',
                 ),
               ),
             )
@@ -1232,7 +1232,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                           const SizedBox(height: 16),
                           Text(
                             _buku.deskripsi.isEmpty
-                                ? 'Deskripsi belum tersedia.'
+                                ? 'Ringkasan buku belum tersedia.'
                                 : _buku.deskripsi,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
@@ -1272,7 +1272,7 @@ class _PustakaDetailPageState extends State<_PustakaDetailPage> {
                     if (!_buku.hasFile) ...[
                       const SizedBox(height: 10),
                       Text(
-                        'File ebook belum tersedia untuk buku ini.',
+                        'File buku ini belum tersedia untuk dibuka.',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1326,7 +1326,7 @@ class _PdfReaderPageState extends State<_PdfReaderPage> {
       );
       final bytes = response.data;
       if (bytes == null || bytes.isEmpty) {
-        throw Exception('File PDF kosong');
+        throw Exception('File PDF tidak tersedia');
       }
       if (!mounted) return;
       setState(() {
@@ -1389,14 +1389,14 @@ class _PdfReaderPageState extends State<_PdfReaderPage> {
                     const Icon(Icons.picture_as_pdf_outlined, size: 40),
                     const SizedBox(height: 10),
                     Text(
-                      'Gagal memuat PDF',
+                      'Buku belum bisa dibuka',
                       style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      _error!,
+                      'Coba lagi beberapa saat atau buka lewat browser jika tersedia.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
@@ -1601,7 +1601,7 @@ class _PustakaLoadingList extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AppLoadingStateCard(
       title: 'Memuat Pustaka',
-      message: 'Daftar ebook Averroes sedang disiapkan untuk kamu baca.',
+      message: 'Kami sedang menyiapkan koleksi bacaan untuk kamu.',
     );
   }
 }
@@ -1613,7 +1613,7 @@ class _PustakaEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     return const AppEmptyStateCard(
       icon: Symbols.menu_book,
-      text: 'Belum ada buku yang dipublikasikan.',
+      text: 'Belum ada buku yang tersedia saat ini.',
     );
   }
 }
